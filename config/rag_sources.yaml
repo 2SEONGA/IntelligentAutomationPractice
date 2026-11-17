@@ -1,0 +1,13 @@
+# Public notice records paired with the original RFP PDFs in data/input.
+# The downloaded G2B attachments are kept as distinct source versions; this
+# manifest does not claim that a local original is byte-identical to them.
+cases:
+  - notice_no: R26BK01747679
+    notice_order: "000"
+    title_alias: "통합정보시스템 고도화 구축"
+  - notice_no: R26BK01762350
+    notice_order: "000"
+    title_alias: "AI 영상 기반 상수도관 노후도 분석"
+  - notice_no: R26BK01751619
+    notice_order: "000"
+    title_alias: "임상연구정보검색시스템(CDW) 구축"

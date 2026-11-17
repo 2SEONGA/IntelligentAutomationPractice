@@ -1,0 +1,320 @@
+{
+  "company_name": "㈜아이티센엔텍",
+  "former_name": "쌍용정보통신 주식회사",
+  "evidence_scope": "공개 웹사이트 및 한국거래소 전자공시에서 확인한 사전 검토용 자료",
+  "usage_rule": "이 파일은 공개 근거 기반의 사전 적합성 분석용이다. 개별 입찰의 참가자격, 유사실적 인정, 인증 유효성, 투입인력 가능 여부는 원본 증빙을 별도로 확인해야 하며, 이 파일만으로 충족 판정을 내려서는 안 된다.",
+  "entity_boundary_rule": "아이티센 그룹 또는 자회사 자료를 ㈜아이티센엔텍의 단독 역량ㆍ실적으로 자동 인정하지 않는다. 각 record는 수행 법인과 역할이 ㈜아이티센엔텍으로 확인된 경우에만 매칭 근거로 사용한다.",
+  "sources": [
+    {
+      "id": "SRC-001",
+      "title": "ITCEN ENTEC 회사소개",
+      "publisher": "ITCEN ENTEC",
+      "url": "https://itcenentec.com/entec/aboutUs/page.do",
+      "source_type": "official_website"
+    },
+    {
+      "id": "SRC-002",
+      "title": "사업보고서 (2025년 12월 31일 기준)",
+      "publisher": "한국거래소 KIND",
+      "url": "https://kind.krx.co.kr/external/2026/03/18/002340/20260318010956/11011.htm",
+      "source_type": "official_disclosure"
+    },
+    {
+      "id": "SRC-003",
+      "title": "분기보고서 (2026년 3월 31일 기준)",
+      "publisher": "한국거래소 KIND",
+      "url": "https://kind.krx.co.kr/external/2026/05/14/001372/20260514002988/11013.htm",
+      "source_type": "official_disclosure"
+    },
+    {
+      "id": "SRC-004",
+      "title": "엔터프라이즈 서비스 소개",
+      "publisher": "ITCEN ENTEC",
+      "url": "https://itcenentec.com/user/offerings/BD_productView.do?q_productSn=6",
+      "source_type": "official_website"
+    },
+    {
+      "id": "SRC-005",
+      "title": "부산 스마트양식 빅데이터센터 구축 착수 보도자료",
+      "publisher": "ITCEN ENTEC",
+      "url": "https://itcenentec.com/user/bbs/BD_selectBbs.do?q_bbsDocNo=20260126104857068&q_bbsSn=1020",
+      "source_type": "official_press_release"
+    },
+    {
+      "id": "SRC-006",
+      "title": "신한은행 법무자금결제시스템 재구축 보도자료",
+      "publisher": "ITCEN ENTEC",
+      "url": "https://itcenentec.com/user/bbs/BD_selectBbs.do?q_bbsDocNo=20260306165101543&q_bbsSn=1020",
+      "source_type": "official_press_release"
+    },
+    {
+      "id": "SRC-007",
+      "title": "2025년 기말 재무정보",
+      "publisher": "ITCEN ENTEC",
+      "url": "https://itcenentec.com/investInfo/financeInfo/page.do",
+      "source_type": "official_website"
+    },
+    {
+      "id": "SRC-008",
+      "title": "분기보고서 (2026년 9월 30일 기준; 2026-11-12 접수)",
+      "publisher": "금융감독원 DART",
+      "url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261112000355",
+      "source_type": "official_disclosure",
+      "verification_status": "접수번호와 회사별 공시 목록은 확인했으나 원문 열람 실패; 수치 미반영"
+    }
+  ],
+  "records": [
+    {
+      "id": "CAP-LEGAL-001",
+      "type": "법인기본정보",
+      "title": "법인명 및 구 상호",
+      "keywords": [
+        "아이티센엔텍",
+        "쌍용정보통신",
+        "법인명",
+        "상호변경"
+      ],
+      "source_id": "SRC-002",
+      "section": "회사의 법적ㆍ상업적 명칭 및 연혁",
+      "excerpt": "2024년 12월 19일 임시주주총회 승인에 따라 쌍용정보통신 주식회사에서 주식회사 아이티센엔텍으로 상호를 변경했다고 공시되어 있다.",
+      "evidence_level": "official_disclosure",
+      "bid_use": "입찰 참가 법인명과 구 상호 검색어를 확인하는 참고 근거",
+      "verification_required": "나라장터 입찰참가자격, 사업자등록번호, 입찰참가 제한 여부는 별도 확인 필요"
+    },
+    {
+      "id": "CAP-TECH-001",
+      "type": "사업역량",
+      "title": "정보시스템 구축ㆍ운영 및 클라우드 전환 사업영역",
+      "keywords": [
+        "공공 SI",
+        "정보시스템",
+        "DX",
+        "ITO",
+        "클라우드",
+        "유지보수"
+      ],
+      "source_id": "SRC-003",
+      "section": "사업의 내용",
+      "excerpt": "공시에는 정보시스템 기획ㆍ설계ㆍ구축ㆍ운영, 통합인프라 시스템 구축, IT시스템 운영 및 유지보수, 클라우드 전환ㆍ구축 컨설팅과 클라우드 네이티브 응용 구축ㆍ운영이 주요 사업으로 기재되어 있다.",
+      "evidence_level": "official_disclosure",
+      "bid_use": "RFP의 일반적인 시스템 구축ㆍ운영ㆍ클라우드 요구와의 1차 키워드 매칭 근거",
+      "verification_required": "특정 RFP의 세부 기술요건 충족 여부와 실제 적용 경험은 프로젝트별 원본 증빙 필요"
+    },
+    {
+      "id": "CAP-CERT-001",
+      "type": "인증및지식재산",
+      "title": "공개된 품질ㆍ보안ㆍIT서비스 관리 인증",
+      "keywords": [
+        "CMMI Level 3",
+        "ISO 9001",
+        "ISO 27001",
+        "ISO 20000",
+        "ISO 14001"
+      ],
+      "source_id": "SRC-001",
+      "section": "최고의 전문성을 갖추었습니다",
+      "excerpt": "공식 회사소개는 CMMI Level 3, ISO 9001, ISO 27001, ISO 20000, ISO 14001 인증을 보유했다고 안내한다.",
+      "evidence_level": "official_website",
+      "bid_use": "인증 요구 가능성이 있는 RFP의 사전 검토 참고 근거",
+      "verification_required": "입찰 제출용으로는 인증서 원본, 인증 범위, 유효기간을 반드시 확인"
+    },
+    {
+      "id": "CAP-PROJECT-001",
+      "type": "공개수행실적",
+      "title": "HUG 차세대 정보시스템 구축",
+      "keywords": [
+        "HUG",
+        "주택도시보증공사",
+        "차세대 정보시스템",
+        "공공 SI"
+      ],
+      "source_id": "SRC-002",
+      "section": "진행률적용 수주계약 현황",
+      "client": "주택도시보증공사",
+      "contract_date": "2024-12-13",
+      "contract_end_date": "2027-06-01",
+      "contract_amount_krw": 30478618000,
+      "excerpt": "공시의 진행률적용 수주계약 현황에 ㈜아이티센엔텍의 HUG 차세대 정보시스템 구축 사업, 발주처 주택도시보증공사, 계약일ㆍ완료일 및 수주총액이 기재되어 있다.",
+      "evidence_level": "official_disclosure",
+      "bid_use": "대규모 공공 정보시스템 구축 유사성의 사전 검토 근거",
+      "verification_required": "유사실적 인정 범위, 주사업자 여부, 세부 수행범위는 실적증명서 또는 계약서 확인 필요",
+      "reported_progress_percent": 60.81,
+      "reported_progress_as_of": "2026-03-31",
+      "reported_progress_source_id": "SRC-003",
+      "progress_interpretation": "분기보고서에 기재된 계약 진행률이다. 검수·완료 확인서 또는 입찰용 실적증명서를 대신하지 않는다."
+    },
+    {
+      "id": "CAP-PROJECT-002",
+      "type": "공개수행실적",
+      "title": "디지털 대전환을 위한 통합징수 정보시스템 재구축 사업",
+      "keywords": [
+        "국민건강보험공단",
+        "통합징수",
+        "정보시스템 재구축",
+        "공공 SI"
+      ],
+      "source_id": "SRC-002",
+      "section": "진행률적용 수주계약 현황",
+      "client": "국민건강보험공단",
+      "contract_date": "2025-07-01",
+      "contract_end_date": "2027-12-31",
+      "contract_amount_krw": 28881818000,
+      "excerpt": "공시의 진행률적용 수주계약 현황에 ㈜아이티센엔텍의 통합징수 정보시스템 재구축 사업, 발주처 국민건강보험공단, 계약일ㆍ완료일 및 수주총액이 기재되어 있다.",
+      "evidence_level": "official_disclosure",
+      "bid_use": "공공 업무시스템 재구축 유사성의 사전 검토 근거",
+      "verification_required": "유사실적 인정 범위와 세부 사업범위는 실적증명서 또는 계약서 확인 필요",
+      "reported_progress_percent": 37.31,
+      "reported_progress_as_of": "2026-03-31",
+      "reported_progress_source_id": "SRC-003",
+      "progress_interpretation": "분기보고서에 기재된 계약 진행률이다. 검수·완료 확인서 또는 입찰용 실적증명서를 대신하지 않는다."
+    },
+    {
+      "id": "CAP-PROJECT-003",
+      "type": "공개수행실적",
+      "title": "KCTC 여단급 과학화전투훈련체계 경미한 성능개량",
+      "keywords": [
+        "방위사업청",
+        "KCTC",
+        "과학화전투훈련체계",
+        "국방 IT"
+      ],
+      "source_id": "SRC-002",
+      "section": "진행률적용 수주계약 현황",
+      "client": "방위사업청",
+      "contract_date": "2025-08-12",
+      "contract_end_date": "2027-08-11",
+      "contract_amount_krw": 44172727000,
+      "excerpt": "공시의 진행률적용 수주계약 현황에 ㈜아이티센엔텍의 KCTC 여단급 과학화전투훈련체계 경미한 성능개량 사업, 발주처 방위사업청, 계약일ㆍ완료일 및 수주총액이 기재되어 있다.",
+      "evidence_level": "official_disclosure",
+      "bid_use": "대규모 공공ㆍ국방 시스템 구축 경험의 사전 검토 근거",
+      "verification_required": "해당 입찰의 유사실적 요건 충족 여부는 발주처 실적증명서로 확인 필요",
+      "reported_progress_percent": 24.59,
+      "reported_progress_as_of": "2026-03-31",
+      "reported_progress_source_id": "SRC-003",
+      "progress_interpretation": "분기보고서에 기재된 계약 진행률이다. 검수·완료 확인서 또는 입찰용 실적증명서를 대신하지 않는다."
+    },
+    {
+      "id": "CAP-PROJECT-004",
+      "type": "공개수행실적",
+      "title": "5기 복권 수탁사업자 복권시스템 구축(2차년도)",
+      "keywords": [
+        "동행복권",
+        "복권시스템",
+        "시스템 구축"
+      ],
+      "source_id": "SRC-002",
+      "section": "진행률적용 수주계약 현황",
+      "client": "주식회사 동행복권",
+      "contract_date": "2025-01-01",
+      "contract_end_date": "2026-01-31",
+      "contract_amount_krw": 23952982000,
+      "excerpt": "공시의 진행률적용 수주계약 현황에 ㈜아이티센엔텍의 복권시스템 구축 사업, 발주처 동행복권, 계약일ㆍ완료일 및 수주총액이 기재되어 있다.",
+      "evidence_level": "official_disclosure",
+      "bid_use": "대규모 업무시스템 구축 경험의 사전 검토 근거",
+      "verification_required": "공공기관 유사실적으로 인정되는지와 세부 수행범위는 원본 증빙 필요",
+      "reported_progress_percent": 100.0,
+      "reported_progress_as_of": "2026-03-31",
+      "reported_progress_source_id": "SRC-003",
+      "progress_interpretation": "분기보고서에 기재된 계약 진행률이다. 검수·완료 확인서 또는 입찰용 실적증명서를 대신하지 않는다."
+    },
+    {
+      "id": "CAP-TECH-002",
+      "type": "공개기술역량",
+      "title": "시스템 통합ㆍ클라우드 전환ㆍ데이터 전환 역량",
+      "keywords": [
+        "SI",
+        "클라우드 전환",
+        "API",
+        "데이터 마이그레이션",
+        "ETL",
+        "CDC",
+        "데이터 품질"
+      ],
+      "source_id": "SRC-004",
+      "section": "엔터프라이즈 사업 소개",
+      "excerpt": "공식 서비스 페이지는 시스템 통합, 클라우드 이관, APIㆍ데이터 연계, 대용량 DB 정합성 및 데이터 마이그레이션, ETLㆍ실시간 CDCㆍ데이터 품질 Rule 기반 검증 역량을 소개한다.",
+      "evidence_level": "official_website",
+      "bid_use": "시스템 연계, 데이터 전환, 클라우드 전환 요구사항의 사전 키워드 매칭 근거",
+      "verification_required": "서비스 소개는 홍보성 공개자료이므로 특정 기술요건 충족 판정에는 실제 프로젝트 산출물ㆍ수행실적 또는 기술 증빙이 필요"
+    },
+    {
+      "id": "CAP-PROJECT-005",
+      "type": "공개수행실적",
+      "title": "스마트양식 빅데이터센터 구축",
+      "keywords": [
+        "스마트양식",
+        "빅데이터센터",
+        "AI",
+        "데이터 플랫폼",
+        "공공사업",
+        "컨소시엄"
+      ],
+      "source_id": "SRC-005",
+      "section": "아이티센엔텍, 부산 스마트양식 빅데이터센터 구축 착수",
+      "project_role": "컨소시엄 대표 사업자",
+      "estimated_contract_amount_krw_approx": 10000000000,
+      "contract_period_months": 18,
+      "excerpt": "공식 보도자료는 아이티센엔텍이 스마트양식 빅데이터센터 구축 용역의 컨소시엄 대표 사업자로 선정되어 계약을 체결했으며, 사업이 약 100억원 규모이고 18개월간 수행된다고 안내한다.",
+      "evidence_level": "official_press_release",
+      "bid_use": "AIㆍ빅데이터ㆍ데이터센터 구축과 공공 성격 사업 경험의 사전 매칭 근거",
+      "verification_required": "발주처, 정확한 계약금액, 세부 수행범위, 유사실적 인정 가능 여부는 계약서 또는 발주처 실적증명서 확인 필요"
+    },
+    {
+      "id": "CAP-PROJECT-006",
+      "type": "공개수행실적",
+      "title": "신한은행 법무자금결제시스템 재구축",
+      "keywords": [
+        "신한은행",
+        "금융 시스템",
+        "시스템 재구축",
+        "Java",
+        "AI 개발방법론",
+        "sLLM"
+      ],
+      "source_id": "SRC-006",
+      "section": "아이티센엔텍, AI 기반 신한은행 법무자금결제시스템 재구축",
+      "client": "신한은행",
+      "contract_period": "2026년 2월 ~ 2026년 10월 (공식 보도자료 기준)",
+      "excerpt": "공식 보도자료는 아이티센엔텍이 신한은행 법무자금결제시스템 재구축 사업을 수주했고, 기존 업무 프로세스와 코드를 최신 Java 환경으로 재구축하며 AI 개발방법론과 구축형 sLLM 기반 솔루션을 적용한다고 안내한다.",
+      "evidence_level": "official_press_release",
+      "bid_use": "금융 업무시스템 재구축, Java 기반 개발 및 AI 활용 개발방법론의 사전 매칭 근거",
+      "verification_required": "공공 유사실적 인정 여부, 계약금액, 실제 수행범위 및 완료 여부는 원본 증빙 필요"
+    },
+    {
+      "id": "CAP-FINANCE-001",
+      "type": "재무참고정보",
+      "title": "2025년 기말 연결재무 하이라이트",
+      "keywords": [
+        "재무정보",
+        "매출액",
+        "영업이익",
+        "당기순이익",
+        "자산",
+        "자본"
+      ],
+      "source_id": "SRC-007",
+      "section": "2025년 기말 재무 하이라이트 및 요약연결재무정보",
+      "financial_basis": "연결재무제표 기준, 2025년 12월 말",
+      "revenue_krw": 572026600945,
+      "operating_income_krw": 20871338299,
+      "net_income_krw": 21994420714,
+      "total_assets_krw": 319596832538,
+      "total_equity_krw": 99119956817,
+      "excerpt": "공식 재무정보 페이지는 2025년 기말 연결 기준 매출액 572,026,600,945원, 영업이익 20,871,338,299원, 당기순이익 21,994,420,714원, 자산총계 319,596,832,538원, 자본총계 99,119,956,817원을 안내한다.",
+      "evidence_level": "official_website",
+      "bid_use": "기업 규모와 재무 안정성의 사전 검토 참고 근거",
+      "verification_required": "입찰 공고의 신용등급ㆍ매출액ㆍ자본금 요건 판단에는 공고가 요구하는 기준(별도/연결)과 최신 재무제표 또는 신용평가서 확인 필요 2026년 3분기 보고서의 공식 원문과 별도/연결 범위 확인 후 갱신 필요.",
+      "financial_period_end": "2025-12-31",
+      "accounting_scope": "consolidated",
+      "data_freshness": "latest_filing_pending_primary_source_review",
+      "candidate_refresh_source_id": "SRC-008"
+    }
+  ],
+  "missing_evidence": [
+    "나라장터 경쟁입찰참가자격 및 관련 신고ㆍ등록의 최신 상태",
+    "입찰참가 제한 또는 영업정지 여부",
+    "RFP별 유사실적 인정에 필요한 발주처 실적증명서와 세부 수행범위",
+    "제안 투입인력의 경력, 기술등급, 재직 및 실제 투입 가능 여부",
+    "인증서 원본, 적용 범위 및 유효기간"
+  ]
+}

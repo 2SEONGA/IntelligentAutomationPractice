@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01793718",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "디지털서비스_근남정보기술 _근남정보기술 Naver Works for 네이버클라우드(SaaS)",
+  "ntceInsttNm": "조달청",
+  "dminsttNm": "각 수요기관",
+  "asignBdgtAmt": "3000000000",
+  "presmptPrce": "2727272727",
+  "bidClseDt": "2026-10-29 11:00:00",
+  "bidNtceDt": "2026-10-28 17:16:09",
+  "cntrctCnclsMthdNm": "수의계약",
+  "sucsfbidMthdNm": "수의시담-수의시담(카탈로그-3자단가)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01793718&bidPbancOrd=000",
+  "notice_id": "R26BK01793718-000",
+  "rfp_attachment": {
+    "name": "근남정보기술 Naver Works for 네이버클라우드(SaaS) 카탈로그.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01793718&bidPbancOrd=000&fileType=&fileSeq=6&prcmBsneSeCd=03",
+    "sha256": "54dd491e454a6aa9e0374206b9693375c677799b18e0a3820501183d17f914a0"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:45:26+09:00"
+}

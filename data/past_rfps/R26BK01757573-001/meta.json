@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01757573",
+  "bidNtceOrd": "001",
+  "bidNtceNm": "대신대학교 차세대 학사지원시스템 구축사업",
+  "ntceInsttNm": "대신대학교",
+  "dminsttNm": "대신대학교",
+  "asignBdgtAmt": "100000000",
+  "presmptPrce": "90909091",
+  "bidClseDt": "2026-10-23 15:00:00",
+  "bidNtceDt": "2026-10-12 14:26:06",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(엔지니어링)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01757573&bidPbancOrd=001",
+  "notice_id": "R26BK01757573-001",
+  "rfp_attachment": {
+    "name": "대신대학교 차세대 학사지원시스템 구축사업 제안요청서.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01757573&bidPbancOrd=001&fileType=&fileSeq=1&prcmBsneSeCd=05",
+    "sha256": "e276b8dfbfeb106926e567a1238bc772cc998a7082b0f50d89cbbeec6e9a1ba4"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:45:56+09:00"
+}

@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01771989",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "디지털서비스_한전케이디엔_K-ECP 에너지산업 공공 클라우드 (IaaS)",
+  "ntceInsttNm": "조달청",
+  "dminsttNm": "각 수요기관",
+  "asignBdgtAmt": "5500000000",
+  "presmptPrce": "5000000000",
+  "bidClseDt": "2026-10-16 11:00:00",
+  "bidNtceDt": "2026-10-15 15:14:56",
+  "cntrctCnclsMthdNm": "수의계약",
+  "sucsfbidMthdNm": "수의시담-수의시담(카탈로그-3자단가)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01771989&bidPbancOrd=000",
+  "notice_id": "R26BK01771989-000",
+  "rfp_attachment": {
+    "name": "카탈로그_한전KDN IaaS.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01771989&bidPbancOrd=000&fileType=&fileSeq=1&prcmBsneSeCd=03",
+    "sha256": "a7c3829d317960b38b9f6e00902a081bc3f6e0ef36db6048d48e0cd67f4db6ca"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:45:50+09:00"
+}

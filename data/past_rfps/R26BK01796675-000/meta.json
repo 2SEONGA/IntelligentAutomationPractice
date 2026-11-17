@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01796675",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "동강대학교 차세대 학생역량통합관리·학습경험관리(LXP) 통합플랫폼 구축 용역",
+  "ntceInsttNm": "동강대학 산학협력단",
+  "dminsttNm": "동강대학 산학협력단",
+  "asignBdgtAmt": "160000000",
+  "presmptPrce": "145454545",
+  "bidClseDt": "2026-11-09 16:00:00",
+  "bidNtceDt": "2026-10-28 15:39:44",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01796675&bidPbancOrd=000",
+  "notice_id": "R26BK01796675-000",
+  "rfp_attachment": {
+    "name": "붙임3. [제안요청서] 동강대학교 학생역량통합관리·학습경험관리(LXP) 통합플랫폼.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01796675&bidPbancOrd=000&fileType=&fileSeq=3&prcmBsneSeCd=03",
+    "sha256": "b7a867d5fe3f2648d1838ffd1f0ca8a97b9a39a65be51a07a7be4df1d4a54363"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:45:27+09:00"
+}

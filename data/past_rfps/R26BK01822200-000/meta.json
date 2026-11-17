@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01822200",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "2027~2028년 수용가정보시스템 및 사이버민원센터 유지관리 용역(긴급) ",
+  "ntceInsttNm": "인천광역시 상수도사업본부",
+  "dminsttNm": "인천광역시 상수도사업본부",
+  "asignBdgtAmt": "1227710000",
+  "presmptPrce": "1116100000",
+  "bidClseDt": "2026-11-26 17:00:00",
+  "bidNtceDt": "2026-11-10 18:57:16",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01822200&bidPbancOrd=000",
+  "notice_id": "R26BK01822200-000",
+  "rfp_attachment": {
+    "name": "물품공급·기술지원 협약서(수용가정보시스템).pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01822200&bidPbancOrd=000&fileType=&fileSeq=4&prcmBsneSeCd=03",
+    "sha256": "81286a8dfaed998d61e37eb4663fecdc1343ebf04ac35624e73677b713302acb"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:44:49+09:00"
+}

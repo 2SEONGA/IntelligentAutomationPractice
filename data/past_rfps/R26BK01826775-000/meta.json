@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01826775",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "2027년 경남 마산로봇랜드 정보시스템 유지관리 용역",
+  "ntceInsttNm": "(재)경남로봇랜드재단",
+  "dminsttNm": "(재)경남로봇랜드재단",
+  "asignBdgtAmt": "225000000",
+  "presmptPrce": "204545455",
+  "bidClseDt": "2026-12-07 10:00:00",
+  "bidNtceDt": "2026-11-16 17:09:58",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01826775&bidPbancOrd=000",
+  "notice_id": "R26BK01826775-000",
+  "rfp_attachment": {
+    "name": "붙임 4 과업내용 (확정) 종합 심의결과서.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01826775&bidPbancOrd=000&fileType=&fileSeq=1&prcmBsneSeCd=03",
+    "sha256": "5a90e237f854f166afa94cf62aabdc82af58a699308d0a9f2c45e260455ed9a7"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:44:32+09:00"
+}

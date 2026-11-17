@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>M14 공고문 검증 화면 미리보기</title>
+  <style>
+    :root{font-family:Inter,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif;color:#172033;background:#f3f6fb;font-synthesis:none}
+    *{box-sizing:border-box}body{margin:0}.wrap{max-width:1060px;margin:32px auto;padding:0 20px 48px}.top,.card{background:#fff;border:1px solid #dce3ee;border-radius:16px;box-shadow:0 5px 18px #17203308}.top{padding:26px 28px}.eyebrow{color:#526784;font-size:13px;font-weight:700;letter-spacing:.04em}.row{display:flex;gap:12px;align-items:center;justify-content:space-between}.row.wrapline{flex-wrap:wrap}h1{font-size:26px;margin:8px 0}h2{font-size:18px;margin:0 0 14px}.muted{color:#65748b}.notice{margin-top:18px;padding:14px 16px;border:1px solid #e9bd66;background:#fff8e8;border-radius:11px;line-height:1.65}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:16px 0}.card{padding:19px}.metric{font-size:13px;color:#65748b}.value{font-size:17px;font-weight:700;margin:8px 0}.badge{display:inline-flex;align-items:center;border-radius:999px;padding:5px 10px;font-size:12px;font-weight:700;background:#fff1cf;color:#835500}.badge.ok{background:#e6f6ed;color:#187044}.badge.pending{background:#fff1cf;color:#835500}.badge.na{background:#edf1f6;color:#536174}.section{margin-top:16px}.claim{border:1px solid #e0e6ef;border-radius:12px;padding:16px;margin-top:10px}.claim p{line-height:1.6;margin:8px 0}.links{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}a{color:#075ec7;text-decoration:none;font-weight:650}a:hover{text-decoration:underline}.button{font:inherit;border:1px solid #ccd6e5;background:#fff;border-radius:9px;padding:8px 12px;cursor:pointer;color:#21334d}.evidence{display:none;margin-top:12px;padding:14px;background:#f7f9fc;border-radius:9px;line-height:1.65}.evidence.open{display:block}.quote{border-left:3px solid #8ba4c8;padding-left:12px;margin:10px 0;color:#303f55}.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.step{background:#f7f9fc;border-radius:10px;padding:13px;font-size:13px;line-height:1.55}.step strong{display:block;margin-bottom:5px}.foot{font-size:12px;line-height:1.6;color:#65748b;margin:18px 4px}@media(max-width:760px){.grid{grid-template-columns:1fr}.steps{grid-template-columns:1fr 1fr}.top{padding:20px}}
+  </style>
+</head>
+<body>
+<main class="wrap">
+  <header class="top">
+    <div class="eyebrow">T1.5 · 원문 기반 핵심정보 검토 · 화면 미리보기</div>
+    <div class="row wrapline"><div><h1>상수도관 노후도 분석</h1><div class="muted">공고번호 R26BK01762350 · 공고 차수 000</div></div><span class="badge pending">공고문 PDF 확인 대기</span></div>
+    <div class="notice"><strong>이 화면은 M14 UI 미리보기입니다.</strong><br>기존 상수도관 실행 폴더에서 `notice.pdf`를 찾지 못해, 새 공고문 추출 결과를 표시할 수 없습니다. 따라서 제안서 제출기한은 확인 완료로 처리하지 않았습니다. 기존 실행 결과를 바꾸거나 실제 검증이 끝난 것처럼 표시하지 않습니다.</div>
+    <div class="links"><a href="../../../data/input/AI%20%EC%98%81%EC%83%81%20%EA%B8%B0%EB%B0%98%20%EC%83%81%EC%88%98%EB%8F%84%EA%B4%80%20%EB%85%B8%ED%9B%84%EB%8F%84%20%EB%B6%84%EC%84%9D%20%EB%B0%8F%20GIS%20%EC%97%B0%EB%8F%99%20%EC%86%8C%ED%94%84%ED%8A%B8%EC%9B%A8%EC%96%B4%20%EA%B0%9C%EB%B0%9C%20%EC%9A%A9%EC%97%AD.pdf" target="_blank" rel="noopener">제공된 RFP PDF 열기 ↗</a><a href="https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01762350&amp;bidPbancOrd=000" target="_blank" rel="noopener">G2B 공고 상세 열기 ↗</a></div>
+  </header>
+
+  <section class="grid" aria-label="항목별 검토 상태">
+    <article class="card"><div class="metric">사업금액</div><div class="value">일부 확인 · 교차출처 보류</div><span class="badge pending">배정예산 출처 대조 필요</span><p class="muted">RFP 사업금액과 G2B API 배정예산은 금액 종류·VAT 기준을 구분해 확인해야 합니다.</p></article>
+    <article class="card"><div class="metric">참가자격</div><div class="value">담당자 확인 완료</div><span class="badge ok">기존 판정</span><p class="muted">사용자가 원문 대조를 완료한 판정입니다. 이번 미리보기에서 새로 검증한 것은 아닙니다.</p></article>
+    <article class="card"><div class="metric">기간·기한</div><div class="value">계약기간 확인 · 제출기한 보류</div><span class="badge pending">공고문 원문 필요</span><p class="muted">`bidClseDt` 입찰 마감은 제안서 제출기한의 대체값으로 사용하지 않습니다.</p></article>
+  </section>
+
+  <section class="card section">
+    <div class="row wrapline"><h2>제안서 제출기한</h2><span class="badge na">공고문 PDF 미제공 · 추출 미실행</span></div>
+    <p>첨부 공고문 PDF가 연결되면 T1 추출 인용, 페이지 번호, 해당 PDF 페이지 링크가 여기에 표시됩니다. 추출된 날짜는 일정 유형과 시각을 담당자가 확인하기 전까지 자동 승인되지 않습니다.</p>
+    <button class="button" type="button" aria-expanded="false" aria-controls="evidence" onclick="toggleEvidence(this)">표시될 근거 형식 보기</button>
+    <div class="evidence" id="evidence"><strong>공고문 PDF · 페이지 citation 예시 형식</strong><div class="quote">공고문 PDF에서 추출한 제안서 제출 관련 문장이 이 위치에 표시됩니다. 실제 첨부와 실행 결과가 없어 예시 문구를 실제 인용처럼 제시하지 않습니다.</div><span class="badge na">실제 인용 없음</span></div>
+  </section>
+
+  <section class="card section">
+    <h2>M14 처리 흐름</h2>
+    <div class="steps"><div class="step"><strong>1 · 첨부 저장</strong>원 URL, 공고번호·차수, 다운로드 시각, SHA-256 기록</div><div class="step"><strong>2 · 별도 추출</strong>공고문 PDF를 RFP와 구분해 페이지별 분석</div><div class="step"><strong>3 · 교차검토</strong>제안서 제출기한 후보와 RFP 후보 비교</div><div class="step"><strong>4 · 담당자 확인</strong>인용 페이지에서 일정 종류·날짜·시각 직접 검토</div></div>
+  </section>
+  <p class="foot">정적 미리보기 · 실제 LangGraph 실행 결과 화면이 아닙니다. 실제 결과 확인에는 공고문 PDF가 포함된 검토 실행이 필요합니다. 입찰 마감과 제안서 제출기한은 별도 항목으로 취급합니다.</p>
+</main>
+<script>function toggleEvidence(button){const box=document.getElementById('evidence');const open=box.classList.toggle('open');button.setAttribute('aria-expanded',String(open));button.textContent=open?'근거 형식 닫기':'표시될 근거 형식 보기';}</script>
+</body>
+</html>

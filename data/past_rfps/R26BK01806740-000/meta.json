@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01806740",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "베트남 의료기기정보시스템 구축 (품목관리시스템 구축)",
+  "ntceInsttNm": "(사)한국의료기기산업협회",
+  "dminsttNm": "(사)한국의료기기산업협회",
+  "asignBdgtAmt": "850000000",
+  "presmptPrce": "772727273",
+  "bidClseDt": "2026-11-19 17:00:00",
+  "bidNtceDt": "2026-11-03 14:20:21",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01806740&bidPbancOrd=000",
+  "notice_id": "R26BK01806740-000",
+  "rfp_attachment": {
+    "name": "제안요청서_베트남 의료기기정보시스템 구축.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01806740&bidPbancOrd=000&fileType=&fileSeq=2&prcmBsneSeCd=03",
+    "sha256": "53aaee22a3402edf1d298833a036e1aedc71ad46e0703603c449f4bed052fadf"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:45:12+09:00"
+}

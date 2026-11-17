@@ -1,0 +1,82 @@
+"""Rule filter for collected G2B bid notices (config/notice_filter.yaml).
+
+Strongest verdict wins: 제외 > 확인 필요 > 검토 대상. A missing value never excludes; it asks a person.
+"""
+from __future__ import annotations
+
+from datetime import datetime, timedelta
+
+VERDICTS = ("검토 대상", "확인 필요", "제외")
+EOK = 100_000_000
+
+
+def amount_of(notice: dict) -> int | None:
+    for field in ("asignBdgtAmt", "presmptPrce"):
+        try:
+            value = int(float(notice.get(field) or 0))
+        except ValueError:
+            continue
+        if value > 0:
+            return value
+    return None
+
+
+def _amount(notice: dict, rules: dict) -> tuple[str, str]:
+    amount = amount_of(notice)
+    minimum = rules["min_amount_krw"]
+    if amount is None:
+        return "확인 필요", "사업금액 없음"
+    if amount < minimum:
+        return "제외", f"{minimum // EOK}억 미만({amount / EOK:,.1f}억)"
+    return "검토 대상", f"사업금액 {amount / EOK:,.1f}억"
+
+
+def _deadline(notice: dict, rules: dict, now: datetime) -> tuple[str, str]:
+    raw = (notice.get("bidClseDt") or "").strip()
+    try:
+        deadline = datetime.strptime(raw[:16], "%Y-%m-%d %H:%M")
+    except ValueError:
+        return "확인 필요", "마감일 없음"
+    if deadline < now:
+        return "제외", "마감 지남"
+    if deadline - now <= timedelta(days=rules["deadline_warn_days"]):
+        return "확인 필요", f"마감 임박({raw[:10]})"
+    return "검토 대상", f"마감 {raw[:10]}"
+
+
+def _field(notice: dict, rules: dict) -> tuple[str, str]:
+    category = (notice.get("pubPrcrmntLrgClsfcNm") or "").strip()
+    if category:
+        return ("검토 대상", category) if category in rules["ict_classes"] else ("제외", f"ICT 분야 아님({category})")
+    hit = next((k for k in rules["field_keywords"] if k in (notice.get("bidNtceNm") or "")), None)
+    return ("검토 대상", f"공고명 키워드 '{hit}'") if hit else ("제외", "분류 없음·키워드 불일치")
+
+
+def _contract(notice: dict, rules: dict) -> tuple[str, str]:
+    text = f"{notice.get('cntrctCnclsMthdNm') or ''} {notice.get('sucsfbidMthdNm') or ''}"
+    hit = next((t for t in rules["exclude_contract_terms"] if t in text), None)
+    return ("제외", f"계약방법 {hit}") if hit else ("검토 대상", (notice.get("cntrctCnclsMthdNm") or "").strip())
+
+
+def _conditions(notice: dict, rules: dict) -> tuple[str, str]:
+    found = [t for t in rules["confirm_contract_terms"] if t in (notice.get("cntrctCnclsMthdNm") or "")]
+    for flag in rules["confirm_flags"]:
+        value = (notice.get(flag["field"]) or "").strip()
+        if (flag["when"] == "nonempty" and value) or value == flag["when"]:
+            found.append(flag["label"])
+    return ("확인 필요", f"{'·'.join(found)} — 공고문 원문 확인") if found else ("검토 대상", "참가 조건 제한 없음")
+
+
+def judge(notice: dict, rules: dict, now: datetime) -> dict:
+    results = {
+        "amount": _amount(notice, rules),
+        "deadline": _deadline(notice, rules, now),
+        "field": _field(notice, rules),
+        "contract": _contract(notice, rules),
+        "conditions": _conditions(notice, rules),
+    }
+    verdict = max((v for v, _ in results.values()), key=VERDICTS.index)
+    reasons = [reason for v, reason in results.values() if v != "검토 대상"] or ["모든 규칙 통과"]
+    return {"verdict": verdict, "reasons": reasons,
+            "rules": {name: {"verdict": v, "reason": r} for name, (v, r) in results.items()},
+            "amount_krw": amount_of(notice), "deadline": (notice.get("bidClseDt") or "").strip() or None}

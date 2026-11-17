@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01774120",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "AI 응용제품 신속 상용화(만성질환관리)_AI Scribe 솔루션 도입 및 실증 운영 지원 용역",
+  "ntceInsttNm": "주식회사 메라키플레이스",
+  "dminsttNm": "주식회사 메라키플레이스",
+  "asignBdgtAmt": "77000000",
+  "presmptPrce": "70000000",
+  "bidClseDt": "2026-10-23 11:00:00",
+  "bidNtceDt": "2026-10-19 18:07:09",
+  "cntrctCnclsMthdNm": "수의계약",
+  "sucsfbidMthdNm": "소액수의견적-소액수의견적(1인 견적제출 허용)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01774120&bidPbancOrd=000",
+  "notice_id": "R26BK01774120-000",
+  "rfp_attachment": {
+    "name": "02_과업지시서_AIScribe_261015.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01774120&bidPbancOrd=000&fileType=&fileSeq=4&prcmBsneSeCd=03",
+    "sha256": "4fb3f1a45b80a89eb62d28682dfd5abfba0d60fdc67c460c154a13442da068f8"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:45:46+09:00"
+}

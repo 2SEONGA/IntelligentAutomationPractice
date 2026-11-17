@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01830978",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "2027년 기록관리 정보시스템 통합 유지보수 용역",
+  "ntceInsttNm": "경상북도",
+  "dminsttNm": "경상북도",
+  "asignBdgtAmt": "75827000",
+  "presmptPrce": "68933636",
+  "bidClseDt": "2026-11-24 10:00:00",
+  "bidNtceDt": "2026-11-15 19:38:11",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "적격심사제-관리규정외 수기심사(총점입력)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01830978&bidPbancOrd=000",
+  "notice_id": "R26BK01830978-000",
+  "rfp_attachment": {
+    "name": "과업지시서[2027년 기록관리 정보시스템 통합 유지보수 용역].pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01830978&bidPbancOrd=000&fileType=&fileSeq=4&prcmBsneSeCd=03",
+    "sha256": "3b5ba76bcaedbb0e7242ff55dd985c610758816da17829715ec4d407e63d4cee"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:44:37+09:00"
+}

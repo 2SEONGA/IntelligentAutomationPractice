@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01753732",
+  "bidNtceOrd": "001",
+  "bidNtceNm": "2026년 스포츠테크 프로젝트 클라우드형 GPU서비스 임차",
+  "ntceInsttNm": "(주)하마랩",
+  "dminsttNm": "(주)하마랩",
+  "asignBdgtAmt": "148600000",
+  "presmptPrce": "135090909",
+  "bidClseDt": "2026-10-13 10:00:00",
+  "bidNtceDt": "2026-10-07 10:03:40",
+  "cntrctCnclsMthdNm": "일반경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01753732&bidPbancOrd=001",
+  "notice_id": "R26BK01753732-001",
+  "rfp_attachment": {
+    "name": "제안요청서.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01753732&bidPbancOrd=001&fileType=&fileSeq=4&prcmBsneSeCd=03",
+    "sha256": "45ebfffd50d3a1f8da2ec11a418cb24366b05e2b209fba94c044d4fe6f1a560f"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:46:02+09:00"
+}

@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01785431",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "AI 서비스 수요처 모집 및 매칭 플랫폼 구축 용역",
+  "ntceInsttNm": "재단법인 포항테크노파크",
+  "dminsttNm": "재단법인 포항테크노파크",
+  "asignBdgtAmt": "35000000",
+  "presmptPrce": "31818182",
+  "bidClseDt": "",
+  "bidNtceDt": "2026-10-22 17:13:18",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01785431&bidPbancOrd=000",
+  "notice_id": "R26BK01785431-000",
+  "rfp_attachment": {
+    "name": "[붙임2] 과업지시서.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01785431&bidPbancOrd=000&fileType=&fileSeq=3&prcmBsneSeCd=03",
+    "sha256": "143d7b36430d10c45d64ba6574e06b80419c2366a6f0865f6f5eabd6d9731054"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:45:39+09:00"
+}

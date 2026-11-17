@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01798337",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "상용SW 3자단가(XIDE-AIMETA v1.0 (커스터마이징) (주)리얼허브)",
+  "ntceInsttNm": "조달청",
+  "dminsttNm": "각 수요기관",
+  "asignBdgtAmt": "1891250000",
+  "presmptPrce": "1719318182",
+  "bidClseDt": "2026-11-05 12:00:00",
+  "bidNtceDt": "2026-11-02 09:34:15",
+  "cntrctCnclsMthdNm": "수의계약",
+  "sucsfbidMthdNm": "수의시담-수의시담(상용SW-3자단가)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01798337&bidPbancOrd=000",
+  "notice_id": "R26BK01798337-000",
+  "rfp_attachment": {
+    "name": "1-6 (공통양식)커스터마이징상품_규격서_XIDE-AImeta.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01798337&bidPbancOrd=000&fileType=&fileSeq=5&prcmBsneSeCd=03",
+    "sha256": "c71a50bf5f021a5c5f217c5d993566182e116e000e762ba762316f127417c19b"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:45:18+09:00"
+}

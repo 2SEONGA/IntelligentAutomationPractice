@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01765824",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "온프레미스 기반 Multi-modal AI Agent 및 Graph RAG 시스템 구축",
+  "ntceInsttNm": "국립금오공과대학교산학협력단",
+  "dminsttNm": "국립금오공과대학교산학협력단",
+  "asignBdgtAmt": "95000000",
+  "presmptPrce": "86363636",
+  "bidClseDt": "2026-10-26 10:00:00",
+  "bidNtceDt": "2026-10-14 09:45:13",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01765824&bidPbancOrd=000",
+  "notice_id": "R26BK01765824-000",
+  "rfp_attachment": {
+    "name": "제안요청서(온프레미스 기반 Multi-modal AI Agent 및 Graph RAG 시스템 구축)_최종 (2).pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01765824&bidPbancOrd=000&fileType=&fileSeq=1&prcmBsneSeCd=03",
+    "sha256": "e3fbd457e3bad44a037f0b20f16d5efff89636722b9036fa95d249b3ea241643"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:45:53+09:00"
+}

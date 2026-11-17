@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01811555",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "[K-Health 국민의료 AI서비스] 거점병원 통합CDW 구축을 위한 임상 데이터 마이그레이션",
+  "ntceInsttNm": "조선대학교병원",
+  "dminsttNm": "조선대학교병원",
+  "asignBdgtAmt": "300000000",
+  "presmptPrce": "272727273",
+  "bidClseDt": "2026-11-16 12:00:00",
+  "bidNtceDt": "2026-11-05 10:19:34",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "적격심사제-소프트웨어용역(중소기업자간 경쟁제품 대상) 적격심사 추정가격 5억원 미만",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01811555&bidPbancOrd=000",
+  "notice_id": "R26BK01811555-000",
+  "rfp_attachment": {
+    "name": "3.과업지시서.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01811555&bidPbancOrd=000&fileType=&fileSeq=4&prcmBsneSeCd=03",
+    "sha256": "aa43b3a89862c50cb8b6d96bbb0ad36f7701b8693f4c5080d86949bc5d9e43b7"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:45:06+09:00"
+}

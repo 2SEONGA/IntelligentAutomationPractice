@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01799318",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "대전대학교 원격교육시스템 AI 튜터 고도화 사업 재공고입찰",
+  "ntceInsttNm": "대전대학교",
+  "dminsttNm": "대전대학교",
+  "asignBdgtAmt": "80000000",
+  "presmptPrce": "72727273",
+  "bidClseDt": "",
+  "bidNtceDt": "2026-10-29 16:08:27",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01799318&bidPbancOrd=000",
+  "notice_id": "R26BK01799318-000",
+  "rfp_attachment": {
+    "name": "[붙임2] 제안요청서.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01799318&bidPbancOrd=000&fileType=&fileSeq=3&prcmBsneSeCd=03",
+    "sha256": "798871f85bc3b2b047f4afc7b11add98a8eb9f08044b75564d3ca2ffbdfb38c7"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:45:23+09:00"
+}

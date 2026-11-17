@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01776532",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "한국투자공사 내부 인공지능 플랫폼 고도화 감리",
+  "ntceInsttNm": "한국투자공사",
+  "dminsttNm": "한국투자공사",
+  "asignBdgtAmt": "250000000",
+  "presmptPrce": "227272727",
+  "bidClseDt": "",
+  "bidNtceDt": "2026-10-16 18:23:37",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01776532&bidPbancOrd=000",
+  "notice_id": "R26BK01776532-000",
+  "rfp_attachment": {
+    "name": "2. 제안요청서.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01776532&bidPbancOrd=000&fileType=&fileSeq=4&prcmBsneSeCd=03",
+    "sha256": "def0e5a2c58c78cb82af77e9737de2713f0f6c21940ec1b25ff7b96689c29536"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:45:47+09:00"
+}

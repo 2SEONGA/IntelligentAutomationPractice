@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01817837",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "PLC·로봇 컨트롤러 데이터 수집환경 구축 및 AI 예지보전 데이터 연계 용역",
+  "ntceInsttNm": "주식회사 지신",
+  "dminsttNm": "주식회사 지신",
+  "asignBdgtAmt": "88000000",
+  "presmptPrce": "80000000",
+  "bidClseDt": "2026-11-20 10:00:00",
+  "bidNtceDt": "2026-11-09 15:18:32",
+  "cntrctCnclsMthdNm": "일반경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01817837&bidPbancOrd=000",
+  "notice_id": "R26BK01817837-000",
+  "rfp_attachment": {
+    "name": "제안요청서_PLC 데이터 수집환경 구축 용역.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01817837&bidPbancOrd=000&fileType=&fileSeq=4&prcmBsneSeCd=03",
+    "sha256": "87f2ca9bb82a6d1b024fdfe3925765bca26d1c680d4d8bf09a0aa1fb7934d8a1"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:44:56+09:00"
+}

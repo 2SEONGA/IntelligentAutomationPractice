@@ -1,0 +1,13 @@
+{
+  "notice_no": "R26BK01751619",
+  "notice_order": "000",
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "api_source_url": "https://www.data.go.kr/data/15129394/openapi.do",
+  "retrieved_at": "2026-11-17T14:41:58+09:00",
+  "rfp_attachment": {
+    "name": "CDW구축 제안요청서 수정.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01751619&bidPbancOrd=000&fileType=&fileSeq=2&prcmBsneSeCd=03",
+    "sha256": "e8b136777e397abf9bb1fdc17f188f6fd383bddd564d693f1f4d4e85ad066718"
+  },
+  "saved_at": "2026-11-17T14:41:59+09:00"
+}

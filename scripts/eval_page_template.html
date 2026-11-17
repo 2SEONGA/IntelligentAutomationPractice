@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>검색 임계값 평가</title>
+<style>
+:root{--bg:#f3f6fb;--card:#fff;--line:#dce3ee;--text:#172033;--muted:#5f6f86;--accent:#2457c5;--accent-ink:#fff;--soft:#eef3fd;--mark:#ffe58a;
+  --ok:#1d7a46;--ok-bg:#e3f5ea;--mid:#8a5a00;--mid-bg:#fff1cf;--no:#a22a2a;--no-bg:#fdeaea;
+  font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:var(--text)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10141c;--card:#181e29;--line:#2a3343;--text:#e6ebf3;--muted:#9aa7bb;--accent:#7aa2ff;--accent-ink:#0d1526;--soft:#1f2838;--mark:#6b5a12;
+  --ok:#7fd8a6;--ok-bg:#163526;--mid:#f2c46b;--mid-bg:#3a2d12;--no:#ff9a9a;--no-bg:#3d1b1b}}
+:root[data-theme="dark"]{--bg:#10141c;--card:#181e29;--line:#2a3343;--text:#e6ebf3;--muted:#9aa7bb;--accent:#7aa2ff;--accent-ink:#0d1526;--soft:#1f2838;--mark:#6b5a12;
+  --ok:#7fd8a6;--ok-bg:#163526;--mid:#f2c46b;--mid-bg:#3a2d12;--no:#ff9a9a;--no-bg:#3d1b1b}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);line-height:1.6}
+.wrap{max-width:1080px;margin:0 auto;padding:20px 16px 230px}
+h1{font-size:21px;margin:0}.muted{color:var(--muted);font-size:14px}
+.tabs{display:flex;gap:8px;margin:14px 0 10px;flex-wrap:wrap}
+.tab{border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:999px;padding:7px 14px;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.tab[aria-selected="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.tab small{font-weight:500;opacity:.85;margin-left:4px}
+.question{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:12px 14px}
+.question b{font-size:16px}.question ul{margin:6px 0 0;padding-left:18px;font-size:14px;color:var(--muted)}
+.progress{height:8px;background:var(--line);border-radius:999px;margin:14px 0 6px;overflow:hidden}.progress i{display:block;height:100%;background:var(--accent);width:0}
+.nav{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}
+@media (max-width:760px){.compare{grid-template-columns:1fr}}
+.pane{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0}
+.pane h3{font-size:12px;letter-spacing:.04em;color:var(--muted);margin:0 0 6px;font-weight:700}
+.pane .t{font-size:18px;font-weight:700;margin:0 0 4px;overflow-wrap:anywhere}
+.pane .m{font-size:13px;color:var(--muted);margin-bottom:8px}
+.pane .b{font-size:15px;white-space:pre-wrap;overflow-wrap:anywhere;max-height:190px;overflow:auto}
+.pane.cand{border-color:var(--accent)}
+mark{background:var(--mark);color:inherit;border-radius:3px;padding:0 1px}
+.link{display:inline-block;margin-top:10px;font-size:14px;color:var(--accent)}
+.choices{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.choice{font:inherit;font-size:16px;font-weight:700;padding:11px 8px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--text);cursor:pointer}
+.choice kbd{font:12px ui-monospace,Menlo,monospace;border:1px solid currentColor;border-radius:4px;padding:0 5px;margin-right:6px;opacity:.7}
+.choice.c2[aria-pressed="true"]{background:var(--ok-bg);color:var(--ok);border-color:var(--ok)}
+.choice.c1[aria-pressed="true"]{background:var(--mid-bg);color:var(--mid);border-color:var(--mid)}
+.choice.c0[aria-pressed="true"]{background:var(--no-bg);color:var(--no);border-color:var(--no)}
+.btn{font:inherit;font-size:14px;font-weight:600;padding:8px 14px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent)}
+button:focus-visible,textarea:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.dots{display:flex;flex-wrap:wrap;gap:4px;margin-top:12px}
+.dot{width:22px;height:22px;border-radius:6px;border:1px solid var(--line);background:var(--card);font-size:10px;cursor:pointer;padding:0;color:var(--muted)}
+.dot.l2{background:var(--ok-bg);border-color:var(--ok)}.dot.l1{background:var(--mid-bg);border-color:var(--mid)}.dot.l0{background:var(--no-bg);border-color:var(--no)}
+.dot.cur{outline:2px solid var(--accent)}
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:3;background:var(--card);border-top:2px solid var(--accent);box-shadow:0 -6px 18px #0002}
+.dock .in{max-width:1080px;margin:0 auto;padding:10px 16px 12px;display:grid;gap:6px}
+.dock .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.dock textarea{width:100%;height:40px;resize:vertical;font:12px ui-monospace,Menlo,monospace;background:var(--soft);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px}
+.okmsg{color:var(--ok);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>검색 임계값 평가 (M25)</h1>
+  <p class="muted">한 번에 한 항목씩, 왼쪽 <b>확인하려는 것</b>과 오른쪽 <b>검색된 후보</b>를 비교해 고르세요. 양쪽에 공통으로 나온 단어는 <mark>형광색</mark>으로 표시됩니다. 유사도 점수는 판단에 영향을 주지 않도록 숨겼습니다. 일부만 골라도 됩니다.</p>
+  <div class="tabs" role="tablist" id="tabs"></div>
+  <div class="question" id="question"></div>
+  <div class="progress" aria-hidden="true"><i id="bar"></i></div>
+  <div class="nav">
+    <span id="pos" class="muted" aria-live="polite"></span>
+    <span>
+      <button type="button" class="btn ghost" id="prev">← 이전</button>
+      <button type="button" class="btn ghost" id="nextUnlabelled">다음 미표시</button>
+      <button type="button" class="btn ghost" id="next">다음 →</button>
+    </span>
+  </div>
+  <div class="compare">
+    <section class="pane" aria-label="확인하려는 것"><h3 id="ctxHead">확인하려는 것</h3><div class="t" id="ctxTitle"></div><div class="b" id="ctxBody"></div></section>
+    <section class="pane cand" aria-label="검색된 후보"><h3>검색된 후보</h3><div class="t" id="candTitle"></div><div class="m" id="candMeta"></div><div class="b" id="candBody"></div><a class="link" id="link" target="_blank" rel="noopener noreferrer"></a></section>
+  </div>
+  <p class="muted" style="margin-top:10px">판정 버튼은 화면 아래에 고정돼 있습니다. 키보드: 1·2·3 고르기(자동으로 다음 항목) · ← → 이동. 아래 번호 칸을 누르면 해당 항목으로 이동합니다.</p>
+  <div class="dots" id="dots" aria-label="이 탭의 항목 목록"></div>
+  <p style="margin-top:14px"><button type="button" class="btn ghost" id="reset">모든 표시 초기화</button></p>
+</div>
+<div class="dock" role="region" aria-label="복사할 결과">
+  <div class="in">
+    <div class="choices" role="group" aria-label="판정">
+      <button type="button" class="choice c2" data-v="2"><kbd>1</kbd>관련 있음</button>
+      <button type="button" class="choice c1" data-v="1"><kbd>2</kbd>부분 관련</button>
+      <button type="button" class="choice c0" data-v="0"><kbd>3</kbd>관련 없음</button>
+    </div>
+    <div class="row"><b>복사할 결과</b><span id="total" class="muted"></span><button type="button" class="btn" id="copy" style="font-size:16px;padding:9px 20px">결과 복사</button><span id="status" aria-live="polite"></span></div>
+    <textarea id="out" readonly aria-label="복사할 결과 텍스트 (누르면 전체 선택)"></textarea>
+  </div>
+</div>
+<script>
+const ITEMS = /*ITEMS*/[];
+const KINDS = {
+  t15: {name: "T1.5 금액·일정 근거", ctx: "확인하려는 항목", q: "오른쪽 문구가 왼쪽 금액·일정 항목을 확인하는 근거가 되나요?",
+        tips: ["관련 있음: 그 금액·날짜(또는 '공고문 참조' 같은 직접 안내)가 나온다", "부분 관련: 같은 주제(제출·입찰 절차 등)지만 값은 없다", "관련 없음: 다른 내용(목차·서식·평가 기준 등)"]},
+  company: {name: "회사 자료 (Agent 2)", ctx: "RFP 요구사항", q: "오른쪽 회사 자료가 왼쪽 요구사항과 대조해 볼 만한 근거인가요?",
+        tips: ["관련 있음: 같은 기술·업무 분야의 실적·역량·인증이다", "부분 관련: 넓게는 겹치지만(일반 SI 역량 등) 직접 근거는 약하다", "관련 없음: 요구사항과 상관없는 자료"]},
+  project: {name: "과거 사업 (Agent 3)", ctx: "현재 사업", q: "오른쪽 과거 사업이 왼쪽 현재 사업과 비교해 볼 만큼 비슷한가요?",
+        tips: ["관련 있음: 분야와 수행 범위가 비슷하다(같은 업무 시스템, 같은 기관 유형)", "부분 관련: 분야나 기술 중 하나만 비슷하다", "관련 없음: 분야·범위가 다르다"]},
+};
+const KEY = "m25-eval-labels-v2";  // 평가 세트 재생성(목차 제거) 후 번호가 바뀌어 이전 표시와 섞이지 않게
+let labels = {}; try { labels = JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) {}
+let kind = "t15", pos = 0;
+const $ = id => document.getElementById(id);
+const itemsOf = k => ITEMS.filter(i => i.kind === k);
+// 어느 RFP에나 나오는 말·숫자는 강조하지 않는다(강조가 많으면 오히려 안 보인다)
+const STOP = new Set(["및","등","의","을","를","이","가","은","는","에","로","으로","에서","대한","있는","하는","위한","통한","관련","사업","용역","시스템","구축","수행","제공","기반",
+  "사업개요","사업명","사업기간","사업금액","사업예산","사업범위","사업목적","개요","목적","범위","배경","추진","계약","계약일로부터","포함","부가가치세","부가세","원","이내","까지",
+  "제안","제안서","요구사항","고유번호","명칭","정의","세부내용","분류","관리","지원","운영","개발","고도화","정보","기술","서비스","내용","방안","기능","구성","대상"]);
+function terms(text) {
+  return new Set((text.match(/[가-힣A-Za-z0-9]{2,}/g) || []).map(t => t.toLowerCase())
+    .filter(t => !STOP.has(t) && !/^\d+$/.test(t) && !/^\d+(원|년|월|일|개월)$/.test(t)));
+}
+function highlight(el, text, keep) {  // 안전한 DOM 구성: 텍스트 노드 + <mark>
+  el.textContent = "";
+  for (const part of (text || "").split(/([가-힣A-Za-z0-9]{2,})/)) {
+    if (part && keep.has(part.toLowerCase())) { const m = document.createElement("mark"); m.textContent = part; el.append(m); }
+    else if (part) el.append(document.createTextNode(part));
+  }
+}
+function renderTabs() {
+  const tabs = $("tabs"); tabs.textContent = "";
+  for (const k of Object.keys(KINDS)) {
+    const all = itemsOf(k), done = all.filter(i => i.id in labels).length;
+    const b = document.createElement("button"); b.type = "button"; b.className = "tab"; b.setAttribute("role", "tab");
+    b.setAttribute("aria-selected", String(k === kind)); b.textContent = KINDS[k].name;
+    const s = document.createElement("small"); s.textContent = `${done}/${all.length}`; b.append(s);
+    b.addEventListener("click", () => { kind = k; pos = Math.max(0, itemsOf(k).findIndex(i => !(i.id in labels))); render(); });
+    tabs.append(b);
+  }
+}
+function render() {
+  const list = itemsOf(kind), item = list[pos], meta = KINDS[kind];
+  renderTabs();
+  const q = $("question"); q.textContent = "";
+  const qb = document.createElement("b"); qb.textContent = meta.q; const ul = document.createElement("ul");
+  for (const tip of meta.tips) { const li = document.createElement("li"); li.textContent = tip; ul.append(li); }
+  q.append(qb, ul);
+  $("ctxHead").textContent = `${meta.ctx} · ${item.case}`;
+  const shared = new Set([...terms(item.ctx_title + " " + item.ctx_body)].filter(t => terms(item.cand_title + " " + (item.cand_meta || "") + " " + item.cand_body).has(t)));
+  highlight($("ctxTitle"), item.ctx_title, shared); highlight($("ctxBody"), item.ctx_body, shared);
+  highlight($("candTitle"), item.cand_title, shared); $("candMeta").textContent = item.cand_meta || "";
+  highlight($("candBody"), item.cand_body, shared);
+  const link = $("link");
+  if (item.link) { link.href = item.link; link.textContent = (item.link_label || "원문 열기") + " ↗"; link.hidden = false; } else link.hidden = true;
+  document.querySelectorAll(".choice").forEach(b => b.setAttribute("aria-pressed", String(labels[item.id] === b.dataset.v)));
+  $("pos").textContent = `${item.id} · ${pos + 1} / ${list.length}`;
+  $("bar").style.width = `${100 * list.filter(i => i.id in labels).length / list.length}%`;
+  const dots = $("dots"); dots.textContent = "";
+  list.forEach((it, i) => {
+    const d = document.createElement("button"); d.type = "button";
+    d.className = "dot" + (it.id in labels ? " l" + labels[it.id] : "") + (i === pos ? " cur" : "");
+    d.textContent = i + 1; d.setAttribute("aria-label", `${it.id} ${it.id in labels ? "표시됨" : "미표시"}`);
+    d.addEventListener("click", () => { pos = i; render(); }); dots.append(d);
+  });
+  const n = Object.keys(labels).length;
+  $("total").textContent = `전체 ${n} / ${ITEMS.length} 표시`;
+  $("out").value = "[M25 평가] " + Object.keys(labels).sort().map(id => `${id}:${labels[id]}`).join(" ");
+}
+function choose(v) {
+  const list = itemsOf(kind); labels[list[pos].id] = v;
+  try { localStorage.setItem(KEY, JSON.stringify(labels)); } catch (e) {}
+  $("status").textContent = "";
+  if (pos < list.length - 1) pos += 1;
+  render();
+}
+document.querySelectorAll(".choice").forEach(b => b.addEventListener("click", () => choose(b.dataset.v)));
+$("prev").addEventListener("click", () => { pos = Math.max(0, pos - 1); render(); });
+$("next").addEventListener("click", () => { pos = Math.min(itemsOf(kind).length - 1, pos + 1); render(); });
+$("nextUnlabelled").addEventListener("click", () => {
+  const i = itemsOf(kind).findIndex(it => !(it.id in labels));
+  if (i >= 0) { pos = i; render(); } else { $("status").textContent = "이 탭은 모두 표시했습니다."; }
+});
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "TEXTAREA" || e.metaKey || e.ctrlKey) return;
+  if (e.key === "1") choose("2"); else if (e.key === "2") choose("1"); else if (e.key === "3") choose("0");
+  else if (e.key === "ArrowLeft") $("prev").click(); else if (e.key === "ArrowRight") $("next").click();
+});
+$("reset").addEventListener("click", () => { labels = {}; try { localStorage.removeItem(KEY); } catch (e) {} render(); });
+const out = $("out"); out.addEventListener("focus", () => out.select()); out.addEventListener("click", () => out.select());
+$("copy").addEventListener("click", async () => {
+  const status = $("status");
+  if (!Object.keys(labels).length) { status.className = ""; status.textContent = "먼저 한 항목 이상 골라 주세요."; return; }
+  let done = false;
+  try { await navigator.clipboard.writeText(out.value); done = true; } catch (e) {}
+  if (!done) { out.focus(); out.select(); try { done = document.execCommand("copy"); } catch (e) {} }
+  status.className = done ? "okmsg" : "";
+  status.textContent = done ? "복사했습니다. Claude 대화창에 붙여 넣으세요." : "아래 칸이 전체 선택돼 있습니다. ⌘C를 눌러 복사하세요.";
+});
+render();
+</script>
+</body>
+</html>

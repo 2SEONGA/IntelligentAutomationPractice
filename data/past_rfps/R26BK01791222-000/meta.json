@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01791222",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "상용SW 제3자단가(커스터마이징)(GAIA v1.0_그노티)",
+  "ntceInsttNm": "조달청",
+  "dminsttNm": "각 수요기관",
+  "asignBdgtAmt": "209669000",
+  "presmptPrce": "190608182",
+  "bidClseDt": "2026-10-28 12:00:00",
+  "bidNtceDt": "2026-10-26 16:04:32",
+  "cntrctCnclsMthdNm": "수의계약",
+  "sucsfbidMthdNm": "수의시담-수의시담(상용SW-3자단가)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01791222&bidPbancOrd=000",
+  "notice_id": "R26BK01791222-000",
+  "rfp_attachment": {
+    "name": "규격서(커스터마이징)-그노티.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01791222&bidPbancOrd=000&fileType=&fileSeq=5&prcmBsneSeCd=03",
+    "sha256": "e68404a331d25f3383dfda64e3ea0a6272fb290b19a6ca55d373aa8b48b2849c"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:45:35+09:00"
+}

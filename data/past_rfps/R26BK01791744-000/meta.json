@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01791744",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "2027년도 행정정보시스템 유지보수 용역",
+  "ntceInsttNm": "전북특별자치도",
+  "dminsttNm": "전북특별자치도",
+  "asignBdgtAmt": "312423000",
+  "presmptPrce": "284020909",
+  "bidClseDt": "2026-11-06 18:00:00",
+  "bidNtceDt": "2026-10-26 16:40:48",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01791744&bidPbancOrd=000",
+  "notice_id": "R26BK01791744-000",
+  "rfp_attachment": {
+    "name": "[붙임3] 2027년 행정정보시스템 유지보수용역 과업지시서.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01791744&bidPbancOrd=000&fileType=&fileSeq=2&prcmBsneSeCd=03",
+    "sha256": "b82616d63d38e37fe2cb6313d8b74d9653b4c4759d9248d95ea24c10ff29f930"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:45:34+09:00"
+}

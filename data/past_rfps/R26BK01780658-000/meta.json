@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01780658",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "차세대발사체 구조음향해석을 위한 Simcenter 3D 유지보수(3년)(재공고)",
+  "ntceInsttNm": "한국항공우주연구원",
+  "dminsttNm": "한국항공우주연구원",
+  "asignBdgtAmt": "91000000",
+  "presmptPrce": "82727273",
+  "bidClseDt": "2026-10-28 10:00:00",
+  "bidNtceDt": "2026-10-20 12:38:04",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "적격심사제-소프트웨어용역(중소기업자간 경쟁제품 비대상) 추정가격 고시금액미만",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01780658&bidPbancOrd=000",
+  "notice_id": "R26BK01780658-000",
+  "rfp_attachment": {
+    "name": "표준규격서.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01780658&bidPbancOrd=000&fileType=&fileSeq=2&prcmBsneSeCd=03",
+    "sha256": "a4b92777d4d8e46a847b40251e69af2a942470fa54adf896d51a35be016b0aeb"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:45:45+09:00"
+}

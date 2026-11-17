@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01791942",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "NVIDIA AI Full Stack Cloud 서비스 임차 용역",
+  "ntceInsttNm": "조선대학교",
+  "dminsttNm": "조선대학교",
+  "asignBdgtAmt": "38800000",
+  "presmptPrce": "35272727",
+  "bidClseDt": "",
+  "bidNtceDt": "2026-10-26 17:10:32",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "최저가낙찰제-최저가낙찰자",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01791942&bidPbancOrd=000",
+  "notice_id": "R26BK01791942-000",
+  "rfp_attachment": {
+    "name": "과업지시서.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01791942&bidPbancOrd=000&fileType=&fileSeq=1&prcmBsneSeCd=03",
+    "sha256": "1a9fc0d992750c0e7e559597ff8f0f6c661239c432e723a540e7fcce4a5bb8c1"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:45:34+09:00"
+}

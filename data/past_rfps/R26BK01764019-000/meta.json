@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01764019",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "AI 기반 지역혁신 데이터 플랫폼 구축",
+  "ntceInsttNm": "부산대학교 산학협력단",
+  "dminsttNm": "부산대학교 산학협력단",
+  "asignBdgtAmt": "300000000",
+  "presmptPrce": "272727273",
+  "bidClseDt": "2026-10-23 10:00:00",
+  "bidNtceDt": "2026-10-12 10:17:39",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01764019&bidPbancOrd=000",
+  "notice_id": "R26BK01764019-000",
+  "rfp_attachment": {
+    "name": "2. 제안요청서.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01764019&bidPbancOrd=000&fileType=&fileSeq=1&prcmBsneSeCd=03",
+    "sha256": "3c5ad0733c9925c8532232c2fce939e9788ce6f4689abd71fd739a415afb36c6"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:45:57+09:00"
+}

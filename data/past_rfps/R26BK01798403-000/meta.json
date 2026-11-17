@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01798403",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "상용SW 3자단가(XIDE-RAIS v1.0 (커스터마이징) (주)리얼허브)",
+  "ntceInsttNm": "조달청",
+  "dminsttNm": "각 수요기관",
+  "asignBdgtAmt": "1891250000",
+  "presmptPrce": "1719318182",
+  "bidClseDt": "2026-11-05 12:00:00",
+  "bidNtceDt": "2026-11-02 09:26:38",
+  "cntrctCnclsMthdNm": "수의계약",
+  "sucsfbidMthdNm": "수의시담-수의시담(상용SW-3자단가)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01798403&bidPbancOrd=000",
+  "notice_id": "R26BK01798403-000",
+  "rfp_attachment": {
+    "name": "1-6 (공통양식)커스터마이징상품_규격서_XIDE-RAIS.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01798403&bidPbancOrd=000&fileType=&fileSeq=1&prcmBsneSeCd=03",
+    "sha256": "b4af9072d7157e03424b0bc034a205242a59b2313cc54066b68cdca40b9dc818"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:45:18+09:00"
+}

@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01798132",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "상용SW 3자단가(XIDE-AIMETA v1.0 (유지관리) (주)리얼허브)",
+  "ntceInsttNm": "조달청",
+  "dminsttNm": "각 수요기관",
+  "asignBdgtAmt": "465000000",
+  "presmptPrce": "422727273",
+  "bidClseDt": "2026-11-05 12:00:00",
+  "bidNtceDt": "2026-11-02 09:34:30",
+  "cntrctCnclsMthdNm": "수의계약",
+  "sucsfbidMthdNm": "수의시담-수의시담(상용SW-3자단가)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01798132&bidPbancOrd=000",
+  "notice_id": "R26BK01798132-000",
+  "rfp_attachment": {
+    "name": "유지관리상품_규격서_XIDE-AIMeta v1.0.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01798132&bidPbancOrd=000&fileType=&fileSeq=5&prcmBsneSeCd=03",
+    "sha256": "c024afebc762446bdf5d8ed8afabebda1318e92c0f90ac25e3eef576e6923520"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:45:17+09:00"
+}

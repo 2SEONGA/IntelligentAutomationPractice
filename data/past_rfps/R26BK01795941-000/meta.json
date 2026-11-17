@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01795941",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "2027~2029년 정보시스템 통합유지관리 용역",
+  "ntceInsttNm": "서울시설공단",
+  "dminsttNm": "서울시설공단",
+  "asignBdgtAmt": "6902919320",
+  "presmptPrce": "6275381200",
+  "bidClseDt": "2026-11-18 11:00:00",
+  "bidNtceDt": "2026-10-28 17:35:46",
+  "cntrctCnclsMthdNm": "일반경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01795941&bidPbancOrd=000",
+  "notice_id": "R26BK01795941-000",
+  "rfp_attachment": {
+    "name": "6) 상생결제제도 이용 매뉴얼(거래업체용).pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01795941&bidPbancOrd=000&fileType=&fileSeq=7&prcmBsneSeCd=03",
+    "sha256": "92044f3a6250888e76203feb157d0ab80bef8872c07e7264ac3e4b3df0840470"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:45:25+09:00"
+}

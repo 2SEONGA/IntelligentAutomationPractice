@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01755176",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "상용SW 제3자단가(커스터마이징)(VIXAI-SMART v4.0_인텔리빅스)",
+  "ntceInsttNm": "조달청",
+  "dminsttNm": "각 수요기관",
+  "asignBdgtAmt": "451095000",
+  "presmptPrce": "410086364",
+  "bidClseDt": "2026-10-07 12:00:00",
+  "bidNtceDt": "2026-10-05 16:36:25",
+  "cntrctCnclsMthdNm": "수의계약",
+  "sucsfbidMthdNm": "수의시담-수의시담(상용SW-3자단가)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01755176&bidPbancOrd=000",
+  "notice_id": "R26BK01755176-000",
+  "rfp_attachment": {
+    "name": "2. 커스터마이징상품 규격서.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01755176&bidPbancOrd=000&fileType=&fileSeq=1&prcmBsneSeCd=03",
+    "sha256": "969cd30398a9801ce735a9207f48906df7cda1103aa4d952e79a6e8b91ce7291"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:46:06+09:00"
+}

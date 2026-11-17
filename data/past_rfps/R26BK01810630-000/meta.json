@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01810630",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "2027년~2028년 정보시스템 자원 통합 유지관리 사업",
+  "ntceInsttNm": "한국보건사회연구원",
+  "dminsttNm": "한국보건사회연구원",
+  "asignBdgtAmt": "301621000",
+  "presmptPrce": "274200909",
+  "bidClseDt": "",
+  "bidNtceDt": "2026-11-04 17:28:30",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01810630&bidPbancOrd=000",
+  "notice_id": "R26BK01810630-000",
+  "rfp_attachment": {
+    "name": "붙임2. 제안요청서_2027년~2028년 정보시스템 자원 통합 유지관리 사업.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01810630&bidPbancOrd=000&fileType=&fileSeq=2&prcmBsneSeCd=03",
+    "sha256": "2a97ff1953f8a6ea84be341edff0cb81b2e0fa16feb0875a868b6c5c385768ea"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:45:06+09:00"
+}

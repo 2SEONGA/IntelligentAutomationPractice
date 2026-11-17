@@ -1,0 +1,20 @@
+{
+  "notice_no": "R26BK01762350",
+  "notice_order": "000",
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "api_source_url": "https://www.data.go.kr/data/15129394/openapi.do",
+  "retrieved_at": "2026-11-17T14:41:57+09:00",
+  "notice": {
+    "name": "입찰공고문_AI영상기반상수도관노후도분석및GIS연동SW개발_주식회사 셈즈★.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01762350&bidPbancOrd=000&fileType=&fileSeq=1&prcmBsneSeCd=03",
+    "document_kind": "공고서",
+    "sha256": "463d3304f077b8f6af53c9db51f1df1592a09c025b2ad1cc19f4beed2f2bbfdb",
+    "size": 117297
+  },
+  "rfp_attachment": {
+    "name": "제안요청서_AI영상기반상수도관노후도분석및GIS연동_주식회사 셈즈★.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01762350&bidPbancOrd=000&fileType=&fileSeq=2&prcmBsneSeCd=03",
+    "sha256": "c1ef595d8723e0c8dd5657bf4cc2894c21706e0f4fdda18d9e20c903e040e85b"
+  },
+  "saved_at": "2026-11-17T14:41:58+09:00"
+}

@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01796540",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "AI OCR 고도화 기술 컨설팅 용역",
+  "ntceInsttNm": "(주)리빗",
+  "dminsttNm": "(주)리빗",
+  "asignBdgtAmt": "55000000",
+  "presmptPrce": "50000000",
+  "bidClseDt": "2026-11-02 10:00:00",
+  "bidNtceDt": "2026-10-28 22:07:50",
+  "cntrctCnclsMthdNm": "일반경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01796540&bidPbancOrd=000",
+  "notice_id": "R26BK01796540-000",
+  "rfp_attachment": {
+    "name": "컴프레셔 명판 VLM 고도화 및 온실가스 감축량 산정 알고리즘 기술 컨설팅 과업지시서 (9주 단축본).pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01796540&bidPbancOrd=000&fileType=&fileSeq=1&prcmBsneSeCd=03",
+    "sha256": "1ebc204bd6e87d2d193632caff9ccd99398c25496b085cbabf57dc7f0719aa9b"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:45:25+09:00"
+}

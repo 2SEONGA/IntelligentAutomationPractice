@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01819500",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "노후 정보시스템 가상화 이관 사업",
+  "ntceInsttNm": "한국석유관리원",
+  "dminsttNm": "한국석유관리원",
+  "asignBdgtAmt": "156000000",
+  "presmptPrce": "141818182",
+  "bidClseDt": "2026-11-23 10:00:00",
+  "bidNtceDt": "2026-11-10 15:37:15",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01819500&bidPbancOrd=000",
+  "notice_id": "R26BK01819500-000",
+  "rfp_attachment": {
+    "name": "제안요청서 1부.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01819500&bidPbancOrd=000&fileType=&fileSeq=4&prcmBsneSeCd=03",
+    "sha256": "c2ce05a2d66bed5d070e0b28d79adbce43b8fc61fdad2a718783d78561f5239a"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:44:51+09:00"
+}

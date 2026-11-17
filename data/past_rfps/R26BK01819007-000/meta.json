@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01819007",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "전라남도 지역 주도형 AI 대전환 사업 AI Agent 및 포털 구축 사업 감리",
+  "ntceInsttNm": "주식회사 카카오엔터프라이즈",
+  "dminsttNm": "주식회사 카카오엔터프라이즈",
+  "asignBdgtAmt": "70000000",
+  "presmptPrce": "63636364",
+  "bidClseDt": "2026-11-25 11:00:00",
+  "bidNtceDt": "2026-11-10 09:43:01",
+  "cntrctCnclsMthdNm": "일반경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01819007&bidPbancOrd=000",
+  "notice_id": "R26BK01819007-000",
+  "rfp_attachment": {
+    "name": "[제안요청서]전라남도 지역 주도형 AI 대전환 사업 AI Agent 및 포털 구축 사업 감리.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01819007&bidPbancOrd=000&fileType=&fileSeq=4&prcmBsneSeCd=03",
+    "sha256": "876e31b230a8c95526f0b6cd1f121dd8fe3a7da500627368dbdaebe304f929bf"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:44:53+09:00"
+}

@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01768184",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "2026년 AI 청년창업기업 동반성장 바우처 사업  클라우드형 GPU서비스 임차",
+  "ntceInsttNm": "(주)하마랩",
+  "dminsttNm": "(주)하마랩",
+  "asignBdgtAmt": "148600000",
+  "presmptPrce": "135090909",
+  "bidClseDt": "2026-10-26 10:00:00",
+  "bidNtceDt": "2026-10-13 14:51:33",
+  "cntrctCnclsMthdNm": "일반경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01768184&bidPbancOrd=000",
+  "notice_id": "R26BK01768184-000",
+  "rfp_attachment": {
+    "name": "제안요청서_재공고.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01768184&bidPbancOrd=000&fileType=&fileSeq=3&prcmBsneSeCd=03",
+    "sha256": "d11dad8667876c53bcde5dae491d71a21fe64ee0b09fd9f432911efaafaa87ef"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:45:54+09:00"
+}

@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01760198",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "제주대학교 통합(학사행정)정보시스템 기능개선 사업",
+  "ntceInsttNm": "제주대학교 디지털정보처",
+  "dminsttNm": "제주대학교 디지털정보처",
+  "asignBdgtAmt": "76000000",
+  "presmptPrce": "69090909",
+  "bidClseDt": "2026-10-19 10:00:00",
+  "bidNtceDt": "2026-10-07 14:50:07",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01760198&bidPbancOrd=000",
+  "notice_id": "R26BK01760198-000",
+  "rfp_attachment": {
+    "name": "제주대학교 통합정보시스템 기능개선사업_제안요청서(협상에 의한 계약 방식)_최종.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01760198&bidPbancOrd=000&fileType=&fileSeq=3&prcmBsneSeCd=03",
+    "sha256": "b0d5a051a79606fc603cf4a6c43de299a22d16d94b9e7a1a0ae46f4dda3433a6"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:46:01+09:00"
+}

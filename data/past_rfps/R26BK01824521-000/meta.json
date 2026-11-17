@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01824521",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "2027년도 통합정보시스템 유지보수",
+  "ntceInsttNm": "한국기계연구원",
+  "dminsttNm": "한국기계연구원",
+  "asignBdgtAmt": "535200000",
+  "presmptPrce": "486545455",
+  "bidClseDt": "2026-12-23 10:00:00",
+  "bidNtceDt": "2026-11-11 16:21:28",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01824521&bidPbancOrd=000",
+  "notice_id": "R26BK01824521-000",
+  "rfp_attachment": {
+    "name": "2_제안요청서(과업지시서 포함).pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01824521&bidPbancOrd=000&fileType=&fileSeq=3&prcmBsneSeCd=03",
+    "sha256": "f79e00cdb86c62d71ddbf8fa8af500682448c571113a98f60965789040ca38ec"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:44:45+09:00"
+}

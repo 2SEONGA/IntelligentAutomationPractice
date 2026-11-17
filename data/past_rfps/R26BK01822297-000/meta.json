@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01822297",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "디지털서비스_이노그리드_이노그리드 NHN Cloud Virtual Desktop 서비스 for 엔에이치엔클라우드(DaaS)",
+  "ntceInsttNm": "조달청",
+  "dminsttNm": "각 수요기관",
+  "asignBdgtAmt": "2000000000",
+  "presmptPrce": "1818181818",
+  "bidClseDt": "2026-11-12 11:00:00",
+  "bidNtceDt": "2026-11-11 16:21:16",
+  "cntrctCnclsMthdNm": "수의계약",
+  "sucsfbidMthdNm": "수의시담-수의시담(카탈로그-3자단가)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01822297&bidPbancOrd=000",
+  "notice_id": "R26BK01822297-000",
+  "rfp_attachment": {
+    "name": "01. 이노그리드 카탈로그 v2.0 (1).pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01822297&bidPbancOrd=000&fileType=&fileSeq=6&prcmBsneSeCd=03",
+    "sha256": "b68f993d328d596121f32439a06b240a58f7265fa7e1959fb746a40a109c0b63"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:44:45+09:00"
+}

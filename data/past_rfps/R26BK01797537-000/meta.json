@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01797537",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "[대림대학교]2026년 AID 전환 중점 전문대학 지원사업 AI 학습성과 지원 시스템 구축",
+  "ntceInsttNm": "대림대학교 산학협력단",
+  "dminsttNm": "대림대학교 산학협력단",
+  "asignBdgtAmt": "100000000",
+  "presmptPrce": "90909091",
+  "bidClseDt": "2026-11-11 12:00:00",
+  "bidNtceDt": "2026-10-29 18:20:19",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01797537&bidPbancOrd=000",
+  "notice_id": "R26BK01797537-000",
+  "rfp_attachment": {
+    "name": "2. 제안요청서.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01797537&bidPbancOrd=000&fileType=&fileSeq=2&prcmBsneSeCd=03",
+    "sha256": "52da9ab3df396a5e340639fbf9d71845ca3085810e1fc0e29c32c8c9c69f97a6"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:45:22+09:00"
+}

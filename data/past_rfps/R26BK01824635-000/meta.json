@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01824635",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "통합정보시스템 고도화 구축 용역",
+  "ntceInsttNm": "청운대학교",
+  "dminsttNm": "청운대학교",
+  "asignBdgtAmt": "300000000",
+  "presmptPrce": "272727273",
+  "bidClseDt": "",
+  "bidNtceDt": "2026-11-11 16:44:37",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01824635&bidPbancOrd=000",
+  "notice_id": "R26BK01824635-000",
+  "rfp_attachment": {
+    "name": "제안요청서(과업지시서)_최종.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01824635&bidPbancOrd=000&fileType=&fileSeq=3&prcmBsneSeCd=03",
+    "sha256": "f0efb83212543338bb4df0a1908dad520d75100c0bb1fe96fd8d3c0950d8eb12"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:44:45+09:00"
+}

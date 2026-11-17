@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01831967",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "데이터 기반 AI 생육의사결정 플랫폼 구축",
+  "ntceInsttNm": "제주대학교 산학협력단",
+  "dminsttNm": "제주대학교 산학협력단",
+  "asignBdgtAmt": "30000000",
+  "presmptPrce": "27272727",
+  "bidClseDt": "2026-11-27 10:00:00",
+  "bidNtceDt": "2026-11-16 13:15:21",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01831967&bidPbancOrd=000",
+  "notice_id": "R26BK01831967-000",
+  "rfp_attachment": {
+    "name": "제안요청서_데이터기반 AI 생육 의사결정 플랫폼 구축 용역 제안요청서(수정).pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01831967&bidPbancOrd=000&fileType=&fileSeq=2&prcmBsneSeCd=03",
+    "sha256": "20d0402e5c9be95a604b1282836969a6bc32a0077e33a2ef2c775c4801f22d06"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:44:35+09:00"
+}

@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01811468",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "[K-Health 국민의료 AI서비스] PACS 의료영상 일괄 추출 시스템",
+  "ntceInsttNm": "조선대학교병원",
+  "dminsttNm": "조선대학교병원",
+  "asignBdgtAmt": "201000000",
+  "presmptPrce": "182727273",
+  "bidClseDt": "2026-11-16 12:00:00",
+  "bidNtceDt": "2026-11-05 10:21:31",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "적격심사제-소프트웨어용역(중소기업자간 경쟁제품 대상) 적격심사 추정가격 5억원 미만",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01811468&bidPbancOrd=000",
+  "notice_id": "R26BK01811468-000",
+  "rfp_attachment": {
+    "name": "3.과업지시서.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01811468&bidPbancOrd=000&fileType=&fileSeq=4&prcmBsneSeCd=03",
+    "sha256": "9249198f5766876e761b5e3d057cf8463ceaba060fd15b92018eeec94e32fa64"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:45:05+09:00"
+}

@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01758442",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "AI기반 디지털트윈 EV 정비 교육용 콘텐츠 제작(수정)",
+  "ntceInsttNm": "국민대학교 산학협력단",
+  "dminsttNm": "국민대학교 산학협력단",
+  "asignBdgtAmt": "24000000",
+  "presmptPrce": "21818182",
+  "bidClseDt": "2026-10-19 10:00:00",
+  "bidNtceDt": "2026-10-06 17:53:43",
+  "cntrctCnclsMthdNm": "일반경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01758442&bidPbancOrd=000",
+  "notice_id": "R26BK01758442-000",
+  "rfp_attachment": {
+    "name": "2. AI기반 디지털트윈 EV 정비 교육용 콘텐츠 제작_제안요청서(수정).pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01758442&bidPbancOrd=000&fileType=&fileSeq=4&prcmBsneSeCd=03",
+    "sha256": "8e8de8cbd97e07821c1a40f37ab8cef492d63767dc8bb338c5f680c54bf7230b"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:46:03+09:00"
+}

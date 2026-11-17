@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01831194",
+  "bidNtceOrd": "000",
+  "bidNtceNm": " 2026년 충남 지역주도형 AI대전환 사업- 제조 온톨로지 공정최적화 구축",
+  "ntceInsttNm": "(주)지에스티",
+  "dminsttNm": "(주)지에스티",
+  "asignBdgtAmt": "165000000",
+  "presmptPrce": "150000000",
+  "bidClseDt": "2026-11-27 10:00:00",
+  "bidNtceDt": "2026-11-16 09:33:21",
+  "cntrctCnclsMthdNm": "일반경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01831194&bidPbancOrd=000",
+  "notice_id": "R26BK01831194-000",
+  "rfp_attachment": {
+    "name": "(지에스티) 온톨로지 제안요청서_20261106.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01831194&bidPbancOrd=000&fileType=&fileSeq=2&prcmBsneSeCd=03",
+    "sha256": "80e7306596439f40989f04ed790091ceb29a6d9303a265bc3496804fe271d2c3"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:44:36+09:00"
+}

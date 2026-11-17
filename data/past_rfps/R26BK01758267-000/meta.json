@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01758267",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "[지역주도형 AI 대전환 사업] 리사이징 설비라인 자동화 시스템 AI 고도화",
+  "ntceInsttNm": "(주)원화정밀",
+  "dminsttNm": "(주)원화정밀",
+  "asignBdgtAmt": "165000000",
+  "presmptPrce": "150000000",
+  "bidClseDt": "2026-10-19 12:00:00",
+  "bidNtceDt": "2026-10-06 17:40:51",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01758267&bidPbancOrd=000",
+  "notice_id": "R26BK01758267-000",
+  "rfp_attachment": {
+    "name": "제안요청서_리사이징 설비라인 자동화 시스템 AI 고도화_원화정밀.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01758267&bidPbancOrd=000&fileType=&fileSeq=3&prcmBsneSeCd=03",
+    "sha256": "24aaa047eea067fb800149730ff3d9a99ccd750643e950d01f9e4c625e145bbe"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:46:03+09:00"
+}

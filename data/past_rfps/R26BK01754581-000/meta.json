@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01754581",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "디지털서비스_더존비즈온_DOUZONE 공공 클라우드",
+  "ntceInsttNm": "조달청",
+  "dminsttNm": "각 수요기관",
+  "asignBdgtAmt": "10000000000",
+  "presmptPrce": "9090909091",
+  "bidClseDt": "2026-10-07 11:00:00",
+  "bidNtceDt": "2026-10-06 17:19:20",
+  "cntrctCnclsMthdNm": "수의계약",
+  "sucsfbidMthdNm": "수의시담-수의시담(카탈로그-3자단가)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01754581&bidPbancOrd=000",
+  "notice_id": "R26BK01754581-000",
+  "rfp_attachment": {
+    "name": "(별첨)_DOUZONE 공공 클라우드_가격.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01754581&bidPbancOrd=000&fileType=&fileSeq=2&prcmBsneSeCd=03",
+    "sha256": "a82c0dc6b07bcb5c15bf954fa549bec79ca37a8012a8d0890be902360c1c3e92"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:46:04+09:00"
+}

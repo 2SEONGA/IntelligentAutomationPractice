@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01830982",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "2027년도 공간정보시스템 통합유지보수 용역",
+  "ntceInsttNm": "경상북도",
+  "dminsttNm": "경상북도",
+  "asignBdgtAmt": "125151000",
+  "presmptPrce": "113773636",
+  "bidClseDt": "2026-12-07 17:00:00",
+  "bidNtceDt": "2026-11-15 19:50:16",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01830982&bidPbancOrd=000",
+  "notice_id": "R26BK01830982-000",
+  "rfp_attachment": {
+    "name": "제안요청서[2027년도 공간정보시스템 통합유지보수 용역].pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01830982&bidPbancOrd=000&fileType=&fileSeq=4&prcmBsneSeCd=03",
+    "sha256": "204d72477c6ff09418395b23f6e8e2e08c27ab4cff61d9cadfec82dc37461687"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:44:36+09:00"
+}

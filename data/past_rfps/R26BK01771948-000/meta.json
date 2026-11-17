@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01771948",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "2027년 중견기업 종합정보시스템 통합 운영 및 유지보수",
+  "ntceInsttNm": "한국중견기업연합회",
+  "dminsttNm": "한국중견기업연합회",
+  "asignBdgtAmt": "140000000",
+  "presmptPrce": "127272727",
+  "bidClseDt": "",
+  "bidNtceDt": "2026-10-14 21:14:08",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01771948&bidPbancOrd=000",
+  "notice_id": "R26BK01771948-000",
+  "rfp_attachment": {
+    "name": "첨부2. 제안요청서_2027년 중견기업 종합정보시스템 통합 운영 및 유지보수.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01771948&bidPbancOrd=000&fileType=&fileSeq=3&prcmBsneSeCd=03",
+    "sha256": "453c5da9e25761da4b1869c4544155c1798b1637021314b1ea397f4f731f55e8"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:45:51+09:00"
+}

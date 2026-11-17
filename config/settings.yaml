@@ -1,0 +1,79 @@
+# All thresholds and scoring values are operational settings, not code constants.
+minimum_project_amount_krw: 1000000000
+rfp:
+  low_text_page_characters: 40
+  requirement_overview_patterns:
+    - "총\\s*(\\d+)\\s*건"
+    - "요구사항\\s*(\\d+)\\s*건"
+    - "total\\s*(\\d+)"
+  # 요구사항 분류 키워드: 앞에서부터 먼저 맞는 범주로 분류된다 (순서 유지).
+  category_keywords:
+    "기능 요구사항": ["기능", "업무", "화면", "서비스", "모바일"]
+    "성능 요구사항": ["성능", "처리량", "응답시간"]
+    "인터페이스 요구사항": ["인터페이스", "연계", "API"]
+    "데이터 요구사항": ["데이터", "DB", "전환", "마이그레이션"]
+    "테스트 요구사항": ["테스트", "시험", "검증"]
+    "보안 요구사항": ["보안", "개인정보", "암호", "취약점"]
+    "품질 요구사항": ["품질", "결함"]
+    "제약사항": ["제약", "준수", "의무"]
+    "프로젝트 관리": ["관리", "일정"]
+    "프로젝트 지원": ["지원", "교육", "유지보수", "산출물"]
+  # 법적 참가자격 문장 판별 용어
+  legal_terms: ["입찰참가자격", "입찰 참가자격", "경쟁입찰참가자격", "나라장터", "조달청", "면허", "신고", "등록 요건", "부정당업자", "입찰참가 제한", "영업정지"]
+  # 투입인력 요건 판별 용어
+  staffing_terms: ["투입인력", "참여인력", "기술자", "사업총괄책임자", "PM", "PL", "상주", "투입률", "기술등급", "경력"]
+  # 제출 절차 판별 용어 (회사 역량과 구분)
+  submission_terms: ["제안서", "가격제안서", "제출서류", "제출방법", "제출기한", "입찰서 제출", "서식", "접수"]
+  # 사업명으로 쓰면 안 되는 일반 제목
+  generic_titles: ["contents", "request for proposal", "rfp", "과업지시서", "목차", "사업 개요", "사업개요", "사업명", "입찰공고", "입찰안내", "제안요청서"]
+  # 발주기관 값으로 쓰면 안 되는 표 머리글
+  generic_entity_headers: ["검사", "검사기관", "기관", "발주기관", "발주처", "비고", "수요기관", "주관기관"]
+capability:
+  # 요구사항에 이 용어가 있으면 검증된 수행실적만 근거로 인정한다.
+  performance_terms: ["실적", "유사사업", "발주처", "계약금액"]
+pdf_evidence:
+  # live Agent의 PDF 근거 도구가 한 번에 읽는 한도
+  max_pages: 8
+  max_chars_per_page: 6000
+scoring:
+  default_weight: 1.0
+  category_weights:
+    "참가자격": 2.0
+    "필수 인력": 2.0
+    "기능 요구사항": 1.0
+    "성능 요구사항": 1.0
+    "인터페이스 요구사항": 1.0
+    "데이터 요구사항": 1.0
+    "테스트 요구사항": 1.0
+    "보안 요구사항": 1.5
+    "품질 요구사항": 1.0
+    "제약사항": 1.5
+    "프로젝트 관리": 1.0
+    "프로젝트 지원": 1.0
+  status_ratios:
+    "충족": 1.0
+    "부분 충족": 0.5
+    "미충족": 0.0
+  exclude_statuses:
+    - "확인 필요"
+market:
+  # G2B service defaults. The key is read only from G2B_SERVICE_KEY in .env.
+  allow_live_lookup: false
+  base_url: "https://apis.data.go.kr/1230000/as/ScsbidInfoService"
+  service_operation: "getOpengResultListInfoServcPPSSrch"
+  # 낙찰 API는 낙찰자명 필터를 지원하지 않아, scripts/collect_g2b_awards.py로 수집한 그룹 낙찰 데이터를 쓴다.
+  company_awards_file: "data/market/itcen_group_awards_3y.json"
+  dataset_url: "https://www.data.go.kr/data/15129397/openapi.do"
+  # 과거 유사사업 조사 기본 범위(3년). 필요 시 공고·기관 특성에 맞게 조정한다.
+  lookback_days: 1095
+  max_results: 20
+  timeout_seconds: 20
+
+# Agent 3 과거 유사 사업 수집 범위 (M23 기본값 → M24 확대). scripts/build_past_projects.py가 읽는다.
+past_projects:
+  days: 180                 # 공고 조회 기간
+  max_projects: 200         # 저장할 PDF 제안요청서 최대 건수
+  max_lookups_per_run: 800  # 1회 실행에서 쓸 첨부파일정보 API 호출 상한 (일일 할당량 보호, 2026-11-17 약 900회 후 22 오류)
+  # config/notice_filter.yaml의 collect_keywords가 있을 때만 거기에 더해 쓴다(현재 검토 사업 분야: 상수도·GIS / 병원 임상 / 대학 학사).
+  # collect_keywords가 빈 목록이면(M27) 키워드 없이 전체 조회하므로 쓰지 않는다(M28).
+  extra_keywords: ["상수도", "상수관", "관망", "GIS", "공간정보", "임상", "의료정보", "병원", "학사", "대학"]

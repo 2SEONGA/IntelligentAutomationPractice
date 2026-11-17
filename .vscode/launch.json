@@ -1,0 +1,27 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "1. PDF 3개 검사 (API 키 불필요)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/run.py",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "args": ["--mode", "offline", "--output", "outputs/offline", "--verbose", "--save-intermediate"],
+      "env": {"PYTHONUTF8": "1"},
+      "justMyCode": true
+    },
+    {
+      "name": "2. CrewAI 실행 (OpenAI 키 필요)",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/run.py",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "args": ["--mode", "live", "--output", "outputs/live", "--trace", "--save-intermediate"],
+      "env": {"PYTHONUTF8": "1"},
+      "justMyCode": true
+    }
+  ]
+}

@@ -1,0 +1,149 @@
+import { useId, useRef, useState, type DragEvent } from "react";
+import { Button, SectionMessage, SegmentedControl, SegmentedControlItem, Switch, TextButton, Typography } from "@montage-ui/core";
+import { startRun } from "../api";
+import type { Status } from "../types";
+import StatusBadge from "../components/StatusBadge";
+
+export type Draft = { rfp: File | null; notice: File | null; mode: "offline" | "live"; marketApi: boolean };
+export const emptyDraft: Draft = { rfp: null, notice: null, mode: "offline", marketApi: false };
+
+const isPdf = (file: File) => file.name.toLowerCase().endsWith(".pdf");
+const sizeLabel = (bytes: number) => (bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)}MB` : `${Math.ceil(bytes / 1024)}KB`);
+
+function FilePicker({ label, required, file, hint, onChange }: {
+  label: string; required?: boolean; file: File | null; hint: string; onChange: (file: File | null) => void;
+}) {
+  const input = useRef<HTMLInputElement>(null);
+  const [over, setOver] = useState(false);
+  const errorId = useId();
+  const [error, setError] = useState("");
+  const pick = (next: File | undefined) => {
+    if (!next) return;
+    if (!isPdf(next)) return setError("PDF 파일만 올릴 수 있어요.");
+    setError("");
+    onChange(next);
+  };
+  const drop = (event: DragEvent) => {
+    event.preventDefault();
+    setOver(false);
+    pick(event.dataTransfer.files[0]);
+  };
+  return (
+    <div className="stack" style={{ gap: 8 }}>
+      <div className="row" style={{ gap: 6 }}>
+        <Typography variant="label1" weight="bold">{label}</Typography>
+        <StatusBadge label={required ? "필수" : "선택"} tone={required ? "No-Go" : "none"} />
+      </div>
+      <input ref={input} type="file" accept=".pdf,application/pdf" hidden onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} />
+      {file ? (
+        <div className="file-card">
+          <span className="file-icon">PDF</span>
+          <div className="grow">
+            <Typography display="block" variant="label1" weight="bold">{file.name}</Typography>
+            <Typography display="block" variant="caption1" color="semantic.foreground.neutral.secondary">{sizeLabel(file.size)}</Typography>
+          </div>
+          <Button size="small" variant="outlined" color="assistive" onClick={() => input.current?.click()}>변경</Button>
+          {!required && <TextButton size="small" color="assistive" onClick={() => onChange(null)}>빼기</TextButton>}
+        </div>
+      ) : (
+        <div className={`dropzone ${over ? "over" : ""}`} role="button" tabIndex={0} aria-label={`PDF 파일 선택 · ${hint}`} aria-describedby={error ? errorId : undefined}
+          onClick={() => input.current?.click()}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); input.current?.click(); } }}
+          onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)} onDrop={drop}>
+          <Typography display="block" variant="body2" color="semantic.foreground.neutral.secondary">
+            PDF를 끌어다 놓거나 <b style={{ color: "var(--semantic-foreground-brand-primary)" }}>파일 선택</b> · {hint}
+          </Typography>
+        </div>
+      )}
+      {error && <Typography id={errorId} role="alert" variant="caption1" color="semantic.foreground.negative.primary">{error}</Typography>}
+    </div>
+  );
+}
+
+type Props = {
+  status: Status | null; draft: Draft; setDraft: (draft: Draft) => void; onStarted: (jobId: string) => void;
+  folderId?: string; noticePdf?: boolean; noticeName?: string; notes?: string[];
+};
+
+export default function NewReview({ status, draft, setDraft, onStarted, folderId, noticePdf, noticeName, notes = [] }: Props) {
+  const hasNotice = !!draft.notice || !!noticePdf;
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const liveAvailable = status?.live_available ?? false;
+  const marketAllowed = draft.mode === "live" && hasNotice && (status?.market_available ?? false);
+  const marketHint = draft.mode !== "live" ? "live에서만 사용 가능" : !hasNotice ? "공고문 PDF가 있어야 켤 수 있어요"
+    : !status?.market_available ? ".env에 G2B_SERVICE_KEY가 없어요" : "나라장터 낙찰정보를 조회합니다.";
+  const update = (patch: Partial<Draft>) => {
+    const next = { ...draft, ...patch };
+    const allowed = next.mode === "live" && (!!next.notice || !!noticePdf) && (status?.market_available ?? false);
+    setDraft({ ...next, marketApi: allowed && next.marketApi });
+  };
+
+  const submit = async () => {
+    if (!draft.rfp) return;
+    const form = new FormData();
+    form.append("rfp", draft.rfp);
+    if (draft.notice) form.append("notice", draft.notice);
+    form.append("mode", draft.mode);
+    form.append("market_api", String(draft.marketApi));
+    if (folderId) form.append("folder_id", folderId);
+    setSubmitting(true);
+    setError("");
+    try {
+      onStarted((await startRun(form)).job_id);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <>
+      <div>
+        <Typography display="block" variant="title3" weight="bold">새 공고 검토</Typography>
+        <Typography display="block" variant="body2" color="semantic.foreground.neutral.secondary">
+          제안요청서를 올리면 Agent 4개가 분석해 Go/No-Go 권고를 만듭니다. 최종 결정은 사업본부장이 합니다.
+        </Typography>
+      </div>
+      <div className="panel stack" style={{ gap: 20 }}>
+        <FilePicker label="제안요청서 PDF" required file={draft.rfp} hint="최대 50MB" onChange={(rfp) => update({ rfp })} />
+        {folderId ? (
+          <SectionMessage variant="info" description={noticePdf
+            ? `공고문 PDF는 나라장터 첨부에서 받았어요. 첨부에서 RFP PDF를 받지 못해 제안요청서만 직접 올려 주세요.${notes.length ? " " + notes.join(" · ") : ""}`
+            : `공고 첨부에서 PDF를 받지 못했어요. 제안요청서를 PDF로 올려 주세요.${notes.length ? " " + notes.join(" · ") : ""}`}>
+            {noticeName ?? "공고"} · 제안요청서 PDF를 올려 주세요
+          </SectionMessage>
+        ) : (
+          <FilePicker label="입찰공고문 PDF" file={draft.notice}
+            hint="없으면 참가자격·공고번호가 '확인 필요'로 남아 보류가 나올 수 있어요" onChange={(notice) => update({ notice })} />
+        )}
+        <div className="row" style={{ alignItems: "flex-start", gap: 32 }}>
+          <div className="stack" style={{ gap: 8 }}>
+            <Typography variant="label1" weight="bold">실행 방식</Typography>
+            <SegmentedControl sx={{ width: 460 }} value={draft.mode} onValueChange={(mode) => update({ mode: mode as Draft["mode"] })} size="medium">
+              <SegmentedControlItem value="offline">offline · 규칙 기반 (무료)</SegmentedControlItem>
+              <SegmentedControlItem value="live" disabled={!liveAvailable}>live · CrewAI + OpenAI</SegmentedControlItem>
+            </SegmentedControl>
+            {!liveAvailable && <Typography variant="caption1" color="semantic.foreground.neutral.secondary">.env에 OPENAI_API_KEY가 없어 live를 쓸 수 없어요</Typography>}
+            {draft.mode === "live" && <Typography variant="caption1" color="semantic.foreground.cautionary.primary">live는 OpenAI 호출 비용이 발생해요</Typography>}
+          </div>
+          <div className="stack" style={{ gap: 8 }}>
+            <Typography variant="label1" weight="bold">나라장터 시장조사</Typography>
+            <div className="row">
+              <Switch checked={draft.marketApi} disabled={!marketAllowed} onCheckedChange={(marketApi) => update({ marketApi })} />
+              <Typography variant="caption1" color="semantic.foreground.neutral.secondary">{marketHint}</Typography>
+            </div>
+          </div>
+        </div>
+        {error && <SectionMessage variant="negative" description={error}>검토를 시작하지 못했어요</SectionMessage>}
+        <div className="row">
+          <Typography className="grow" variant="caption1" color="semantic.foreground.neutral.secondary">
+            회사 역량 자료: ㈜아이티센엔텍 공개 근거 (data/company) · 체크리스트: {status?.checklist_version ?? "-"}판
+          </Typography>
+          <Button size="large" disabled={!draft.rfp || submitting} loading={submitting} onClick={submit}>검토 시작</Button>
+        </div>
+      </div>
+    </>
+  );
+}

@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01773250",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "DART 시스템 개선 사업에 대한 정보시스템 감리사업",
+  "ntceInsttNm": "금융감독원",
+  "dminsttNm": "금융감독원",
+  "asignBdgtAmt": "196333000",
+  "presmptPrce": "178484545",
+  "bidClseDt": "2026-10-26 17:00:00",
+  "bidNtceDt": "2026-10-15 15:34:24",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01773250&bidPbancOrd=000",
+  "notice_id": "R26BK01773250-000",
+  "rfp_attachment": {
+    "name": "(붙임2) 제안요청서_DART 시스템 개선 사업에 대한 정보시스템 감리사업_vF.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01773250&bidPbancOrd=000&fileType=&fileSeq=4&prcmBsneSeCd=03",
+    "sha256": "70dea2dec61eb8fec613e8a090d111603e64724297920333fad226373d74cca0"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:45:49+09:00"
+}

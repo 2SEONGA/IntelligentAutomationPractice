@@ -1,0 +1,20 @@
+{
+  "notice_no": "R26BK01747679",
+  "notice_order": "000",
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "api_source_url": "https://www.data.go.kr/data/15129394/openapi.do",
+  "retrieved_at": "2026-11-17T14:41:55+09:00",
+  "notice": {
+    "name": "[제2026-013호]입찰공고.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01747679&bidPbancOrd=000&fileType=&fileSeq=1&prcmBsneSeCd=03",
+    "document_kind": "공고서",
+    "sha256": "efb0e363ed4aabb81bab2c920e2801d3e2cd37d6a923517d41afd2c42148dc97",
+    "size": 158480
+  },
+  "rfp_attachment": {
+    "name": "제안요청서(과업지시서)_최종.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01747679&bidPbancOrd=000&fileType=&fileSeq=3&prcmBsneSeCd=03",
+    "sha256": "f0efb83212543338bb4df0a1908dad520d75100c0bb1fe96fd8d3c0950d8eb12"
+  },
+  "saved_at": "2026-11-17T14:41:57+09:00"
+}

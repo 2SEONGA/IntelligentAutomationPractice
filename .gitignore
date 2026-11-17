@@ -1,0 +1,17 @@
+.env
+.venv/
+src/*.egg-info/
+.crewai_storage/
+__pycache__/
+.pytest_cache/
+*.pyc
+outputs/*
+!outputs/.gitkeep
+
+.superpowers/
+web/node_modules/
+web/dist/
+.playwright-mcp/
+web/*.tsbuildinfo
+
+.DS_Store

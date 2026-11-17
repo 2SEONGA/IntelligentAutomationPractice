@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01824094",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "2026년 LG Aimers 운영서버 용역",
+  "ntceInsttNm": "데이콘 주식회사",
+  "dminsttNm": "데이콘 주식회사",
+  "asignBdgtAmt": "107800000",
+  "presmptPrce": "98000000",
+  "bidClseDt": "2026-11-17 10:00:00",
+  "bidNtceDt": "2026-11-11 15:06:43",
+  "cntrctCnclsMthdNm": "수의계약",
+  "sucsfbidMthdNm": "소액수의견적-소액수의견적(2인 이상 견적 제출)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01824094&bidPbancOrd=000",
+  "notice_id": "R26BK01824094-000",
+  "rfp_attachment": {
+    "name": "02_LG_Aimers_운영서버_과업지시서_기존양식 (1).pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01824094&bidPbancOrd=000&fileType=&fileSeq=1&prcmBsneSeCd=03",
+    "sha256": "570aa878ff0b5b753d5c6f628cec69c6cd60a4ea3b085ae097cc7f5d93aff02f"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-17T17:44:47+09:00"
+}
