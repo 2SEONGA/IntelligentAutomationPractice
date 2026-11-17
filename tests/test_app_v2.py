@@ -18,11 +18,11 @@ from test_notices import FakeSession, item  # noqa: E402
 from test_runs import complete_core_review  # noqa: E402
 
 STAFF, DIRECTOR = {"X-Role": "staff"}, {"X-Role": "director"}
-FILES = {"https://f/notice": pdf_bytes(), "https://f/rfp": pdf_bytes(), "https://f/hwp": b"PK.."}
-FULL = item("N1", "차세대 정보시스템 구축", ntceSpecFileNm1="(공고문)N1.pdf", ntceSpecDocUrl1="https://f/notice",
-            ntceSpecFileNm2="제안요청서.pdf", ntceSpecDocUrl2="https://f/rfp")
-HWP_ONLY = item("N2", "정보시스템 운영", ntceSpecFileNm1="공고서_N2.pdf", ntceSpecDocUrl1="https://f/notice",
-                ntceSpecFileNm2="제안요청서.hwpx", ntceSpecDocUrl2="https://f/hwp")
+FILES = {"https://www.g2b.go.kr/f/notice": pdf_bytes(), "https://www.g2b.go.kr/f/rfp": pdf_bytes(), "https://www.g2b.go.kr/f/hwp": b"PK.."}
+FULL = item("N1", "차세대 정보시스템 구축", ntceSpecFileNm1="(공고문)N1.pdf", ntceSpecDocUrl1="https://www.g2b.go.kr/f/notice",
+            ntceSpecFileNm2="제안요청서.pdf", ntceSpecDocUrl2="https://www.g2b.go.kr/f/rfp")
+HWP_ONLY = item("N2", "정보시스템 운영", ntceSpecFileNm1="공고서_N2.pdf", ntceSpecDocUrl1="https://www.g2b.go.kr/f/notice",
+                ntceSpecFileNm2="제안요청서.hwpx", ntceSpecDocUrl2="https://www.g2b.go.kr/f/hwp")
 HELD = item("N3", "정보시스템 제한", cntrctCnclsMthdNm="제한경쟁")
 
 
@@ -207,7 +207,7 @@ def test_rerun_failure_keeps_supplement_and_success_records_mode() -> None:
 
 def test_start_reports_market_and_guess() -> None:
     c, _ = client()
-    guessed = item("N4", "정보시스템 운영", ntceSpecFileNm1="붙임 사업설명.pdf", ntceSpecDocUrl1="https://f/rfp")
+    guessed = item("N4", "정보시스템 운영", ntceSpecFileNm1="붙임 사업설명.pdf", ntceSpecDocUrl1="https://www.g2b.go.kr/f/rfp")
     notices.requests.Session = lambda: FakeSession({"정보시스템": [guessed]}, files=FILES)
     collect(c)
     started = c.post("/api/notices/N4-000/start", json={"mode": "offline"}, headers=STAFF).json()

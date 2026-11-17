@@ -226,6 +226,49 @@ def test_past_collection_quota_resume_and_spread() -> None:
             saved_fetch, saved_info, saved_dl, saved_dir, saved_awards)
 
 
+def test_past_collection_order_and_contract_exclusion() -> None:
+    """M29: 수의계약은 후보·색인에서 빠지고(첨부 조회 없음), 주 안에서는 사업금액 큰 순, 금액 모르면 맨 뒤."""
+    from datetime import date
+    import shutil
+    import bid_review.rag.past_projects as pp
+    from bid_review.settings import PROJECT_ROOT
+    from bid_review.web import notices
+    dates = {"s": "2026-11-10", "b": "2026-11-11", "u": "2026-11-12", "old": "2026-10-01"}
+    assert pp._spread_by_week(list(dates), dates, {"s": 100, "b": 5_000, "u": None, "old": 1}) == ["b", "old", "s", "u"]
+    assert pp._spread_by_week(["a1", "a2", "b1"], {"a1": "2026-11-10", "a2": "2026-11-11", "b1": "2026-10-01"}) == ["a2", "b1", "a1"], \
+        "금액이 없으면 이전처럼 최신순"
+
+    def notice(no, contract="일반경쟁", amount="300000000"):
+        return {"bidNtceNo": no, "bidNtceOrd": "000", "bidNtceNm": f"{no} 사업", "dminsttNm": "기관", "bidNtceDt": "2026-11-10", "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+                "cntrctCnclsMthdNm": contract, "sucsfbidMthdNm": "협상에의한계약", "asignBdgtAmt": amount}
+    looked: list[str] = []
+    saved = (notices._fetch, notices.fetch_notice_attachment_info, notices._download, pp.PAST_DIR, pp.fetch_awards,
+             pp.INDEX_DIR, pp.project_profile)
+    work = Path(tempfile.mkdtemp(dir=PROJECT_ROOT / "outputs"))  # rfp_path는 PROJECT_ROOT 기준 상대경로
+    try:
+        notices._fetch = lambda session, keyword, b, e: [notice("SMALL"), notice("BIG", amount="9000000000"), notice("SOLE", "수의계약")]
+        notices.fetch_notice_attachment_info = lambda no, order, session=None: looked.append(no) or {
+            "attachments": [{"name": f"{no}.pdf", "url": "https://www.g2b.go.kr/x", "kind": "rfp"}], "api_operation": "op", "retrieved_at": "t"}
+        notices._download = lambda session, att, target: target.write_bytes(b"%PDF-1.4") or True
+        pp.PAST_DIR, pp.INDEX_DIR = work / "past", work / "rag"
+        pp.fetch_awards = lambda *a, **k: ({}, 0)
+        result = pp.collect_past_projects(days=7, max_projects=10, today=date(2026, 11, 17), log=lambda *_: None)
+        assert looked == ["BIG", "SMALL"] and result["skipped_contract"] == 1, (looked, result)
+        sole = pp.PAST_DIR / "SOLE-000"  # 이미 받아 둔 수의계약 공고(M23 수집분)
+        sole.mkdir()
+        (sole / "rfp.pdf").write_bytes(b"%PDF-1.4")
+        (sole / "meta.json").write_text(json.dumps({**notice("SOLE", "수의계약"), "notice_id": "SOLE-000", "bidNtceNm": "상용SW 3자단가"}), encoding="utf-8")
+        pp.project_profile = lambda path, title="", buyer="", max_pages=12: f"사업 {path.parent.name}"
+        built = pp.build_past_project_index(embed=fake_embed, log=lambda *_: None)
+        assert built["excluded_contract"] == 1 and built["projects"] == 2, built
+        assert json.loads((pp.INDEX_DIR / "past_projects_meta.json").read_text(encoding="utf-8"))["excluded_contract"] == 1
+        assert (sole / "meta.json").is_file(), "폴더는 지우지 않음"
+    finally:
+        (notices._fetch, notices.fetch_notice_attachment_info, notices._download, pp.PAST_DIR, pp.fetch_awards,
+         pp.INDEX_DIR, pp.project_profile) = saved
+        shutil.rmtree(work, ignore_errors=True)
+
+
 def test_threshold_evaluation() -> None:
     """M25: 담당자 표시로 임계값별 정밀도·재현율과 최적 F1 기준을 계산."""
     sys.path.insert(0, str(ROOT / "scripts"))

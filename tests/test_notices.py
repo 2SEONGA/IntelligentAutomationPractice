@@ -19,8 +19,17 @@ FUTURE_CLOSE = (max(datetime.now(), NOW) + timedelta(days=30)).strftime("%Y-%m-%
 
 
 class Response:
-    def __init__(self, payload=None, content=b"", status=200):
-        self.payload, self.content, self.status_code = payload, content, status
+    def __init__(self, payload=None, content=b"", status=200, headers=None):
+        self.payload, self.content, self.status_code, self.headers = payload, content, status, headers or {}
+        self.read = 0  # bytes handed out by iter_content (a streamed download must stop early)
+
+    def iter_content(self, size):
+        for start in range(0, len(self.content), size):
+            self.read += size
+            yield self.content[start:start + size]
+
+    def close(self):
+        pass
 
     def json(self):
         if self.payload is None:
@@ -162,10 +171,10 @@ def test_classify() -> None:
 
 def test_download_skips_non_pdf() -> None:
     sandbox()
-    files = {"https://f/1": PDF, "https://f/2": b"<html>error</html>", "https://f/3": b"PK..."}
-    attached = item("G7", "정보시스템", ntceSpecFileNm1="(공고문)G7.pdf", ntceSpecDocUrl1="https://f/1",
-                    ntceSpecFileNm2="제안요청서.pdf", ntceSpecDocUrl2="https://f/2",
-                    ntceSpecFileNm3="과업.hwpx", ntceSpecDocUrl3="https://f/3")
+    files = {"https://www.g2b.go.kr/f/1": PDF, "https://www.g2b.go.kr/f/2": b"<html>error</html>", "https://www.g2b.go.kr/f/3": b"PK..."}
+    attached = item("G7", "정보시스템", ntceSpecFileNm1="(공고문)G7.pdf", ntceSpecDocUrl1="https://www.g2b.go.kr/f/1",
+                    ntceSpecFileNm2="제안요청서.pdf", ntceSpecDocUrl2="https://www.g2b.go.kr/f/2",
+                    ntceSpecFileNm3="과업.hwpx", ntceSpecDocUrl3="https://www.g2b.go.kr/f/3")
     session = FakeSession({"정보시스템": [attached]}, files=files)
     notices.collect(30, ["정보시스템"], session=session, now=NOW)
     stored = notices.load_notices()["notices"]["G7-000"]
@@ -178,8 +187,8 @@ def test_download_skips_non_pdf() -> None:
 
 def test_first_plain_pdf_becomes_rfp() -> None:
     sandbox()
-    attached = item("H8", "정보시스템", ntceSpecFileNm1="붙임1 사업설명.pdf", ntceSpecDocUrl1="https://f/9")
-    session = FakeSession({"정보시스템": [attached]}, files={"https://f/9": PDF})
+    attached = item("H8", "정보시스템", ntceSpecFileNm1="붙임1 사업설명.pdf", ntceSpecDocUrl1="https://www.g2b.go.kr/f/9")
+    session = FakeSession({"정보시스템": [attached]}, files={"https://www.g2b.go.kr/f/9": PDF})
     notices.collect(30, ["정보시스템"], session=session, now=NOW)
     folder = Path(tempfile.mkdtemp())
     fetched = notices.fetch_attachments("H8-000", folder, session=session)
@@ -225,18 +234,18 @@ def test_attachment_info_and_byte_comparison() -> None:
     """M15: 첨부파일정보 오퍼레이션 해석 + 저장 PDF/API 첨부 SHA-256 비교 분기."""
     sandbox()
     rows = [
-        {"bidNtceNo": "R1", "bidNtceOrd": "000", "atchDocDivNm": "공고서", "fileNm": "입찰공고문.pdf", "fileUrl": "https://f/n"},
-        {"bidNtceNo": "R1", "bidNtceOrd": "000", "atchDocDivNm": "제안요청서", "fileNm": "과업.pdf", "fileUrl": "https://f/r"},
-        {"bidNtceNo": "R1", "bidNtceOrd": "001", "atchDocDivNm": "공고서", "fileNm": "정정.pdf", "fileUrl": "https://f/x"},
-        {"bidNtceNo": "R1", "bidNtceOrd": "000", "atchDocDivNm": "공고서(변환본)", "fileNm": "제안요청서 수정.pdf", "fileUrl": "https://f/c"},
-        {"bidNtceNo": "R1", "bidNtceOrd": "000", "atchDocDivNm": "공고서", "fileNm": "붙임1.pdf", "fileUrl": "https://f/a"},
+        {"bidNtceNo": "R1", "bidNtceOrd": "000", "atchDocDivNm": "공고서", "fileNm": "입찰공고문.pdf", "fileUrl": "https://www.g2b.go.kr/f/n"},
+        {"bidNtceNo": "R1", "bidNtceOrd": "000", "atchDocDivNm": "제안요청서", "fileNm": "과업.pdf", "fileUrl": "https://www.g2b.go.kr/f/r"},
+        {"bidNtceNo": "R1", "bidNtceOrd": "001", "atchDocDivNm": "공고서", "fileNm": "정정.pdf", "fileUrl": "https://www.g2b.go.kr/f/x"},
+        {"bidNtceNo": "R1", "bidNtceOrd": "000", "atchDocDivNm": "공고서(변환본)", "fileNm": "제안요청서 수정.pdf", "fileUrl": "https://www.g2b.go.kr/f/c"},
+        {"bidNtceNo": "R1", "bidNtceOrd": "000", "atchDocDivNm": "공고서", "fileNm": "붙임1.pdf", "fileUrl": "https://www.g2b.go.kr/f/a"},
     ]
 
     class AttachSession:
         def __init__(self, files):
             self.files, self.params = files, None
 
-        def get(self, url, params=None, timeout=None):
+        def get(self, url, params=None, timeout=None, **kwargs):
             if params is not None:
                 self.params = params
                 return Response({"response": {"header": {"resultCode": "00"}, "body": {"items": rows}}})
@@ -244,7 +253,7 @@ def test_attachment_info_and_byte_comparison() -> None:
                 raise notices.requests.ConnectionError()
             return Response(content=self.files[url])
 
-    session = AttachSession({"https://f/n": PDF})
+    session = AttachSession({"https://www.g2b.go.kr/f/n": PDF})
     info = notices.fetch_notice_attachment_info("R1", "0", session=session)
     assert session.params["inqryDiv"] == "2" and session.params["bidNtceOrd"] == "000" and session.params["bsnsDivCd"] == "5"
     assert info["status"] == "found" and [a["kind"] for a in info["attachments"]] == ["notice", "rfp", "rfp", "notice"], \
@@ -255,12 +264,84 @@ def test_attachment_info_and_byte_comparison() -> None:
     compare = lambda files, path=local: notices.compare_notice_pdf_bytes(info["attachments"], path, session=AttachSession(files))  # noqa: E731
     assert compare({}, None)["status"] == "local_pdf_missing"
     local.write_bytes(PDF)
-    assert compare({"https://f/n": PDF})["status"] == "byte_match"
-    changed = compare({"https://f/n": PDF + b" changed"})
+    assert compare({"https://www.g2b.go.kr/f/n": PDF})["status"] == "byte_match"
+    changed = compare({"https://www.g2b.go.kr/f/n": PDF + b" changed"})
     assert changed["status"] == "byte_mismatch" and changed["local_sha256"] != changed["g2b_sha256"]
-    assert compare({"https://f/n": b"<html>"})["status"] == "download_not_pdf"
+    assert compare({"https://www.g2b.go.kr/f/n": b"<html>"})["status"] == "download_not_pdf"
     assert compare({})["status"] == "download_unavailable"
     assert notices.compare_notice_pdf_bytes([], local)["status"] == "g2b_notice_attachment_missing"
+
+
+def test_attachment_download_is_g2b_only_and_capped() -> None:
+    """M29 보안 보완: https://*.g2b.go.kr만, 리다이렉트도 매번 확인, 50MB를 넘으면 받는 도중 중단."""
+    class Hops:
+        def __init__(self, routes):
+            self.routes, self.urls = routes, []
+
+        def get(self, url, timeout=None, stream=False, allow_redirects=True, **kwargs):
+            assert stream and not allow_redirects, "스트리밍·리다이렉트 직접 확인"
+            self.urls.append(url)
+            return self.routes[url]
+
+    ok = "https://www.g2b.go.kr/f/ok"
+    assert notices.fetch_attachment_bytes(Hops({ok: Response(content=PDF)}), ok) == PDF
+    for bad in ("http://www.g2b.go.kr/f/x", "https://evil.example/x", "https://g2b.go.kr.evil.example/x", "https://169.254.169.254/x"):
+        try:
+            notices.fetch_attachment_bytes(Hops({}), bad)
+        except notices.DownloadRejected as exc:
+            assert exc.args[0] == "invalid_attachment_url", bad
+        else:
+            raise AssertionError(f"허용하면 안 됨: {bad}")
+    redirect = Hops({ok: Response(status=302, headers={"Location": "https://127.0.0.1/admin"})})
+    try:
+        notices.fetch_attachment_bytes(redirect, ok)
+    except notices.DownloadRejected:
+        assert redirect.urls == [ok], "다른 호스트로 가는 리다이렉트는 따라가지 않음"
+    else:
+        raise AssertionError("리다이렉트 대상도 확인해야 함")
+    moved = "https://www.g2b.go.kr/f/moved"
+    assert notices.fetch_attachment_bytes(Hops({ok: Response(status=302, headers={"Location": "/f/moved"}),
+                                                moved: Response(content=PDF)}), ok) == PDF, "같은 사이트 리다이렉트는 허용"
+    saved = notices.MAX_ATTACHMENT_BYTES
+    try:
+        notices.MAX_ATTACHMENT_BYTES = 1000
+        declared = Response(content=PDF, headers={"Content-Length": "5000"})
+        big = Response(content=b"%PDF-" + b"x" * 10_000_000)
+        for response in (declared, big):
+            try:
+                notices.fetch_attachment_bytes(Hops({ok: response}), ok)
+            except notices.DownloadRejected as exc:
+                assert exc.args[0] == "download_too_large"
+            else:
+                raise AssertionError("크기 제한")
+        assert declared.read == 0 and big.read < 200_000, "제한을 넘으면 더 받지 않음"
+        target = Path(tempfile.mkdtemp()) / "rfp.pdf"
+        assert not notices._download(Hops({ok: Response(content=b"%PDF-" + b"x" * 5000)}), {"url": ok}, target)
+        assert not target.exists() and not list(target.parent.iterdir()), "실패하면 파일·임시 파일을 남기지 않음"
+    finally:
+        notices.MAX_ATTACHMENT_BYTES = saved
+    local = Path(tempfile.mkdtemp()) / "notice.pdf"
+    local.write_bytes(PDF)
+    evil = notices.compare_notice_pdf_bytes([{"kind": "notice", "url": "https://evil.example/n", "name": "n.pdf"}], local, session=Hops({}))
+    assert evil["status"] == "invalid_attachment_url"
+
+
+def test_collect_prunes_expired_untouched_notices() -> None:
+    """M29: 마감이 30일 넘게 지났고 담당자가 손대지 않은 공고만 수집 때 정리. 마감일을 모르면 남긴다."""
+    sandbox()
+    close = lambda days: (NOW - timedelta(days=days)).strftime("%Y-%m-%d 10:00:00")  # noqa: E731
+    store = notices.load_notices()
+    def old(no, days, **extra):
+        return {"bidNtceNo": no, "judged": {"deadline": close(days) if days is not None else None}, "review": None,
+                "case_folder": None, **extra}
+    store["notices"] = {"OLD-000": old("OLD", 31), "RECENT-000": old("RECENT", 29), "NODATE-000": old("NODATE", None),
+                        "REVIEWED-000": old("REVIEWED", 90, review={"include": False, "reason": "r", "role": "staff", "at": "x"}),
+                        "CASE-000": old("CASE", 90, case_folder="20261001_000000_x")}
+    notices._save(store)
+    summary = notices.collect(30, ["AI"], session=FakeSession({"AI": [item("NEW", "AI 플랫폼"), item("GONE", "AI", bidClseDt=close(40))]}), now=NOW)
+    kept = set(notices.load_notices()["notices"])
+    assert kept == {"RECENT-000", "NODATE-000", "REVIEWED-000", "CASE-000", "NEW-000"}, kept
+    assert summary["pruned"] == 2 and notices.load_notices()["runs"][-1]["pruned"] == 2, "OLD + 방금 받은 마감 40일 지난 GONE"
 
 
 def test_change_history_and_routing_reason() -> None:

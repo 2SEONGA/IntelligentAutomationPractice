@@ -18,6 +18,7 @@ from typing import Any
 
 import requests
 
+from ..notice_filter import amount_of
 from ..settings import PROJECT_ROOT, load_config
 from .corpus import _privacy_filter
 
@@ -99,10 +100,16 @@ def fetch_awards(keywords: list[str], begin: date, end: date, session=None) -> t
     return awards, failed
 
 
-def _spread_by_week(ids: list[str], dates: dict[str, str]) -> list[str]:
-    """Newest week first, then one notice per week in turn — so a capped run covers the whole period."""
+def _spread_by_week(ids: list[str], dates: dict[str, str], amounts: dict[str, int | None] | None = None) -> list[str]:
+    """Newest week first, then one notice per week in turn — so a capped run covers the whole period.
+
+    Inside a week the largest 사업금액 goes first (M29), unknown amounts last, ties newest first. Without a
+    floor: a capped day takes the big projects, and resuming on later days works down to the small ones.
+    """
+    amounts = amounts or {}
+    newest_first = sorted(ids, key=lambda nid: dates.get(nid, ""), reverse=True)
     buckets: dict[str, list[str]] = {}
-    for nid in sorted(ids, key=lambda nid: dates.get(nid, ""), reverse=True):
+    for nid in sorted(newest_first, key=lambda nid: (amounts.get(nid) is None, -(amounts.get(nid) or 0))):
         stamp = dates.get(nid, "")[:10]
         try:
             week = date.fromisoformat(stamp).isocalendar()[:2]
@@ -115,6 +122,12 @@ def _spread_by_week(ids: list[str], dates: dict[str, str]) -> list[str]:
             if queue:
                 ordered.append(queue.pop(0))
     return ordered
+
+
+def _excluded_contract(record: dict, terms: list[str]) -> bool:
+    """Same rule as the notice filter: 수의계약 notices are product specs (상용SW 3자단가 등), not project RFPs (M29)."""
+    text = f"{record.get('cntrctCnclsMthdNm') or ''} {record.get('sucsfbidMthdNm') or ''}"
+    return any(term in text for term in terms)
 
 
 def _is_quota_error(message: str) -> bool:
@@ -138,6 +151,8 @@ def collect_past_projects(days: int | None = None, max_projects: int | None = No
     # 공고 수집 키워드가 비면(M27) 키워드 없이 전체 조회한다. extra_keywords는 키워드 수집일 때만 보탠다(M28).
     keywords = list(dict.fromkeys(rules["collect_keywords"] + scope.get("extra_keywords", []))) if rules["collect_keywords"] else [""]
     ict = set(rules.get("ict_classes", []))
+    excluded_terms = rules.get("exclude_contract_terms", [])
+    skipped_contract: set[str] = set()
     session = session or requests.Session()
     end = (today or date.today()) - timedelta(days=1)
     begin = end - timedelta(days=days)
@@ -147,13 +162,19 @@ def collect_past_projects(days: int | None = None, max_projects: int | None = No
         while window_end >= begin:
             window_start = max(begin, window_end - timedelta(days=notices.MAX_WINDOW_DAYS - 1))
             for item in notices._fetch(session, keyword, window_start, window_end):
-                if not ict or item.get("pubPrcrmntLrgClsfcNm") in ict:
-                    found[notices.notice_id(item)] = item
+                if ict and item.get("pubPrcrmntLrgClsfcNm") not in ict:
+                    continue
+                if _excluded_contract(item, excluded_terms):
+                    skipped_contract.add(notices.notice_id(item))
+                    continue
+                found[notices.notice_id(item)] = item
             window_end = window_start - timedelta(days=1)
     exclude = exclude or set()
     ordered = _spread_by_week([nid for nid in found if nid.split("-")[0] not in exclude],
-                              {nid: str(found[nid].get("bidNtceDt") or "") for nid in found})
-    log(f"후보 공고 {len(ordered)}건 (ICT 서비스, {begin}~{end}, {'전체 수집' if keywords == [''] else f'키워드 {len(keywords)}개'})")
+                              {nid: str(found[nid].get("bidNtceDt") or "") for nid in found},
+                              {nid: amount_of(found[nid]) for nid in found})
+    log(f"후보 공고 {len(ordered)}건 (ICT 서비스, {begin}~{end}, {'전체 수집' if keywords == [''] else f'키워드 {len(keywords)}개'}, "
+        f"수의계약 제외 {len(skipped_contract)}건, 주 안에서 금액 큰 순)")
     PAST_DIR.mkdir(parents=True, exist_ok=True)
     checked_path = PAST_DIR / "_checked.json"
     checked: dict[str, str] = json.loads(checked_path.read_text(encoding="utf-8")) if checked_path.is_file() else {}
@@ -203,7 +224,7 @@ def collect_past_projects(days: int | None = None, max_projects: int | None = No
     awards, failed = fetch_awards(keywords, begin, end, session=session)
     (PAST_DIR / "awards.json").write_text(json.dumps({"period": [str(begin), str(end)], "awards": awards,
                                                       "failed_windows": failed}, ensure_ascii=False, indent=2), encoding="utf-8")
-    return {"candidates": len(ordered), **counts, "attachment_lookups": lookups, "stopped": stopped,
+    return {"candidates": len(ordered), "skipped_contract": len(skipped_contract), **counts, "attachment_lookups": lookups, "stopped": stopped,
             "awards": len(awards), "award_failed_windows": failed, "period": [str(begin), str(end)]}
 
 
@@ -219,8 +240,13 @@ def build_past_project_index(embed=None, log=print) -> dict[str, Any]:
     latest: dict[str, Path] = {}  # 공고번호별 최신 차수 하나만 (재공고 차수 중복 제거)
     for meta_path in sorted(PAST_DIR.glob("*/meta.json")):
         latest[meta_path.parent.name.split("-")[0]] = meta_path  # 이름순 정렬 → 마지막이 최대 차수
+    excluded_terms = load_config("notice_filter").get("exclude_contract_terms", [])
+    excluded_contract = 0
     for meta_path in latest.values():
         meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        if _excluded_contract(meta, excluded_terms):
+            excluded_contract += 1  # 폴더는 남긴다(이어받기 때 재조회 없음); 색인에서만 뺀다 (M29)
+            continue
         number = meta["notice_id"].split("-")[0]
         award = next((value for key, value in sorted(awards.items(), reverse=True) if key.split("-")[0] == number), None)
         try:
@@ -249,13 +275,14 @@ def build_past_project_index(embed=None, log=print) -> dict[str, Any]:
     embed = embed or openai_embedder(EMBEDDING_MODEL)
     matrix = _normalise(np.asarray(embed([p["profile"] for p in projects]), dtype=np.float32))
     payload = json.dumps(projects, ensure_ascii=False, indent=2)
+    INDEX_DIR.mkdir(parents=True, exist_ok=True)
     (INDEX_DIR / "past_projects.json").write_text(payload, encoding="utf-8")
     np.save(INDEX_DIR / "past_projects.npy", matrix)
     (INDEX_DIR / "past_projects_meta.json").write_text(json.dumps({
-        "model": EMBEDDING_MODEL, "count": len(projects), "profiles_sha256": hashlib.sha256(payload.encode()).hexdigest(),
+        "model": EMBEDDING_MODEL, "count": len(projects), "excluded_contract": excluded_contract, "profiles_sha256": hashlib.sha256(payload.encode()).hexdigest(),
         "built_at": datetime.now().astimezone().isoformat(timespec="seconds")}, ensure_ascii=False, indent=2), encoding="utf-8")
     return {"projects": len(projects), "notices": sum(len(p["related_notice_ids"]) for p in projects),
-            "with_award": sum(1 for p in projects if p["award"])}
+            "with_award": sum(1 for p in projects if p["award"]), "excluded_contract": excluded_contract}
 
 
 def search_similar_projects(query_profile: str, *, limit: int = 5, exclude_notice_no: str | None = None,

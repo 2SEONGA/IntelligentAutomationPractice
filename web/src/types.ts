@@ -124,13 +124,13 @@ export type BatchState = {
   running: boolean; stopped: boolean; total: number; mode: string | null; current: BatchItem | null;
   done: BatchItem[]; waiting: BatchItem[]; failed: BatchItem[];
 };
-export type CollectRun = { at: string; days: number; keywords: string[]; count: number; skipped_non_ict?: number };
+export type CollectRun = { at: string; days: number; keywords: string[]; count: number; skipped_non_ict?: number; pruned?: number };
 // 빈 keywords = 키워드 없이 전체 수집(M27)
 export const keywordLabel = (keywords: string[]) => (keywords.length ? `키워드 ${keywords.length}개` : "전체 수집");
 export type NoticeList = {
   notices: Notice[]; counts: Record<NoticeVerdict | "started", number>; runs: CollectRun[]; notice_available: boolean;
 };
-export type CollectSummary = { collected: number; total: number; by_verdict: Record<NoticeVerdict, number>; at: string; skipped_non_ict: number };
+export type CollectSummary = { collected: number; total: number; by_verdict: Record<NoticeVerdict, number>; at: string; skipped_non_ict: number; pruned: number };
 type StartInfo = { notice_pdf: boolean; skipped: string[]; rfp_guessed: boolean; market_api: boolean; market_requested: boolean };
 export type StartResult = ({ job_id: string } & StartInfo) | ({ needs_upload: true; folder_id: string } & StartInfo);
 

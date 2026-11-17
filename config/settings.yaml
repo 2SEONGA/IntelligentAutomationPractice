@@ -74,6 +74,7 @@ past_projects:
   days: 180                 # 공고 조회 기간
   max_projects: 200         # 저장할 PDF 제안요청서 최대 건수
   max_lookups_per_run: 800  # 1회 실행에서 쓸 첨부파일정보 API 호출 상한 (일일 할당량 보호, 2026-11-17 약 900회 후 22 오류)
+  # 수집 순서(M29): 수의계약(notice_filter.exclude_contract_terms)은 후보·색인에서 빼고, 주 단위 배분 안에서 사업금액 큰 순.
   # config/notice_filter.yaml의 collect_keywords가 있을 때만 거기에 더해 쓴다(현재 검토 사업 분야: 상수도·GIS / 병원 임상 / 대학 학사).
   # collect_keywords가 빈 목록이면(M27) 키워드 없이 전체 조회하므로 쓰지 않는다(M28).
   extra_keywords: ["상수도", "상수관", "관망", "GIS", "공간정보", "임상", "의료정보", "병원", "학사", "대학"]

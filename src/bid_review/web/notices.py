@@ -9,8 +9,9 @@ from pathlib import Path
 import re
 import tempfile
 import threading
+import time
 import unicodedata
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urljoin, urlsplit
 
 from dotenv import dotenv_values
 import requests
@@ -31,6 +32,11 @@ ATTACHMENT_INFO_ENDPOINT = "https://apis.data.go.kr/1230000/ad/BidPublicInfoServ
 ENV_FILE = PROJECT_ROOT / ".env"
 KEY_OVERRIDE: str | None = None  # tests only
 MAX_WINDOW_DAYS = 7
+# 첨부 다운로드(M29 보안 보완): 나라장터 주소만, 50MB·5분까지. 저장 데이터의 첨부 주소 2,370건이 모두 https://www.g2b.go.kr였다.
+ATTACHMENT_HOSTS = ("g2b.go.kr",)
+MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024
+ATTACHMENT_DEADLINE_SECONDS = 300
+MAX_REDIRECTS = 5
 # Seen in real G2B attachment names: (입찰)공고문, (재)공고서, 입찰공고서
 NOTICE_TERMS = ("공고문", "공고서", "입찰공고")
 KEPT_FIELDS = ("bidNtceNo", "bidNtceOrd", "bidNtceNm", "ntceInsttNm", "dminsttNm", "asignBdgtAmt", "presmptPrce",
@@ -220,19 +226,15 @@ def compare_notice_pdf_bytes(attachments: list[dict], notice_pdf_path: Path | No
         return {"status": "g2b_notice_attachment_missing", "local_sha256": local_sha256}
     attachment = candidates[0]
     url = str(attachment.get("url") or "")
-    if not url.startswith("https://"):
-        return {"status": "invalid_attachment_url", "local_sha256": local_sha256,
-                "attachment_name": attachment.get("name")}
     session = session or requests.Session()
     try:
-        response = session.get(url, timeout=90)
-        content = response.content
+        content = fetch_attachment_bytes(session, url)
+    except DownloadRejected as exc:
+        return {"status": exc.args[0], "local_sha256": local_sha256,
+                "attachment_name": attachment.get("name"), "source_url": url}
     except requests.RequestException as exc:
         return {"status": "download_unavailable", "error": type(exc).__name__,
                 "local_sha256": local_sha256, "attachment_name": attachment.get("name"), "source_url": url}
-    if len(content) > 50 * 1024 * 1024:
-        return {"status": "download_too_large", "local_sha256": local_sha256,
-                "attachment_name": attachment.get("name"), "source_url": url}
     if not content.startswith(b"%PDF-"):
         return {"status": "download_not_pdf", "local_sha256": local_sha256,
                 "attachment_name": attachment.get("name"), "source_url": url}
@@ -416,12 +418,35 @@ def collect(days: int, keywords: list[str], session=None, now: datetime | None =
             entry["verdict"] = _final_verdict(entry)
             counts[entry["verdict"]] += 1
             store["notices"][nid] = entry
+        pruned = _prune_expired(store, now, rules.get("prune_after_deadline_days"))
         at = datetime.now(runs.KST).isoformat(timespec="seconds")
         store["runs"].append({"at": at, "days": days, "keywords": keywords, "count": len(fetched),
-                              "skipped_non_ict": skipped_non_ict})
+                              "skipped_non_ict": skipped_non_ict, "pruned": pruned})
         _save(store)
     return {"collected": len(fetched), "total": len(store["notices"]), "by_verdict": counts, "at": at,
-            "skipped_non_ict": skipped_non_ict}
+            "skipped_non_ict": skipped_non_ict, "pruned": pruned}
+
+
+def _prune_expired(store: dict, now: datetime, after_days: int | None) -> int:
+    """M29: drop notices whose deadline passed more than after_days ago and that no person has touched
+    (no review, no case folder). An unreadable or missing deadline is kept — unknown is never deleted."""
+    if not after_days:
+        return 0
+    cutoff = now - timedelta(days=after_days)
+    doomed = []
+    for nid, entry in store["notices"].items():
+        if entry.get("review") or entry.get("case_folder"):
+            continue
+        raw = str((entry.get("judged") or {}).get("deadline") or entry.get("bidClseDt") or "").strip()
+        try:
+            deadline = datetime.strptime(raw[:16], "%Y-%m-%d %H:%M")  # same format as notice_filter._deadline
+        except ValueError:
+            continue
+        if deadline < cutoff:
+            doomed.append(nid)
+    for nid in doomed:
+        del store["notices"][nid]
+    return len(doomed)
 
 
 def set_review(nid: str, include: bool, reason: str, role: str) -> dict:
@@ -465,12 +490,61 @@ def fetch_attachments(nid: str, folder: Path, session=None) -> dict:
     return result
 
 
+class DownloadRejected(Exception):
+    """Attachment refused before or while downloading; args[0] is the status word."""
+
+
+def _g2b_url(url: str) -> bool:
+    parts = urlsplit(url)
+    host = (parts.hostname or "").lower()
+    return parts.scheme == "https" and any(host == h or host.endswith("." + h) for h in ATTACHMENT_HOSTS)
+
+
+def fetch_attachment_bytes(session, url: str) -> bytes:
+    """GET a G2B attachment: https://*.g2b.go.kr only (every redirect hop re-checked), streamed and cut off past
+    MAX_ATTACHMENT_BYTES or ATTACHMENT_DEADLINE_SECONDS so an oversized answer never sits whole in memory.
+    Raises DownloadRejected("invalid_attachment_url" | "download_too_large") or requests.RequestException."""
+    deadline = time.monotonic() + ATTACHMENT_DEADLINE_SECONDS
+    for _ in range(MAX_REDIRECTS + 1):
+        if not _g2b_url(url):
+            raise DownloadRejected("invalid_attachment_url")
+        response = session.get(url, timeout=120, stream=True, allow_redirects=False)
+        headers = getattr(response, "headers", None) or {}
+        if getattr(response, "status_code", 200) in (301, 302, 303, 307, 308) and headers.get("Location"):
+            url = urljoin(url, headers["Location"])
+            getattr(response, "close", lambda: None)()
+            continue
+        break
+    else:
+        raise DownloadRejected("invalid_attachment_url")  # redirect loop
+    try:
+        try:
+            declared = int(headers.get("Content-Length") or 0)
+        except ValueError:
+            declared = 0
+        if declared > MAX_ATTACHMENT_BYTES:
+            raise DownloadRejected("download_too_large")
+        chunks, total = [], 0
+        for chunk in response.iter_content(64 * 1024):
+            total += len(chunk)
+            if total > MAX_ATTACHMENT_BYTES:
+                raise DownloadRejected("download_too_large")
+            if time.monotonic() > deadline:
+                raise requests.Timeout("attachment download exceeded the overall time limit")
+            chunks.append(chunk)
+        return b"".join(chunks)
+    finally:
+        getattr(response, "close", lambda: None)()
+
+
 def _download(session, attachment: dict, target: Path) -> bool:
     try:
-        content = session.get(attachment["url"], timeout=120).content
-    except requests.RequestException:
+        content = fetch_attachment_bytes(session, str(attachment.get("url") or ""))
+    except (requests.RequestException, DownloadRejected):
         return False
     if not content.startswith(b"%PDF-"):
         return False
-    target.write_bytes(content)
+    partial = target.with_name(target.name + ".part")  # 다 받은 뒤에만 제자리로 옮긴다
+    partial.write_bytes(content)
+    partial.replace(target)
     return True

@@ -66,7 +66,7 @@ export default function Notices({ role, status, onNavigate, onChanged }: Props) 
   const collect = () => act(async () => {
     const result = await collectNotices(Number(days));
     const v = result.by_verdict;
-    setMessage({ ok: true, text: `${result.collected.toLocaleString("ko-KR")}건 수집 · 검토 대상 ${v["검토 대상"]} · 확인 필요 ${v["확인 필요"]} · 제외 ${v["제외"]}(ICT 아님 ${result.skipped_non_ict.toLocaleString("ko-KR")}건은 저장 안 함) (누적 ${result.total.toLocaleString("ko-KR")}건)` });
+    setMessage({ ok: true, text: `${result.collected.toLocaleString("ko-KR")}건 수집 · 검토 대상 ${v["검토 대상"]} · 확인 필요 ${v["확인 필요"]} · 제외 ${v["제외"]}(ICT 아님 ${result.skipped_non_ict.toLocaleString("ko-KR")}건은 저장 안 함)${result.pruned ? ` · 마감 지난 ${result.pruned.toLocaleString("ko-KR")}건 정리` : ""} (누적 ${result.total.toLocaleString("ko-KR")}건)` });
     await load();
     onChanged();
   });
