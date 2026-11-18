@@ -45,10 +45,13 @@ def _hwpx_text(path: Path) -> str:
             raise HwpError("HWPX 본문이 너무 큽니다.")
         paragraphs: list[str] = []
         for info in sections:
-            xml = archive.read(info)
-            if b"<!DOCTYPE" in xml or b"<!ENTITY" in xml:  # 정상 HWPX에는 DTD가 없다 — 엔티티 확장 공격 차단
+            try:  # UTF-8만 받는다 — UTF-16 등으로 쓰면 바이트 검사를 피해 DTD를 넣을 수 있다
+                xml = archive.read(info).decode("utf-8-sig")
+            except UnicodeDecodeError:
+                raise HwpError("HWPX 본문이 UTF-8이 아닙니다.") from None
+            if "<!DOCTYPE" in xml or "<!ENTITY" in xml:  # 정상 HWPX에는 DTD가 없다 — 엔티티 확장 공격 차단
                 raise HwpError("HWPX 본문에 DTD가 있습니다.")
-            root = ElementTree.fromstring(xml)
+            root = ElementTree.fromstring(re.sub(r"^<\?xml[^>]*\?>", "", xml))  # 문자열 파싱: 선언된 인코딩 무시
             # 표 안 문단도 hp:p라서 가장 안쪽 문단 단위로 모은다(바깥 문단에 표 글자가 겹치지 않게).
             for para in root.iter():
                 if para.tag.endswith("}p") and not any(child.tag.endswith("}p") for child in para.iter() if child is not para):
@@ -74,6 +77,8 @@ def _hwp5_text(data: bytes) -> str:
     for name in names:
         raw = streams[name]
         if flags & 1:  # 압축 문서: raw deflate
+            if budget <= 0:  # decompress(max_length=0)은 "제한 없음"이라 먼저 끊는다
+                raise HwpError("HWP 본문이 너무 큽니다.")
             inflater = zlib.decompressobj(-15)
             raw = inflater.decompress(raw, budget)
             if inflater.unconsumed_tail:
@@ -166,6 +171,7 @@ def _ole_streams(data: bytes) -> dict[str, bytes]:
 
     streams: dict[str, bytes] = {}
     seen: set[int] = set()
+    budget = [MAX_TEXT_BYTES]  # 읽은 스트림 합계 — 겹친 섹터 사슬로 같은 데이터를 여러 번 읽는 것도 막는다
 
     def walk(index: int, prefix: str) -> None:
         if index == _FREE or index >= len(entries) or index in seen:
@@ -178,9 +184,14 @@ def _ole_streams(data: bytes) -> dict[str, bytes]:
         left, right, child = struct.unpack_from("<III", entry, 68)
         walk(left, prefix)
         walk(right, prefix)
-        if kind == 2:
+        path = prefix + name
+        if kind == 2 and (path == "FileHeader" or re.fullmatch(r"BodyText/Section\d+", path)):  # 필요한 스트림만 읽는다
             start, size = struct.unpack_from("<IQ", entry, 116)
-            streams[prefix + name] = stream(start, size & 0xFFFFFFFF if sector == 512 else size)
+            size = size & 0xFFFFFFFF if sector == 512 else size
+            budget[0] -= size
+            if budget[0] < 0:
+                raise HwpError("OLE 스트림 합계가 너무 큽니다.")
+            streams[path] = stream(start, size)
         elif kind == 1:
             walk(child, prefix + name + "/")
 

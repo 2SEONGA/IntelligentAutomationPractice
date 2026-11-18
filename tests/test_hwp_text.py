@@ -75,6 +75,17 @@ def test_hwp5_text_and_controls() -> None:
         assert hwp_text(work / "a.hwp") == "1. 사업 개요\t1억\n표 안 문단끝", repr(hwp_text(work / "a.hwp"))
         make_hwp(work / "plain.hwp", flags=0)
         assert "표 안 문단" in hwp_text(work / "plain.hwp"), "압축하지 않은 문서"
+        import bid_review.hwp_text as ht
+        saved_cap = ht.MAX_TEXT_BYTES
+        try:
+            ht.MAX_TEXT_BYTES = 300  # FileHeader(256) + 압축 섹션 → 합계 상한 초과
+            try:
+                hwp_text(work / "a.hwp")
+                raise AssertionError("스트림 합계 상한")
+            except HwpError:
+                pass
+        finally:
+            ht.MAX_TEXT_BYTES = saved_cap
         make_hwp(work / "locked.hwp", flags=1 | 2)
         try:
             hwp_text(work / "locked.hwp")
@@ -102,6 +113,14 @@ def test_hwpx_text_and_dtd_rejected() -> None:
         try:
             hwp_text(work / "bomb.hwpx")
             raise AssertionError("DTD가 있는 HWPX는 거부")
+        except HwpError:
+            pass
+        utf16 = work / "utf16.hwpx"  # UTF-16으로 쓴 DTD는 바이트 검사를 피하므로 UTF-8이 아니면 거부
+        with zipfile.ZipFile(utf16, "w") as archive:
+            archive.writestr("Contents/section0.xml", '<?xml version="1.0" encoding="UTF-16"?><!DOCTYPE x [<!ENTITY a "b">]><x/>'.encode("utf-16"))
+        try:
+            hwp_text(utf16)
+            raise AssertionError("UTF-16 HWPX는 거부")
         except HwpError:
             pass
         (work / "x.hwp").write_bytes(b"not hwp")
