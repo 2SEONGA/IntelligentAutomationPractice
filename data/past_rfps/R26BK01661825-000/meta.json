@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01661825",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "역무중앙전산시스템 유지관리 용역",
+  "ntceInsttNm": "부산교통공사",
+  "dminsttNm": "부산교통공사",
+  "asignBdgtAmt": "748484400",
+  "presmptPrce": "680440364",
+  "bidClseDt": "2026-08-11 10:00:00",
+  "bidNtceDt": "2026-08-03 16:23:03",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "적격심사제-관리규정외 수기심사(총점입력)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01661825&bidPbancOrd=000",
+  "notice_id": "R26BK01661825-000",
+  "rfp_attachment": {
+    "name": "과업지시서 및 특수계약조건(최종).pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01661825&bidPbancOrd=000&fileType=&fileSeq=3&prcmBsneSeCd=03",
+    "sha256": "e6fd6f3a0137d380792f77e31fecc2aa3aff1d914b05a3a50d35c1c8936b5b7a"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-18T10:12:55+09:00"
+}

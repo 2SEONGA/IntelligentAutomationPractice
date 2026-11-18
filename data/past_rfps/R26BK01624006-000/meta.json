@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01624006",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "과학기술인공제회 정보시스템 통합유지보수 용역",
+  "ntceInsttNm": "과학기술인공제회",
+  "dminsttNm": "과학기술인공제회",
+  "asignBdgtAmt": "18114000000",
+  "presmptPrce": "0",
+  "bidClseDt": "",
+  "bidNtceDt": "2026-07-08 18:34:26",
+  "cntrctCnclsMthdNm": "일반경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01624006&bidPbancOrd=000",
+  "notice_id": "R26BK01624006-000",
+  "rfp_attachment": {
+    "name": "붙임2.제안요청서_변환본_통합유지보수.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01624006&bidPbancOrd=000&fileType=&fileSeq=3&prcmBsneSeCd=03",
+    "sha256": "e745dc7967ffecd19a5884346e6b7dc7bd4769bdac8923601552317b558b498d"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-18T10:11:36+09:00"
+}

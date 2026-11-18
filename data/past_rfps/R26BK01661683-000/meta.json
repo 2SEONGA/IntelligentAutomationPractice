@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01661683",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "(긴급)글로벌바이오인력양성 교육지원 통합 플랫폼(LMS) 구축 용역",
+  "ntceInsttNm": "재단법인 글로벌바이오인력양성허브 지원재단",
+  "dminsttNm": "재단법인 글로벌바이오인력양성허브 지원재단",
+  "asignBdgtAmt": "700000000",
+  "presmptPrce": "636363636",
+  "bidClseDt": "2026-08-14 10:00:00",
+  "bidNtceDt": "2026-08-03 09:17:28",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01661683&bidPbancOrd=000",
+  "notice_id": "R26BK01661683-000",
+  "rfp_attachment": {
+    "name": "2. 제안요청서_글로벌바이오인력양성 교육지원 통합 플랫폼 구축_Ver1.4.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01661683&bidPbancOrd=000&fileType=&fileSeq=2&prcmBsneSeCd=03",
+    "sha256": "2a9dfd491150595751782a6dcabd4ad387b27c60b098e46e4e4019e7d3aebb08"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-18T10:13:01+09:00"
+}

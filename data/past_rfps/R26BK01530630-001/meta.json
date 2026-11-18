@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01530630",
+  "bidNtceOrd": "001",
+  "bidNtceNm": "경북도청신도시 스마트도시 건설사업(2차) 구축용역",
+  "ntceInsttNm": "경상북도개발공사",
+  "dminsttNm": "경상북도개발공사",
+  "asignBdgtAmt": "13108900200",
+  "presmptPrce": "11917182000",
+  "bidClseDt": "2026-06-24 16:00:00",
+  "bidNtceDt": "2026-05-29 10:54:27",
+  "cntrctCnclsMthdNm": "일반경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01530630&bidPbancOrd=001",
+  "notice_id": "R26BK01530630-001",
+  "rfp_attachment": {
+    "name": "붙임2. 제안요청서(정정공고).hwpx",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01530630&bidPbancOrd=001&fileType=&fileSeq=4&prcmBsneSeCd=03",
+    "sha256": "7d54452c833bf080e04b54aa78b1ce817f329cf0db2ea08d1490e3eab1e88201"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-18T10:56:22+09:00"
+}

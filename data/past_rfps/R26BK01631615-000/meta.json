@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01631615",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "차세대 ERP 시스템 구축 용역",
+  "ntceInsttNm": "한국조폐공사",
+  "dminsttNm": "한국조폐공사",
+  "asignBdgtAmt": "7850000000",
+  "presmptPrce": "7136363636",
+  "bidClseDt": "2026-07-27 10:00:00",
+  "bidNtceDt": "2026-07-14 11:16:12",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01631615&bidPbancOrd=000",
+  "notice_id": "R26BK01631615-000",
+  "rfp_attachment": {
+    "name": "260624_차세대ERP시스템구축_제안요청서(수정본).hwp",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01631615&bidPbancOrd=000&fileType=&fileSeq=3&prcmBsneSeCd=03",
+    "sha256": "580b3eee958c08852a0116a7a04539ddbb4872bc728bf33e4c84b60ded7be114"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-18T10:56:21+09:00"
+}

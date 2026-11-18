@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01703210",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "2026년도 정보보호시스템·보안관제 운영용역 및 유지보수 ",
+  "ntceInsttNm": "(주)한국거래소 서울사옥",
+  "dminsttNm": "(주)한국거래소 서울사옥",
+  "asignBdgtAmt": "19014988214",
+  "presmptPrce": "17286352922",
+  "bidClseDt": "2026-09-08 14:00:00",
+  "bidNtceDt": "2026-08-28 13:31:24",
+  "cntrctCnclsMthdNm": "일반경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01703210&bidPbancOrd=000",
+  "notice_id": "R26BK01703210-000",
+  "rfp_attachment": {
+    "name": "2. 제안요청서(2026년도 정보보호시스템 보안관제 운영 유지보수  재공고).hwp",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01703210&bidPbancOrd=000&fileType=&fileSeq=2&prcmBsneSeCd=03",
+    "sha256": "369beaaa544c36046eb0ddee8c440bd6e063c1db5d77ad57d02377a4054ea412"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-18T10:56:19+09:00"
+}

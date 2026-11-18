@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01802394",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "「IBK 카드앱」 상시운영반 구성",
+  "ntceInsttNm": "중소기업은행",
+  "dminsttNm": "중소기업은행",
+  "asignBdgtAmt": "3208920000",
+  "presmptPrce": "2917200000",
+  "bidClseDt": "",
+  "bidNtceDt": "2026-11-02 14:15:05",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01802394&bidPbancOrd=000",
+  "notice_id": "R26BK01802394-000",
+  "rfp_attachment": {
+    "name": "(제안요청서) 「IBK 카드앱」 상시운영반 구성.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01802394&bidPbancOrd=000&fileType=&fileSeq=1&prcmBsneSeCd=03",
+    "sha256": "5269606564a9edaf8e3ab60640c7a498acd7090529f45bc9dc63d15dcf02b4eb"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-18T10:13:03+09:00"
+}

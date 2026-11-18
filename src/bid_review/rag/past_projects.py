@@ -12,6 +12,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+import unicodedata
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -27,25 +28,55 @@ INDEX_DIR = PROJECT_ROOT / "outputs/rag"
 AWARD_ENDPOINT = "https://apis.data.go.kr/1230000/as/ScsbidInfoService/getScsbidListSttusServcPPSSrch"
 PROFILE_HEADINGS = re.compile(r"사업\s*(?:개요|목적|범위|배경|내용)|추진\s*(?:배경|목적)|과업\s*(?:개요|범위|내용)|제안\s*요청\s*내용")
 PROFILE_CHARS = 2500
-TOC_LEADER = re.compile(r"[·.…ㆍ‥\-]{5,}\s*\d{0,3}\s*$|[·…]{3,}")  # 목차 점선(····· 3)
+TOC_LEADER = re.compile(r"[·.…ㆍ‥\-]{5,}\s*\d{0,3}\s*$|[·…]{3,}|\t\s*\d{1,3}\s*$")  # 목차 점선(····· 3), HWP 목차 탭(\t 3)
+RFP_MAGIC = {".pdf": b"%PDF-", ".hwp": b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1", ".hwpx": b"PK\x03\x04"}
+RFP_FILES = ("rfp.pdf", "rfp.hwpx", "rfp.hwp")  # M31: PDF가 없으면 HWP·HWPX 제안요청서
+HWP_LINES_PER_PAGE = 50  # HWP에는 쪽이 없어 50줄을 한 쪽으로 본다
 # M25 담당자 평가(15건)로 조정: 0.60 → 0.70. 0.78 이상 5건 중 4건 관련, 0.69 이하는 대부분 무관(최적 F1 0.713: 정밀도·재현율 0.83).
 MIN_PROJECT_SCORE = 0.70
 SAME_PROJECT_SCORE = 0.95  # 이 이상이면 다른 공고번호라도 같은 사업의 재공고일 가능성이 높다
 
 
-def project_profile(pdf_path: Path, title: str = "", buyer: str = "", max_pages: int = 12) -> str:
-    """공고명·수요기관 + RFP 앞쪽에서 사업 개요/목적/범위가 나오는 쪽의 본문(연락처 행 제거)."""
+def _rfp_pages(path: Path, max_pages: int) -> list[str]:
+    if path.suffix.lower() in (".hwp", ".hwpx"):
+        from ..hwp_text import hwp_text
+
+        lines = hwp_text(path).splitlines()
+        return ["\n".join(lines[i:i + HWP_LINES_PER_PAGE]) for i in range(0, len(lines), HWP_LINES_PER_PAGE)][:max_pages]
     import pdfplumber
 
+    with pdfplumber.open(path) as pdf:
+        return [page.extract_text() or "" for page in pdf.pages[:max_pages]]
+
+
+def rfp_file(folder: Path) -> Path | None:
+    return next((folder / name for name in RFP_FILES if (folder / name).is_file()), None)
+
+
+def _pick_rfp(attachments: list[dict]) -> tuple[dict | None, str]:
+    """PDF 제안요청서 우선, 없으면 이름·문서구분에 제안요청/과업이 있는 HWP·HWPX (M31)."""
+    pdf = next((a for a in attachments if a["kind"] == "rfp" and a["name"].lower().endswith(".pdf")), None)
+    if pdf:
+        return pdf, "rfp.pdf"
+    for attachment in attachments:
+        name = unicodedata.normalize("NFC", attachment["name"])
+        suffix = name.lower().rsplit(".", 1)[-1]
+        hint = name.upper() + str(attachment.get("document_kind") or "")
+        if suffix in ("hwp", "hwpx") and any(term in hint for term in ("제안요청", "과업", "RFP")):
+            return attachment, f"rfp.{suffix}"
+    return None, ""
+
+
+def project_profile(pdf_path: Path, title: str = "", buyer: str = "", max_pages: int = 12) -> str:
+    """공고명·수요기관 + RFP 앞쪽에서 사업 개요/목적/범위가 나오는 쪽의 본문(연락처 행 제거)."""
     pages: list[str] = []
-    with pdfplumber.open(pdf_path) as pdf:
-        for page in pdf.pages[:max_pages]:
-            text, _ = _privacy_filter(page.extract_text() or "")
-            lines = text.splitlines()
-            leaders = [line for line in lines if TOC_LEADER.search(line)]
-            if lines and len(leaders) / len(lines) > 0.3:
-                continue  # 목차 쪽 — "사업 개요 ·····1" 제목만 있고 내용이 없다 (M25에서 발견)
-            pages.append("\n".join(line for line in lines if not TOC_LEADER.search(line)))
+    for raw in _rfp_pages(Path(pdf_path), max_pages):
+        lines = [line for line in raw.splitlines() if line.strip()]  # 목차 판별은 공백 정리 전에(HWP 목차의 탭)
+        leaders = [line for line in lines if TOC_LEADER.search(line)]
+        if lines and len(leaders) / len(lines) > 0.3:
+            continue  # 목차 쪽 — "사업 개요 ·····1" 제목만 있고 내용이 없다 (M25에서 발견)
+        text, _ = _privacy_filter("\n".join(line for line in lines if not TOC_LEADER.search(line)))
+        pages.append(text)
     hits = [text for text in pages if PROFILE_HEADINGS.search(text)]
     body = "\n".join(hits or pages[1:6] or pages)
     if hits:
@@ -136,7 +167,7 @@ def _is_quota_error(message: str) -> bool:
 
 def collect_past_projects(days: int | None = None, max_projects: int | None = None, exclude: set[str] | None = None,
                           today: date | None = None, session=None, log=print, max_lookups: int | None = None) -> dict[str, Any]:
-    """Download ICT 용역 RFP PDFs spread over the period → data/past_rfps/<no>-<ord>/{rfp.pdf, meta.json}.
+    """Download ICT 용역 RFPs (PDF, else HWP·HWPX — M31) spread over the period → data/past_rfps/<no>-<ord>/{rfp.*, meta.json}.
 
     Resumable across days: saved notices and notices already checked (no PDF 제안요청서) are skipped without
     an API call; an API quota error (22) stops the run instead of being counted as "no PDF".
@@ -178,7 +209,7 @@ def collect_past_projects(days: int | None = None, max_projects: int | None = No
     PAST_DIR.mkdir(parents=True, exist_ok=True)
     checked_path = PAST_DIR / "_checked.json"
     checked: dict[str, str] = json.loads(checked_path.read_text(encoding="utf-8")) if checked_path.is_file() else {}
-    counts = {"saved": 0, "already_saved": 0, "no_rfp_pdf": 0, "already_checked": 0, "api_error": 0, "download_failed": 0}
+    counts = {"saved": 0, "saved_pdf": 0, "saved_hwp": 0, "saved_hwpx": 0, "already_saved": 0, "no_rfp": 0, "rfp_unreadable": 0, "already_checked": 0, "api_error": 0, "download_failed": 0}
     lookups, stopped = 0, None
     for nid in ordered:
         if counts["saved"] + counts["already_saved"] >= max_projects:
@@ -187,7 +218,7 @@ def collect_past_projects(days: int | None = None, max_projects: int | None = No
         if (folder / "meta.json").is_file():
             counts["already_saved"] += 1
             continue
-        if nid in checked:
+        if checked.get(nid) not in (None, "no_rfp_pdf"):  # M31 전 "PDF 없음"은 HWP로 다시 확인한다
             counts["already_checked"] += 1
             continue
         if lookups >= max_lookups:
@@ -203,17 +234,31 @@ def collect_past_projects(days: int | None = None, max_projects: int | None = No
                 break
             counts["api_error"] += 1
             continue
-        rfp = next((a for a in info["attachments"] if a["kind"] == "rfp" and a["name"].lower().endswith(".pdf")), None)
+        rfp, filename = _pick_rfp(info["attachments"])
         if not rfp:
-            checked[nid] = "no_rfp_pdf"  # HWP뿐이거나 제안요청서 없음 — 다음 실행에서 다시 조회하지 않음
-            counts["no_rfp_pdf"] += 1
+            checked[nid] = "no_rfp"  # 제안요청서(PDF·HWP·HWPX) 없음 — 다음 실행에서 다시 조회하지 않음
+            counts["no_rfp"] += 1
             continue
         folder.mkdir(parents=True, exist_ok=True)
-        if not notices._download(session, rfp, folder / "rfp.pdf"):
+        target = folder / filename
+        if not notices._download(session, rfp, target, magic=RFP_MAGIC[target.suffix]):
             folder.rmdir()
             counts["download_failed"] += 1
             continue
-        data = (folder / "rfp.pdf").read_bytes()
+        try:
+            if target.suffix != ".pdf":
+                from ..hwp_text import hwp_text
+
+                hwp_text(target)  # 암호·배포용·손상 HWP는 저장하지 않는다 (PDF는 이전처럼 색인 때 확인)
+        except Exception:
+            target.unlink()
+            folder.rmdir()
+            checked[nid] = "rfp_unreadable"
+            counts["rfp_unreadable"] += 1
+            continue
+        counts["saved_" + target.suffix[1:]] += 1
+        checked.pop(nid, None)  # M31 전 "no_rfp_pdf" 기록 정리
+        data = target.read_bytes()
         meta = {field: item.get(field) for field in notices.KEPT_FIELDS}
         meta.update({"notice_id": nid, "rfp_attachment": {"name": rfp["name"], "url": rfp["url"],
                                                           "sha256": hashlib.sha256(data).hexdigest()},
@@ -250,14 +295,15 @@ def build_past_project_index(embed=None, log=print) -> dict[str, Any]:
         number = meta["notice_id"].split("-")[0]
         award = next((value for key, value in sorted(awards.items(), reverse=True) if key.split("-")[0] == number), None)
         try:
-            profile = project_profile(meta_path.parent / "rfp.pdf", meta.get("bidNtceNm") or "", meta.get("dminsttNm") or "")
+            rfp_path = rfp_file(meta_path.parent)
+            profile = project_profile(rfp_path, meta.get("bidNtceNm") or "", meta.get("dminsttNm") or "")
         except Exception as exc:  # 손상된 PDF 하나가 전체 색인을 막지 않게
             log(f"프로필 실패 {meta['notice_id']}: {type(exc).__name__}")
             continue
         projects.append({"notice_id": meta["notice_id"], "title": meta.get("bidNtceNm"), "buyer": meta.get("dminsttNm"),
                          "amount_krw": meta.get("asignBdgtAmt") or meta.get("presmptPrce"), "notice_date": meta.get("bidNtceDt"),
                          "notice_url": meta.get("bidNtceDtlUrl"), "rfp_attachment": meta.get("rfp_attachment"),
-                         "rfp_path": str((meta_path.parent / "rfp.pdf").relative_to(PROJECT_ROOT)),
+                         "rfp_path": str(rfp_path.relative_to(PROJECT_ROOT)),
                          "award": award, "profile": profile})
     if not projects:
         raise ValueError("data/past_rfps에 수집된 과거 RFP가 없습니다(collect 먼저 실행).")

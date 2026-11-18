@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01549305",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "데이터 밸류체인 플랫폼 구축 용역",
+  "ntceInsttNm": "주식회사 유엔이",
+  "dminsttNm": "주식회사 유엔이",
+  "asignBdgtAmt": "1919160000",
+  "presmptPrce": "1744690909",
+  "bidClseDt": "2026-06-17 10:00:00",
+  "bidNtceDt": "2026-06-02 16:21:51",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01549305&bidPbancOrd=000",
+  "notice_id": "R26BK01549305-000",
+  "rfp_attachment": {
+    "name": "본제안요청서_데이터_밸류체인_플랫폼_구축_용역.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01549305&bidPbancOrd=000&fileType=&fileSeq=4&prcmBsneSeCd=03",
+    "sha256": "3902fff69b9fc751143a7028bb8865246ecb88724c38c1cc6c33153b64568a4a"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-18T10:12:37+09:00"
+}

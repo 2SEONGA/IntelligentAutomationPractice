@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01540696",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "안동과학대학교 차세대통합정보시스템 구축 용역 입찰(긴급)",
+  "ntceInsttNm": "안동과학대학교 산학협력단",
+  "dminsttNm": "안동과학대학교 산학협력단",
+  "asignBdgtAmt": "2700000000",
+  "presmptPrce": "2454545455",
+  "bidClseDt": "",
+  "bidNtceDt": "2026-05-22 17:22:33",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01540696&bidPbancOrd=000",
+  "notice_id": "R26BK01540696-000",
+  "rfp_attachment": {
+    "name": "제안요청서_공고번호 2026-011호(2026. 5. 22.).pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01540696&bidPbancOrd=000&fileType=&fileSeq=2&prcmBsneSeCd=03",
+    "sha256": "06f91a37c3170278727855b083df069a5e7212a66802dc5d0491723601304095"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-18T10:11:42+09:00"
+}

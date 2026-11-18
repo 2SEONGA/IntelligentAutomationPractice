@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01765343",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "데이터 플랫폼 구축 사업",
+  "ntceInsttNm": "한국교직원공제회",
+  "dminsttNm": "한국교직원공제회",
+  "asignBdgtAmt": "18493200000",
+  "presmptPrce": "16812000000",
+  "bidClseDt": "2026-11-19 10:00:00",
+  "bidNtceDt": "2026-10-14 13:50:00",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01765343&bidPbancOrd=000",
+  "notice_id": "R26BK01765343-000",
+  "rfp_attachment": {
+    "name": "2. 제안요청서(데이터 플랫폼 구축 사업)(변환본).pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01765343&bidPbancOrd=000&fileType=&fileSeq=4&prcmBsneSeCd=03",
+    "sha256": "5d402a5654484915cc0b071f4b3c4946bc20bda3d175329bf8534fba86f4c68e"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-18T10:11:43+09:00"
+}

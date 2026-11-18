@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01788495",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "(긴급) 노후 정보보호 인프라 교체",
+  "ntceInsttNm": "한국수출입은행",
+  "dminsttNm": "한국수출입은행",
+  "asignBdgtAmt": "3250000000",
+  "presmptPrce": "2954545455",
+  "bidClseDt": "2026-11-10 11:00:00",
+  "bidNtceDt": "2026-10-28 10:13:02",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01788495&bidPbancOrd=000",
+  "notice_id": "R26BK01788495-000",
+  "rfp_attachment": {
+    "name": "[2] 제안안내서_노후 정보보호 인프라 교체.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01788495&bidPbancOrd=000&fileType=&fileSeq=4&prcmBsneSeCd=03",
+    "sha256": "b3f0885bfc00f7911a919ff5a9c0b84b1ec5d104ff0b07fc4524bbfa0fbe68a3"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-18T10:12:40+09:00"
+}

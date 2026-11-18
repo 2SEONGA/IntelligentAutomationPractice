@@ -537,12 +537,12 @@ def fetch_attachment_bytes(session, url: str) -> bytes:
         getattr(response, "close", lambda: None)()
 
 
-def _download(session, attachment: dict, target: Path) -> bool:
+def _download(session, attachment: dict, target: Path, magic: bytes = b"%PDF-") -> bool:
     try:
         content = fetch_attachment_bytes(session, str(attachment.get("url") or ""))
     except (requests.RequestException, DownloadRejected):
         return False
-    if not content.startswith(b"%PDF-"):
+    if not content.startswith(magic):
         return False
     partial = target.with_name(target.name + ".part")  # 다 받은 뒤에만 제자리로 옮긴다
     partial.write_bytes(content)

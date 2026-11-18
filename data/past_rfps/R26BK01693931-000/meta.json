@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01693931",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "IT인프라 안정성 강화를 위한 노후장비 교체 및 증설",
+  "ntceInsttNm": "한국수출입은행",
+  "dminsttNm": "한국수출입은행",
+  "asignBdgtAmt": "8570000000",
+  "presmptPrce": "7790909091",
+  "bidClseDt": "2026-10-13 11:00:00",
+  "bidNtceDt": "2026-08-31 10:58:29",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01693931&bidPbancOrd=000",
+  "notice_id": "R26BK01693931-000",
+  "rfp_attachment": {
+    "name": "붙임2. 제안요청서(IT인프라 안정성 강화를 위한 노후장비 교체 및 증설 추진)_F.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01693931&bidPbancOrd=000&fileType=&fileSeq=4&prcmBsneSeCd=03",
+    "sha256": "49e9a69fb05910d66a4085ddcf933d9c867a624eead1599b7b215c66f26bf44a"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-18T10:11:59+09:00"
+}

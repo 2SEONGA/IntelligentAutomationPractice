@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01796556",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "2027~2028년 귀농귀촌 통합플랫폼(그린대로) 운영 및 유지관리",
+  "ntceInsttNm": "농림수산식품교육문화정보원",
+  "dminsttNm": "농림수산식품교육문화정보원",
+  "asignBdgtAmt": "3820000000",
+  "presmptPrce": "3472727273",
+  "bidClseDt": "2026-12-08 10:00:00",
+  "bidNtceDt": "2026-10-28 15:34:54",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01796556&bidPbancOrd=000",
+  "notice_id": "R26BK01796556-000",
+  "rfp_attachment": {
+    "name": "2. 제안요청서(2027~2028년 귀농귀촌 통합플랫폼(그린대로) 운영 및 유지관리).pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01796556&bidPbancOrd=000&fileType=&fileSeq=4&prcmBsneSeCd=03",
+    "sha256": "56ce42ada30e9fdce51e6ccaba8c3eb85f356953995388e5b81828049b617b71"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-18T10:12:22+09:00"
+}

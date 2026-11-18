@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01584225",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "전라남도 지역 주도형 AI 대전환 사업 AI 오픈 플랫폼 구축(재공고)",
+  "ntceInsttNm": "주식회사 카카오엔터프라이즈",
+  "dminsttNm": "주식회사 카카오엔터프라이즈",
+  "asignBdgtAmt": "3150000000",
+  "presmptPrce": "2863636364",
+  "bidClseDt": "2026-06-29 10:00:00",
+  "bidNtceDt": "2026-06-16 15:26:22",
+  "cntrctCnclsMthdNm": "일반경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01584225&bidPbancOrd=000",
+  "notice_id": "R26BK01584225-000",
+  "rfp_attachment": {
+    "name": "전라남도 지역 주도형 AI 대전환 사업 AI 오픈 플랫폼 구축 제안요청서(재공고).pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01584225&bidPbancOrd=000&fileType=&fileSeq=4&prcmBsneSeCd=03",
+    "sha256": "f0dfd7772b00dad860d98f1642c8bb085926d9bcad117576cf3d12fdd3b2cde8"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-18T10:11:57+09:00"
+}

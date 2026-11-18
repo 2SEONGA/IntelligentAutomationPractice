@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01596758",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "충남대학교병원 전산장비  통합 유지보수 용역(긴급, 재공고)",
+  "ntceInsttNm": "충남대학교병원",
+  "dminsttNm": "충남대학교병원",
+  "asignBdgtAmt": "4767420000",
+  "presmptPrce": "4334018182",
+  "bidClseDt": "",
+  "bidNtceDt": "2026-06-23 09:58:45",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01596758&bidPbancOrd=000",
+  "notice_id": "R26BK01596758-000",
+  "rfp_attachment": {
+    "name": "2. [과업지시서] 전산장비 통합 유지보수.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01596758&bidPbancOrd=000&fileType=&fileSeq=2&prcmBsneSeCd=03",
+    "sha256": "bd1cc56d90dcf9c0889910aa7f27c9d76dd4a1fb9d60e77577157621e0850fe1"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-18T10:12:15+09:00"
+}

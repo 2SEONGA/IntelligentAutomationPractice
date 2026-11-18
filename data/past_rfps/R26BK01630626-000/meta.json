@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01630626",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "충청남도 지방상수도 유수율 효율화 통합모니터링 시스템 구축 용역",
+  "ntceInsttNm": "충청남도",
+  "dminsttNm": "충청남도",
+  "asignBdgtAmt": "6736000000",
+  "presmptPrce": "6123636364",
+  "bidClseDt": "",
+  "bidNtceDt": "2026-07-13 17:22:53",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01630626&bidPbancOrd=000",
+  "notice_id": "R26BK01630626-000",
+  "rfp_attachment": {
+    "name": "제안요청서.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01630626&bidPbancOrd=000&fileType=&fileSeq=4&prcmBsneSeCd=03",
+    "sha256": "ebdd742bfcf47f6084b525cbe50e1be0e8bdc5cad7909a038fef38319292ccac"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-18T10:11:39+09:00"
+}

@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01748592",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "27년~29년 서울디자인재단 정보시스템 통합유지관리 용역",
+  "ntceInsttNm": "재단법인서울디자인재단",
+  "dminsttNm": "재단법인서울디자인재단",
+  "asignBdgtAmt": "3512358000",
+  "presmptPrce": "3193052727",
+  "bidClseDt": "2026-11-18 11:00:00",
+  "bidNtceDt": "2026-09-29 14:31:11",
+  "cntrctCnclsMthdNm": "일반경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01748592&bidPbancOrd=000",
+  "notice_id": "R26BK01748592-000",
+  "rfp_attachment": {
+    "name": "[붙임2] 제안요청서_2027년~2029년 서울디자인재단 정보시스템 통합유지관리.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01748592&bidPbancOrd=000&fileType=&fileSeq=2&prcmBsneSeCd=03",
+    "sha256": "52e4df3e181e61bef28491c0b320cb2427250e876c15c23d2affa13b4fe39e26"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-18T10:12:41+09:00"
+}

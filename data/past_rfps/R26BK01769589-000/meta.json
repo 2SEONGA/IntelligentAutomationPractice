@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01769589",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "강원후평 스마트그린산업단지 통합관제센터 5G 특화망 및 자가통신망 구축용역",
+  "ntceInsttNm": "아이씨티웨이주식회사",
+  "dminsttNm": "아이씨티웨이주식회사",
+  "asignBdgtAmt": "3712489000",
+  "presmptPrce": "3374990000",
+  "bidClseDt": "",
+  "bidNtceDt": "2026-10-14 10:31:58",
+  "cntrctCnclsMthdNm": "일반경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01769589&bidPbancOrd=000",
+  "notice_id": "R26BK01769589-000",
+  "rfp_attachment": {
+    "name": "1_(제안요청서및과업지시서)강원후평 스마트그린산업단지 통합관제센터 5G 특화망 및 자가통신망 구축용역(재공고용).pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01769589&bidPbancOrd=000&fileType=&fileSeq=8&prcmBsneSeCd=03",
+    "sha256": "63a3a80754982b9739812bd4cdaf56db27b3bf24f049b8371187c6841a144d51"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-18T10:12:50+09:00"
+}

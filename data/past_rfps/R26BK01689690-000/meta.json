@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01689690",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "코스콤 안양 데이터센터 시스템 이전",
+  "ntceInsttNm": "(주)코스콤",
+  "dminsttNm": "(주)코스콤",
+  "asignBdgtAmt": "18634000000",
+  "presmptPrce": "16940000000",
+  "bidClseDt": "2026-09-10 10:00:00",
+  "bidNtceDt": "2026-08-20 10:27:55",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01689690&bidPbancOrd=000",
+  "notice_id": "R26BK01689690-000",
+  "rfp_attachment": {
+    "name": "(제안요청서)_코스콤 안양 데이터센터 시스템 이전.hwp",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01689690&bidPbancOrd=000&fileType=&fileSeq=3&prcmBsneSeCd=03",
+    "sha256": "f2cdcf0f72e985b513ee8f357fd3a92785a18cce3c3ec21952cb3a74c08077e3"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-18T10:56:20+09:00"
+}

@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01660388",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "예산회계시스템 재구축(재공고)",
+  "ntceInsttNm": "수협중앙회",
+  "dminsttNm": "수협중앙회",
+  "asignBdgtAmt": "14573000000",
+  "presmptPrce": "13248181818",
+  "bidClseDt": "",
+  "bidNtceDt": "2026-07-31 13:13:44",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01660388&bidPbancOrd=000",
+  "notice_id": "R26BK01660388-000",
+  "rfp_attachment": {
+    "name": "예산회계시스템 재구축 제안요청서(재공고).hwp",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01660388&bidPbancOrd=000&fileType=&fileSeq=3&prcmBsneSeCd=03",
+    "sha256": "597cb5c4c9539780765717c819df6fa4789ca6e978315cb82f1aa185e16d8712"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-18T10:56:09+09:00"
+}

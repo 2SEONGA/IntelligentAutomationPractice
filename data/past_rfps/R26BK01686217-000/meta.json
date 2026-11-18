@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01686217",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "우즈벡-키르기즈스탄 기후변화대응 스마트 조기경보시스템 구축사업",
+  "ntceInsttNm": "사단법인아시아물위원회사무국",
+  "dminsttNm": "사단법인아시아물위원회사무국",
+  "asignBdgtAmt": "1289950000",
+  "presmptPrce": "1172681818",
+  "bidClseDt": "2026-08-31 10:00:00",
+  "bidNtceDt": "2026-08-18 15:41:51",
+  "cntrctCnclsMthdNm": "일반경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01686217&bidPbancOrd=000",
+  "notice_id": "R26BK01686217-000",
+  "rfp_attachment": {
+    "name": "4. 과업지시서_F_1_v2.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01686217&bidPbancOrd=000&fileType=&fileSeq=1&prcmBsneSeCd=03",
+    "sha256": "568553cac71862edc9dc2420d82be31640a480ac90b401bb65ad0cde64760e27"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-18T10:12:29+09:00"
+}

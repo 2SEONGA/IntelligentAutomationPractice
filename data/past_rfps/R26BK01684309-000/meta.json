@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01684309",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "2024년 천안시 거점형 스마트도시 조성사업-어반테크 실증존 구축 용역",
+  "ntceInsttNm": "에스케이플래닛(주)",
+  "dminsttNm": "에스케이플래닛(주)",
+  "asignBdgtAmt": "2367200000",
+  "presmptPrce": "2152000000",
+  "bidClseDt": "",
+  "bidNtceDt": "2026-08-18 10:39:17",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01684309&bidPbancOrd=000",
+  "notice_id": "R26BK01684309-000",
+  "rfp_attachment": {
+    "name": "제안요청서(과업지시서 포함)_2024년 천안시 거점형 스마트도시 조성사업_어반테크 실증존_본공고_20260815.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01684309&bidPbancOrd=000&fileType=&fileSeq=3&prcmBsneSeCd=03",
+    "sha256": "9f4904d1c8ddd2606ff8be318bc9cfc70b46ce5b4d8685281ca2b337c5d7dd67"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-18T10:12:01+09:00"
+}

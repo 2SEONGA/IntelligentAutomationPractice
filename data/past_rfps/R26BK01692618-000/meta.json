@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01692618",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "2026년도 KRX 시장관리시스템 IT인프라 운영용역 및 유지보수 ",
+  "ntceInsttNm": "(주)한국거래소 서울사옥",
+  "dminsttNm": "(주)한국거래소 서울사옥",
+  "asignBdgtAmt": "30126514160",
+  "presmptPrce": "27387740145",
+  "bidClseDt": "2026-10-01 14:00:00",
+  "bidNtceDt": "2026-08-21 13:33:31",
+  "cntrctCnclsMthdNm": "일반경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01692618&bidPbancOrd=000",
+  "notice_id": "R26BK01692618-000",
+  "rfp_attachment": {
+    "name": "2. 제안요청서(2026 시장관리 IT인프라).hwp",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01692618&bidPbancOrd=000&fileType=&fileSeq=2&prcmBsneSeCd=03",
+    "sha256": "4f21ff601e340f789384efb2e6f515ed323e8a56711a54bfdd1d2b69b6577274"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-18T10:56:09+09:00"
+}

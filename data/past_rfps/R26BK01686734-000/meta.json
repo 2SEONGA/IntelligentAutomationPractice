@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01686734",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "농업교육포털 고도화 및 클라우드 전환",
+  "ntceInsttNm": "농림수산식품교육문화정보원",
+  "dminsttNm": "농림수산식품교육문화정보원",
+  "asignBdgtAmt": "1430000000",
+  "presmptPrce": "1300000000",
+  "bidClseDt": "2026-09-28 10:00:00",
+  "bidNtceDt": "2026-08-18 17:33:58",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01686734&bidPbancOrd=000",
+  "notice_id": "R26BK01686734-000",
+  "rfp_attachment": {
+    "name": "2. 제안요청서(농업교육포털 고도화 및 클라우드 전환).pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01686734&bidPbancOrd=000&fileType=&fileSeq=4&prcmBsneSeCd=03",
+    "sha256": "e54a109cdbdfc1df79528120964804c8a869f559bde73008cc494a38dab72265"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-18T10:12:23+09:00"
+}

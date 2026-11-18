@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01564824",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "대한지방행정공제회 New한아름목돈 정보시스템 구축 용역 사업",
+  "ntceInsttNm": "대한지방행정공제회",
+  "dminsttNm": "대한지방행정공제회",
+  "asignBdgtAmt": "2277000000",
+  "presmptPrce": "2070000000",
+  "bidClseDt": "2026-07-21 14:00:00",
+  "bidNtceDt": "2026-06-08 09:58:42",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01564824&bidPbancOrd=000",
+  "notice_id": "R26BK01564824-000",
+  "rfp_attachment": {
+    "name": "2. 제안요청서.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01564824&bidPbancOrd=000&fileType=&fileSeq=2&prcmBsneSeCd=03",
+    "sha256": "010d337ed6093136f6fb346c9ea445d828c5ac7ffe5290c9b56feedc86268aab"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-18T10:12:53+09:00"
+}

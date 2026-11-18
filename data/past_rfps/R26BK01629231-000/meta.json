@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01629231",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "[권역책임의료기관 AI 기반 진료시스템 지원사업] 충남대학교병원(본,분원) 음성인식기반 AI 의무기록 서비스 도입 운영",
+  "ntceInsttNm": "충남대학교병원",
+  "dminsttNm": "충남대학교병원",
+  "asignBdgtAmt": "2566600000",
+  "presmptPrce": "2333272727",
+  "bidClseDt": "",
+  "bidNtceDt": "2026-07-13 13:54:41",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01629231&bidPbancOrd=000",
+  "notice_id": "R26BK01629231-000",
+  "rfp_attachment": {
+    "name": "2. 과업지시서.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01629231&bidPbancOrd=000&fileType=&fileSeq=2&prcmBsneSeCd=03",
+    "sha256": "52f42829e2f2b37cc15e9703dfa2222f4ed97e425ee85d5870e7f0808bba50a2"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-18T10:12:14+09:00"
+}

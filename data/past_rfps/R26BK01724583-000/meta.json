@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01724583",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "초록우산 차세대 ERP 전환 및 통합시스템 구축 사업",
+  "ntceInsttNm": "사회복지법인어린이재단",
+  "dminsttNm": "사회복지법인어린이재단",
+  "asignBdgtAmt": "5900000000",
+  "presmptPrce": "5363636364",
+  "bidClseDt": "2026-10-29 11:00:00",
+  "bidNtceDt": "2026-09-11 11:05:46",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01724583&bidPbancOrd=000",
+  "notice_id": "R26BK01724583-000",
+  "rfp_attachment": {
+    "name": "붙임2. 제안요청서.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01724583&bidPbancOrd=000&fileType=&fileSeq=4&prcmBsneSeCd=03",
+    "sha256": "cff6acec43ec7e422a32d798b44f9d2f8c3584a06e1febeaebbc53593d7ae557"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-18T10:11:38+09:00"
+}

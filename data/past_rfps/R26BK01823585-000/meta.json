@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01823585",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "의료정보시스템 종합관리 위탁운영 용역",
+  "ntceInsttNm": "분당서울대학교병원",
+  "dminsttNm": "분당서울대학교병원",
+  "asignBdgtAmt": "29273795726",
+  "presmptPrce": "26612541569",
+  "bidClseDt": "",
+  "bidNtceDt": "2026-11-11 13:41:42",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01823585&bidPbancOrd=000",
+  "notice_id": "R26BK01823585-000",
+  "rfp_attachment": {
+    "name": "2. 제안요청서.hwp",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01823585&bidPbancOrd=000&fileType=&fileSeq=3&prcmBsneSeCd=03",
+    "sha256": "8ba4cc41017e1944ea0ae0338ccb2b0a3210e1b33d21680e07b4ae896f91778c"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-18T10:56:17+09:00"
+}

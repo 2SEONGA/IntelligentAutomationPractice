@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01630750",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "한국석유관리원 석유통합관제센터 구축",
+  "ntceInsttNm": "한국석유관리원",
+  "dminsttNm": "한국석유관리원",
+  "asignBdgtAmt": "11960000000",
+  "presmptPrce": "10872727273",
+  "bidClseDt": "2026-07-24 12:00:00",
+  "bidNtceDt": "2026-07-13 18:42:11",
+  "cntrctCnclsMthdNm": "일반경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01630750&bidPbancOrd=000",
+  "notice_id": "R26BK01630750-000",
+  "rfp_attachment": {
+    "name": "제안요청서(한국석유관리원 석유통합관제센터) 1부.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01630750&bidPbancOrd=000&fileType=&fileSeq=4&prcmBsneSeCd=03",
+    "sha256": "ab8e05903f415945c7d748833f0614b4d55a8c377b8c7275315ca6aa74bc7f2e"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-18T10:11:32+09:00"
+}

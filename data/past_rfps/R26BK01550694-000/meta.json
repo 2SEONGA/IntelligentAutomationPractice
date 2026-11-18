@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01550694",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "(재공고) AI 플랫폼(KEXIM AI) 구축",
+  "ntceInsttNm": "한국수출입은행",
+  "dminsttNm": "한국수출입은행",
+  "asignBdgtAmt": "13010000000",
+  "presmptPrce": "11827272727",
+  "bidClseDt": "2026-06-10 11:00:00",
+  "bidNtceDt": "2026-05-29 11:19:25",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정(SW사업)",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01550694&bidPbancOrd=000",
+  "notice_id": "R26BK01550694-000",
+  "rfp_attachment": {
+    "name": "붙임2. 제안요청서(AI 플랫폼(KEXIM AI) 구축)_재공고.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01550694&bidPbancOrd=000&fileType=&fileSeq=4&prcmBsneSeCd=03",
+    "sha256": "1d721d17f8b6602dd26a99280cbdafe2bf8a6aa08cdd6f62970e15feec9c619e"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-18T10:11:41+09:00"
+}

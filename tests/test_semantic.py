@@ -210,12 +210,12 @@ def test_past_collection_quota_resume_and_spread() -> None:
         keywords_used = set()
         notices._fetch = lambda session, keyword, b, e: keywords_used.add(keyword) or items
         notices.fetch_notice_attachment_info = fake_info
-        notices._download = lambda session, att, target: target.write_bytes(b"%PDF-1.4") or True
+        notices._download = lambda session, att, target, **k: target.write_bytes(b"%PDF-1.4") or True
         pp.PAST_DIR = Path(tempfile.mkdtemp())
         pp.fetch_awards = lambda *a, **k: ({}, 0)
         first = pp.collect_past_projects(days=30, max_projects=10, today=date(2026, 11, 17), log=lambda *_: None)
         assert first["stopped"] == "api_quota_exhausted" and first["api_error"] == 0, "할당량 오류는 api_error/no_pdf로 세지 않음"
-        assert first["saved"] + first["no_rfp_pdf"] == 3
+        assert first["saved"] + first["no_rfp"] == 3
         state.update(quota_after=10**6, calls=0)
         second = pp.collect_past_projects(days=30, max_projects=10, today=date(2026, 11, 17), log=lambda *_: None)
         assert second["already_saved"] + second["already_checked"] == 3 and state["calls"] == 5, "이전 실행분은 재조회 없음"
@@ -249,7 +249,7 @@ def test_past_collection_order_and_contract_exclusion() -> None:
         notices._fetch = lambda session, keyword, b, e: [notice("SMALL"), notice("BIG", amount="9000000000"), notice("SOLE", "수의계약")]
         notices.fetch_notice_attachment_info = lambda no, order, session=None: looked.append(no) or {
             "attachments": [{"name": f"{no}.pdf", "url": "https://www.g2b.go.kr/x", "kind": "rfp"}], "api_operation": "op", "retrieved_at": "t"}
-        notices._download = lambda session, att, target: target.write_bytes(b"%PDF-1.4") or True
+        notices._download = lambda session, att, target, **k: target.write_bytes(b"%PDF-1.4") or True
         pp.PAST_DIR, pp.INDEX_DIR = work / "past", work / "rag"
         pp.fetch_awards = lambda *a, **k: ({}, 0)
         result = pp.collect_past_projects(days=7, max_projects=10, today=date(2026, 11, 17), log=lambda *_: None)

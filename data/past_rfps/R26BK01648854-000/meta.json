@@ -1,0 +1,23 @@
+{
+  "bidNtceNo": "R26BK01648854",
+  "bidNtceOrd": "000",
+  "bidNtceNm": "전산장비 통합 유지보수 용역",
+  "ntceInsttNm": "수협중앙회",
+  "dminsttNm": "수협중앙회",
+  "asignBdgtAmt": "8672758000",
+  "presmptPrce": "7884325455",
+  "bidClseDt": "",
+  "bidNtceDt": "2026-07-24 10:57:36",
+  "cntrctCnclsMthdNm": "제한경쟁",
+  "sucsfbidMthdNm": "협상에의한계약-협상에 의한 낙찰자 결정",
+  "pubPrcrmntLrgClsfcNm": "ICT 서비스",
+  "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01648854&bidPbancOrd=000",
+  "notice_id": "R26BK01648854-000",
+  "rfp_attachment": {
+    "name": "붙임3)_2026년 전산장비 통합 유지보수 용역 제안요청서.pdf",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01648854&bidPbancOrd=000&fileType=&fileSeq=6&prcmBsneSeCd=03",
+    "sha256": "035f33a59d6ba1b37f97a394c447e2651877d012876a23c1962f1a3a852253a3"
+  },
+  "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
+  "retrieved_at": "2026-11-18T10:11:53+09:00"
+}
