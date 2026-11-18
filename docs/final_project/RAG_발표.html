@@ -53,6 +53,10 @@ td { border-bottom:1px solid var(--line); padding:9px 12px; vertical-align:top; 
 .ov { display:grid; grid-template-columns:1fr 1fr; column-gap:40px; margin-top:20px; }
 .ov div { display:flex; gap:26px; align-items:center; border-bottom:1px solid var(--line); padding:30px 0; font-size:21px; font-weight:700; }
 .ov span { color:var(--blue); font-size:24px; font-weight:800; width:34px; }
+.ms { display:grid; grid-template-columns:repeat(3,1fr); gap:22px; }
+.ms .card { padding:22px 22px 26px; }
+.ms .card h3 { font-size:19px; margin-bottom:10px; }
+.ms .card p { font-size:15.5px; line-height:1.65; }
 </style>
 </head>
 <body>
@@ -83,9 +87,9 @@ td { border-bottom:1px solid var(--line); padding:9px 12px; vertical-align:top; 
     <div><span>02</span>Workflow 안의 RAG 적용 지점</div>
     <div><span>06</span>RAG 대신 다른 방법을 택한 곳</div>
     <div><span>03</span>코퍼스 구축과 검색 방식</div>
-    <div><span>07</span>원칙과 한계</div>
+    <div><span>07</span>전체 마일스톤 진행 (M1–M31)</div>
     <div><span>04</span>검색 결과의 검증 활용</div>
-    <div style="border-bottom-color:transparent"></div>
+    <div><span>08</span>원칙과 한계</div>
   </div>
   <div class="no">02</div>
 </section>
@@ -131,12 +135,12 @@ td { border-bottom:1px solid var(--line); padding:9px 12px; vertical-align:top; 
     <div class="arrow">→</div>
     <div class="node rag"><b>T2 역량 분석</b>② 회사 자료 RAG</div>
     <div class="arrow">→</div>
-    <div class="node rag"><b>T3 유사 사업</b>③ 과거 RFP RAG<br>(진행 중)</div>
+    <div class="node rag"><b>T3 유사 사업</b>③ 과거 RFP RAG</div>
   </div>
   <div class="grid3">
     <div class="card"><span class="tag">① 구현 완료</span><h3>핵심정보 근거 검색</h3><p>금액·참가자격·기한 claim별로 RFP/공고문에서 근거 페이지를 찾음</p></div>
     <div class="card"><span class="tag">② 구현 완료</span><h3>요구사항별 회사 실적 후보</h3><p>RFP 요구사항마다 ㈜아이티센엔텍 공개자료에서 관련 실적·기술 후보를 찾음</p></div>
-    <div class="card"><span class="tag gray">③ 진행 중</span><h3>과거 유사 사업 검색</h3><p>나라장터 과거 RFP와 사업 목적·범위를 비교해 유사 사업 후보 제시</p></div>
+    <div class="card"><span class="tag">③ 구현 완료</span><h3>과거 유사 사업 검색</h3><p>나라장터 과거 RFP 152건과 사업 목적·범위를 비교해 유사 사업 후보 제시</p></div>
   </div>
   <div class="no">04</div>
 </section>
@@ -238,7 +242,7 @@ td { border-bottom:1px solid var(--line); padding:9px 12px; vertical-align:top; 
     <div>
       <ul>
         <li><b>자료:</b> ㈜아이티센엔텍 공개자료 11건 / 8개 출처 (별도 FTS5 색인)</li>
-        <li><b>검색:</b> 키워드 후보 + 의미 검색 후보를 합쳐 <b>유사도 ≥ 0.35, 최대 3건</b></li>
+        <li><b>검색:</b> 키워드 후보 + 의미 검색 후보를 합쳐 <b>유사도 ≥ 0.36, 최대 3건</b> <span class="sub">(담당자 평가로 조정)</span></li>
         <li><b>잡음 제거:</b> 보안서약·지식재산권·실적 인정 규칙 등 <b>행정 조항은 검색 제외</b>, 제외 사유 기록</li>
         <li><b>법인 경계:</b> 그룹사 실적을 대상 법인 실적으로 섞지 않음</li>
         <li><b>점수 미합산:</b> 후보는 "확인할 증빙"이지 적합도 점수가 아님</li>
@@ -262,21 +266,37 @@ td { border-bottom:1px solid var(--line); padding:9px 12px; vertical-align:top; 
 
 <!-- 9 -->
 <section class="slide">
-  <div class="kicker">RAG ③ Next Step</div>
-  <h2>Agent 3: 과거 공공사업 RFP 유사 사업 검색 (진행 중)</h2>
+  <div class="kicker">RAG ③ Similar Projects</div>
+  <h2>Agent 3: 과거 공공사업 RFP 유사 사업 검색</h2>
   <div class="flow">
-    <div class="node"><b>수집</b>나라장터 최근 ICT 용역<br>RFP 약 80건</div>
+    <div class="node"><b>수집</b>나라장터 180일 ICT 용역 전체 조회<br>수의계약 제외 · 주마다 금액 큰 순</div>
     <div class="arrow">→</div>
-    <div class="node"><b>사업 프로필</b>공고명·수요기관·<br>사업 개요/목적/범위</div>
+    <div class="node"><b>제안요청서</b>PDF · HWP · HWPX<br>152건 (사업 112개)</div>
     <div class="arrow">→</div>
-    <div class="node rag"><b>임베딩 비교</b>신규 RFP 프로필과<br>코사인 유사도</div>
+    <div class="node rag"><b>임베딩 비교</b>공고명·수요기관·사업 개요<br>프로필 코사인 유사도</div>
     <div class="arrow">→</div>
-    <div class="node"><b>후보 제시</b>≥ 0.60 유사 사업 후보<br>≥ 0.95 재공고 의심</div>
+    <div class="node"><b>후보 제시</b>≥ 0.70 유사 사업 후보<br>≥ 0.95 재공고 의심</div>
   </div>
-  <div class="grid3">
-    <div class="card"><h3>현재 상태</h3><p>수집 스크립트·색인·LangGraph <b>T3 노드</b> 코드 작성, 과거 RFP 수집 완료. 결과 검증과 문서화 진행 중</p></div>
-    <div class="card"><h3>낙찰 정보 연결</h3><p>낙찰기업·금액은 <b>공고번호가 정확히 일치</b>할 때만 붙임 — 추정 연결 금지</p></div>
-    <div class="card"><h3>쓰임</h3><p>5주차 한계였던 <b>유사사업 검색 미실행</b>을를 실제 RFP 근거로 대체. 참여 판단의 참고 자료 (자동 결정 X)</p></div>
+  <div class="grid2" style="gap:32px">
+    <div>
+      <p class="lead">시연 공고 결과</p>
+      <table>
+        <tr><th style="width:120px">공고</th><th>상위 유사 사업</th></tr>
+        <tr><td>통합정보시스템</td><td>같은 사업 재공고 <b>0.993</b> · 동강대 LXP 0.864 · 대신대 학사 0.795</td></tr>
+        <tr><td>의료 CDW</td><td>원광대 거점병원 통합 CDW <b class="blue">0.892</b> <span class="sub">(수집 확대 후 처음 연결)</span></td></tr>
+        <tr><td>상수도관 AI·GIS</td><td class="sub">0.70 이상 없음 — 비슷한 과거 사업이 아직 없음</td></tr>
+      </table>
+      <p class="sub" style="margin-top:10px;font-size:14px">낙찰기업·금액은 <b>공고번호가 정확히 일치</b>할 때만 연결 (22개 사업)</p>
+    </div>
+    <div>
+      <p class="lead">수집하면서 고친 것</p>
+      <ul>
+        <li><b>임계값 0.60 → 0.70:</b> 담당자 표시 평가로 정밀도 0.40 → <b>0.83</b></li>
+        <li><b>수의계약 제외:</b> 상용SW 구매·소액 견적 16건은 "비슷한 사업"이 아님</li>
+        <li><b>HWP 처리:</b> 제안요청서의 약 <b>89%가 HWP·HWPX</b> → 본문 추출을 직접 구현, 저장률 <b>6% → 30%</b></li>
+        <li><b>할당량:</b> 첨부 API 하루 약 800회 → 이어받기 방식, 목표 200건</li>
+      </ul>
+    </div>
   </div>
   <div class="no">09</div>
 </section>
@@ -313,13 +333,29 @@ td { border-bottom:1px solid var(--line); padding:9px 12px; vertical-align:top; 
         <li>분야 판정은 이미 <b>조달분류 "ICT 서비스"</b> 규칙이 담당 → 키워드 자체가 불필요</li>
         <li>키워드 추가는 끝이 없음 ("지능형 AX 고도화" 등 계속 누락)</li>
       </ul>
-      <div class="quote"><b>보완 방식 (적용 완료)</b> — 키워드 없이 전체 수집 → 금액·마감·조달분류·계약방법 규칙 필터 그대로 적용.<br>30일 17,453건을 <b>76초</b>에 수집 → 검토 대상 66 · 확인 필요 32. ICT 아닌 공고는 건수만 기록.<br>Agent 3 과거 RFP 수집도 같은 방식으로 전환 (후보 2,493 → <b>10,530건</b>).</div>
+      <div class="quote"><b>보완 방식 (적용 완료)</b> — 키워드 없이 전체 수집 → 금액·마감·조달분류·계약방법 규칙 필터 그대로 적용.<br>30일 17,453건을 <b>76초</b>에 수집 → 검토 대상 66 · 확인 필요 32. ICT 아닌 공고는 건수만 기록.<br>Agent 3 과거 RFP 수집도 같은 방식으로 전환 (후보 2,493 → <b>10,530건</b>). 공고함은 ICT 아닌 공고 미저장 · 마감 30일 지난 공고 정리.</div>
     </div>
   </div>
   <div class="no">10</div>
 </section>
 
-<!-- 11 -->
+<!-- 11 milestones -->
+<section class="slide">
+  <div class="kicker">Milestones M1–M31</div>
+  <h2>전체 마일스톤 진행 현황</h2>
+  <div class="ms">
+    <div class="card"><span class="tag">M1–M4 · M18</span><h3>근거 검색 기반</h3><p>RFP·공고문 1,024 chunk 색인(FTS5), T1.5 금액·자격·기한 검증기, LangGraph 조건 분기, OpenAI 임베딩 의미 검색</p></div>
+    <div class="card"><span class="tag">M5–M8 · M16</span><h3>사람 검토 흐름</h3><p>담당자 승인·T2 재개, 원문 인용 대조, 판정서(금액·제출기한 확인, T2 승인), 체크리스트 화면 · 직원 인증 요구사항</p></div>
+    <div class="card"><span class="tag">M11–M15 · M17 · M19</span><h3>나라장터 교차검증</h3><p>공고번호 API 조회, 공식 첨부 바이트 대조(RFP 3건 동일), 변경이력, 참가자격 업종·공동수급 대조</p></div>
+    <div class="card"><span class="tag">M9–M10 · M20–M22</span><h3>Agent 2 회사 자료</h3><p>공개자료 11건 색인, 요구사항별 후보, 상수도관 T2 실행(적합도 50.0%), 의미 검색·행정 조항 제외로 후보 46 → 32건</p></div>
+    <div class="card"><span class="tag">M23–M25 · M28–M31</span><h3>Agent 3 과거 사업</h3><p>유사 사업 노드, 임계값 평가(81건 표시), 전체 조회·금액순 수집, HWP·HWPX 처리 → RFP 152건 · 사업 112개</p></div>
+    <div class="card"><span class="tag">M26–M27 · M29</span><h3>공고 수집</h3><p>키워드 누락 59% 측정 → 전체 수집 + 규칙 필터(30일 76초), 공고함 정리, 첨부 다운로드 보안(나라장터만 · 50MB)</p></div>
+  </div>
+  <p class="sub" style="margin-top:26px;font-size:15px">기간 2026-11-11 ~ 11-18 · 마일스톤마다 구현 기록(M*.md)과 실제 데이터 확인 결과를 남김 · 백엔드 테스트 17개 파일 · 프론트 26개 통과</p>
+  <div class="no">11</div>
+</section>
+
+<!-- 12 -->
 <section class="slide">
   <div class="kicker">Principles &amp; Limitations</div>
   <h2>RAG를 쓰면서 지킨 원칙과 남은 과제</h2>
@@ -337,16 +373,16 @@ td { border-bottom:1px solid var(--line); padding:9px 12px; vertical-align:top; 
     <div>
       <p class="lead">남은 과제</p>
       <ul>
-        <li>임계값(0.40 / 0.35 / 0.60)이 표본 기준 → <b>정답 라벨 평가셋</b>으로 재조정</li>
+        <li>T1.5 의미 검색은 점수가 관련성을 못 가름(정밀도 약 0.42) → 임계값이 아니라 <b>질의·후보 수 개선</b></li>
         <li>추가 검색이 최상위 1건만 인용 → 긴 chunk 속 정답 줄이 밀림</li>
-        <li>행정 조항 판별이 정규식 목록 → 새 서식에 취약</li>
         <li>회사 자료가 11건뿐 → 원본 증빙 확보 필요</li>
-        <li>과거 RFP 재수집: 후보 10,530건 vs 첨부 API 하루 800회 → <b>수집 우선순위</b> 결정 필요</li>
+        <li>과거 RFP 152 → 200건 이어받기, 일부 HWP 프로필이 목차·계약 조항으로 시작</li>
+        <li>웹앱 공고 검토(T1)는 아직 PDF 제안요청서만 읽음</li>
       </ul>
     </div>
   </div>
-  <div class="quote" style="margin-top:30px;font-size:17px"><b>정리</b> — RAG는 "답을 만드는 도구"가 아니라 <b>"근거를 찾아 사람에게 보여주는 도구"</b>로 사용했습니다.<br>① 핵심정보 검증 (1,024 chunk, 페이지 인용) · ② 회사 역량 후보 (잡음 46→32건) · ③ 과거 유사 사업 (진행 중)<br>공고 수집은 측정해 보니 RAG가 필요 없어 <b>전체 수집 + 규칙 필터</b>로 보완</div>
-  <div class="no">11</div>
+  <div class="quote" style="margin-top:30px;font-size:17px"><b>정리</b> — RAG는 "답을 만드는 도구"가 아니라 <b>"근거를 찾아 사람에게 보여주는 도구"</b>로 사용했습니다.<br>① 핵심정보 검증 (1,024 chunk, 페이지 인용) · ② 회사 역량 후보 (잡음 46→32건) · ③ 과거 유사 사업 (RFP 152건, 사업 112개)<br>공고 수집은 측정해 보니 RAG가 필요 없어 <b>전체 수집 + 규칙 필터</b>로 보완</div>
+  <div class="no">12</div>
 </section>
 
 </body>
