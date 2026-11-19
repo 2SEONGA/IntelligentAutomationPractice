@@ -9,6 +9,7 @@ from pydantic import ValidationError
 from ..models import BidReviewReport, CapabilityMatchingResult, MarketResearchResult, RFPAnalysisResult
 from ..policy import SOURCE_ARTIFACTS
 from .report_adapter import build_market_result
+from .report_nodes import g2b_overview
 
 
 def validate_t4_report(state: dict[str, Any]) -> dict[str, Any]:
@@ -75,6 +76,11 @@ def validate_t4_report(state: dict[str, Any]) -> dict[str, Any]:
         add("agent23_transfer", "passed" if same else "failed", "T2·T3 평가 결과의 보고서 상세 전달 일치")
         add("agent23_evidence", "passed" if evaluation.get("status") == "passed" else "needs_review",
             "T2·T3 근거 평가 상태: " + str(evaluation.get("status", "누락")))
+
+    overview = g2b_overview(state)
+    if overview or "g2b_overview" in state["report_details"]:
+        same = state["report_details"].get("g2b_overview") == overview
+        add("g2b_overview", "passed" if same else "failed", "보고서 개요의 나라장터 발주기관·입찰 마감과 공고 조회값 대조")
 
     amount = rfp.project_summary.budget_krw
     scale_ok = report.project_scale is not None and report.project_scale.amount_krw == amount

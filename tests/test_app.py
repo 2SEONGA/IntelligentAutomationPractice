@@ -142,6 +142,51 @@ def test_cross_site_requests_rejected() -> None:
     assert upload(c, headers={"Origin": "http://testserver"}).status_code in (201, 409)
 
 
+def test_core_review_pauses_and_resumes_saved_run() -> None:
+    """웹 핵심정보 검토: 검증 실행은 중단 지점을 저장하고, 승인은 그 지점에서 이어 간다(T1 재실행 없음)."""
+    from unittest.mock import patch
+    from bid_review.rag import hitl_runtime
+    c = client()
+    run_id = events(c, upload(c).json()["job_id"])[-1]["run_id"]
+    staff = {"X-Role": "staff"}
+    paused = {"thread_id": "web-x", "status": "paused", "interrupts": [{"id": "int-1", "value": {}}], "task_errors": [],
+              "state": {"verification": {"status": "human_review"}, "notice_no": "R26BK00000001"}}
+    done = {"thread_id": "web-x", "status": "completed", "interrupts": [], "task_errors": [],
+            "state": {"verification": {"status": "human_review"}, "decision": "human_approved_company_matching_complete",
+                      "human_override": {"reviewer": "staff", "note": "금액 확인"}}}
+    with patch.object(hitl_runtime, "start_review", return_value=paused) as start, \
+         patch.object(hitl_runtime, "resume_review", return_value=done) as resume:
+        # 공고함에서 시작한 건처럼 공고번호를 저장해 두면 첫 검증부터 나라장터 조회에 쓴다(예전에는 늘 생략됨)
+        (runs.decode_run_id(run_id).parent / "notice_attachment.json").write_text(
+            json.dumps({"notice_no": "R26BK01762350", "notice_order": "000"}), encoding="utf-8")
+        first = c.post(f"/api/runs/{run_id}/core-review", json={"action": "analyze"}, headers=staff)
+        assert first.status_code == 200, first.text
+        saved = first.json()["result"]
+        assert saved["decision"] == "human_review_required" and saved["hitl"] == {
+            "thread_id": "web-x", "status": "paused", "interrupt_id": "int-1"}
+        assert start.call_args.kwargs["thread_id"].startswith("web-")
+        assert start.call_args.kwargs["notice_no"] == "R26BK01762350" and start.call_args.kwargs["notice_order"] == "000"
+        assert c.post(f"/api/runs/{run_id}/core-review", json={"action": "approve_and_run_t2", "reason": " "},
+                      headers=staff).status_code == 400
+        approved = c.post(f"/api/runs/{run_id}/core-review", json={"action": "approve_and_run_t2", "reason": "금액 확인"},
+                          headers=staff)
+        assert approved.status_code == 200, approved.text
+        assert resume.call_args.args[:2] == ("web-x", "int-1")
+        assert resume.call_args.args[2] == {"action": "approve", "reviewer": "staff", "note": "금액 확인", "corrections": {}}
+        assert approved.json()["result"]["decision"] == "human_approved_company_matching_complete"
+        assert start.call_count == 1, "승인은 새 실행을 시작하지 않는다"
+        # 이미 T2까지 끝난 실행은 다시 승인할 수 없다
+        assert c.post(f"/api/runs/{run_id}/core-review", json={"action": "approve_and_run_t2", "reason": "다시"},
+                      headers=staff).status_code == 409
+    with patch.object(hitl_runtime, "start_review", return_value=paused), \
+         patch.object(hitl_runtime, "resume_review", side_effect=ValueError("입력 파일이 변경됐습니다: pdf_path.")):
+        c2 = client()
+        run2 = events(c2, upload(c2).json()["job_id"])[-1]["run_id"]
+        c2.post(f"/api/runs/{run2}/core-review", json={"action": "analyze"}, headers=staff)
+        stale = c2.post(f"/api/runs/{run2}/core-review", json={"action": "reject", "reason": "반려"}, headers=staff)
+        assert stale.status_code == 409 and "변경" in stale.text
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

@@ -13,6 +13,18 @@ from ..settings import load_settings
 from .report_adapter import build_market_result
 
 
+def g2b_overview(state: dict[str, Any]) -> dict[str, Any] | None:
+    """나라장터 공고 조회값 중 보고서 개요에 쓰는 값. RFP 요약을 덮어쓰지 않고 출처를 붙여 따로 둔다."""
+    lookup = state.get("g2b_notice_lookup") or {}
+    notice = lookup.get("notice") or {}
+    if lookup.get("status") != "found" or not notice:
+        return None
+    return {"buyer": notice.get("dminsttNm") or notice.get("ntceInsttNm") or None,
+            "bid_closing": notice.get("bidClseDt") or None,  # 입찰 마감. 제안서 제출기한과 같다고 보지 않는다.
+            "source_url": notice.get("bidNtceDtlUrl") or None,
+            "api_fields": {"buyer": "dminsttNm", "bid_closing": "bidClseDt"}}
+
+
 def generate_t4_report(state: dict[str, Any]) -> dict[str, Any]:
     """T2 완료·T1.5 통과 여부를 재확인하고 보고서 초안을 State에 남긴다."""
     verification = state.get("verification") or {}
@@ -87,5 +99,6 @@ def generate_t4_report(state: dict[str, Any]) -> dict[str, Any]:
                 "company_analysis": capability.model_dump(mode="json"),
                 "market_analysis": market.model_dump(mode="json"),
                 **({"agent23_evaluation": deepcopy(agent23)} if agent23 is not None else {}),
+                **({"g2b_overview": g2b_overview(state)} if g2b_overview(state) else {}),
             },
             "t4_status": "generated_pending_validation"}

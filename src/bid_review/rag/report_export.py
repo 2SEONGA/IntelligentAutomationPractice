@@ -74,11 +74,18 @@ def _report_markdown(state: dict[str, Any]) -> str:
              f"- 최종 결정: {_text(report['final_decision'])}",
              "- 본 문서는 사전 검토 결과이며 입찰 참여 확정 또는 자격 인증이 아닙니다.",
              "", "## 1. 사업 개요", "", "| 항목 | 내용 |", "|---|---|"]
-    rows = [("사업명", summary.get("project_name")), ("발주기관", summary.get("buyer")),
+    g2b = details.get("g2b_overview") or {}
+    buyer = summary.get("buyer") or (f"{g2b['buyer']} (나라장터)" if g2b.get("buyer") else None)
+    rows = [("사업명", summary.get("project_name")), ("발주기관", buyer),
             ("사업금액(원)", summary.get("budget_krw")),
             ("추정가격(원)", summary.get("estimated_price_krw")),
             ("기간", summary.get("period")), ("제출기한", summary.get("submission_deadline"))]
+    if g2b.get("bid_closing"):
+        rows.append(("입찰 마감 (나라장터)", g2b["bid_closing"]))
     lines.extend(f"| {label} | {_text(value)} |" for label, value in rows)
+    if g2b:
+        lines.append(f"\n- 나라장터 값 출처: 공고 조회 API({', '.join(g2b['api_fields'].values())}) {_text(g2b.get('source_url'))}"
+                     " · 입찰 마감은 제안서 제출기한과 다를 수 있습니다.")
     field = basic["budget_krw"]
     lines += ["", f"- 금액 근거: {_text(field.get('source_document'))} / PDF {_text(field.get('source_page'))}쪽",
               f"- 원문 발췌: {_text(field.get('source_excerpt'))}",

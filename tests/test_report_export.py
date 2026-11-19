@@ -143,6 +143,28 @@ class ExportTests(unittest.TestCase):
             self.assertNotIn("<script>", text)
             self.assertIn("&lt;script&gt;", text)
 
+    def test_g2b_buyer_and_closing_fill_missing_rfp_values(self):
+        """RFP에 발주기관·제출기한이 없을 때 나라장터 조회값을 출처와 함께 표에 보인다(상수도관 실제 실행에서 발견)."""
+        from bid_review.rag.report_validation import validate_t4_report
+        state = sample_state()
+        state["rfp"]["project_summary"].update(buyer=None, submission_deadline=None)
+        state["g2b_notice_lookup"] = {"status": "found", "notice": {
+            "dminsttNm": "주식회사 셈즈", "bidClseDt": "2026-10-19 10:00:00",
+            "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01762350&bidPbancOrd=000"}}
+        state.update(generate_t4_report(state))
+        state.update(validate_t4_report(state))
+        checks = {c["check_id"]: c["status"] for c in state["report_validation"]["checks"]}
+        self.assertEqual(checks["g2b_overview"], "passed")
+        self.assertEqual(checks["project_summary"], "passed")  # RFP 요약은 그대로
+        with TemporaryDirectory() as tmp:
+            text = Path(export_review_artifacts(state, tmp)["files"]["report_md"]).read_text(encoding="utf-8")
+        self.assertIn("| 발주기관 | 주식회사 셈즈 (나라장터) |", text)
+        self.assertIn("| 입찰 마감 (나라장터) | 2026-10-19 10:00:00 |", text)
+        self.assertIn("제안서 제출기한과 다를 수 있습니다", text)
+        state["report_details"]["g2b_overview"]["buyer"] = "다른 기관"  # 보고서만 바뀐 경우
+        checks = {c["check_id"]: c["status"] for c in validate_t4_report(state)["report_validation"]["checks"]}
+        self.assertEqual(checks["g2b_overview"], "failed")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

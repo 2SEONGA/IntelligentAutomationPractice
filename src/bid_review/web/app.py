@@ -70,6 +70,17 @@ class WorkflowBody(BaseModel):
     request: str = ""
 
 
+def _notice_key(case, prior: dict | None) -> dict:
+    """나라장터 조회용 공고번호·차수. 공고함에서 시작한 건은 notice_attachment.json에 있다.
+    예전에는 이전 검토 결과에서만 읽어 첫 검증이 나라장터 조회를 늘 건너뛰었다."""
+    saved = runs._read_json(case / "notice_attachment.json") or {}
+    if saved.get("notice_no"):
+        return {"notice_no": saved["notice_no"], "notice_order": saved.get("notice_order") or "000"}
+    if (prior or {}).get("notice_no"):
+        return {"notice_no": prior["notice_no"], "notice_order": prior.get("notice_order") or "000"}
+    return {}
+
+
 class CoreReviewBody(BaseModel):
     action: Literal["analyze", "approve_and_run_t2", "reject"]
     reason: str = ""
@@ -432,45 +443,46 @@ def create_app(job_manager: JobManager | None = None, allowed_hosts: tuple[str, 
             raise runs.Conflict("검토할 RFP 원본 PDF가 없습니다.", status)
 
         prior = runs.load_core_review(path.parent, path)
-        if body.action == "approve_and_run_t2":
-            if not body.reason.strip():
-                raise HTTPException(400, "미확인/충돌 항목을 확인했다는 검토 사유를 입력하세요.")
-            if not prior or prior.get("decision") != "human_review_required":
-                raise runs.Conflict("먼저 T1.5 검토를 실행하고 사람 검토 결과를 확인해야 합니다.", status)
-            expected_id = (prior.get("verification") or {}).get("document_id")
-            if expected_id:
-                current_id = hashlib.sha256(pdf_path.read_bytes()).hexdigest()[:16]
-                if current_id != expected_id:
-                    raise runs.Conflict("T1.5 실행 후 RFP 원본이 바뀌었습니다. 먼저 검증을 다시 실행하세요.", status)
-        elif body.action == "reject":
-            if not body.reason.strip():
-                raise HTTPException(400, "검토 반려 사유를 입력하세요.")
-            if not prior or prior.get("decision") != "human_review_required":
-                raise runs.Conflict("먼저 T1.5 검토를 실행해야 반려할 수 있습니다.", status)
-            result = {**prior, "decision": "human_rejected", "review_decision": "rejected",
-                      "review_note": body.reason.strip(), "reviewer": role}
-            return runs.save_core_review(run_id, result, action=body.action, reason=body.reason, role=role)
-        else:
-            if prior and prior.get("decision") == "human_approved_company_matching_complete":
-                raise runs.Conflict("T2 분석까지 끝난 실행입니다. 새 검토 실행을 만들어 주세요.", status)
-
         try:
-            from ..rag.workflow import run_bid_review
-            company_file = PROJECT_ROOT / "data/company/company"
-            result = run_bid_review(
-                pdf_path,
-                company_path=company_file if company_file.is_file() else None,
-                notice_no=(prior or {}).get("notice_no"),
-                retrieval_limit=1,
-                notice_pdf_path=path.parent / "notice.pdf",
-                review_decision="approved" if body.action == "approve_and_run_t2" else None,
-                review_note=body.reason,
-                reviewer=role,
-            )
+            from ..rag import hitl_runtime
         except ImportError as exc:
             raise HTTPException(503, "LangGraph 의존성을 사용할 수 없습니다. 프로젝트 가상환경 설치를 확인하세요.") from exc
+        try:
+            if body.action in ("approve_and_run_t2", "reject"):
+                # 저장된 중단 지점에서 이어 간다(T1을 다시 실행하지 않음). 입력 파일이 바뀌었으면 실행기가 거부한다.
+                approve = body.action == "approve_and_run_t2"
+                if not body.reason.strip():
+                    raise HTTPException(400, "미확인/충돌 항목을 확인했다는 검토 사유를 입력하세요." if approve else "검토 반려 사유를 입력하세요.")
+                if not prior or prior.get("decision") != "human_review_required":
+                    raise runs.Conflict("먼저 T1.5 검토를 실행하고 사람 검토 결과를 확인해야 합니다.", status)
+                paused = prior.get("hitl") or {}
+                if not paused.get("thread_id") or not paused.get("interrupt_id"):
+                    raise runs.Conflict("이전 방식으로 저장된 검토입니다. 검증을 다시 실행해 주세요.", status)
+                snapshot = hitl_runtime.resume_review(paused["thread_id"], paused["interrupt_id"], {
+                    "action": "approve" if approve else "reject", "reviewer": role,
+                    "note": body.reason.strip(), "corrections": {}})
+            else:
+                if prior and prior.get("decision") == "human_approved_company_matching_complete":
+                    raise runs.Conflict("T2 분석까지 끝난 실행입니다. 새 검토 실행을 만들어 주세요.", status)
+                company_file = PROJECT_ROOT / "data/company/company"
+                notice_pdf = path.parent / "notice.pdf"
+                snapshot = hitl_runtime.start_review(
+                    pdf_path, company_path=company_file if company_file.is_file() else None,
+                    notice_pdf_path=notice_pdf if notice_pdf.is_file() else None,
+                    retrieval_limit=1, thread_id=f"web-{uuid4().hex}", **_notice_key(path.parent, prior))
+        except ValueError as exc:  # 오래된 중단 지점·입력 파일 변경 등
+            raise runs.Conflict(str(exc), status) from None
+        except (HTTPException, runs.Conflict):
+            raise
         except Exception as exc:
             raise HTTPException(500, f"핵심정보 검토 실행 실패: {type(exc).__name__}: {exc}") from exc
+        if snapshot["status"] == "failed":
+            raise HTTPException(500, "핵심정보 검토 실행 실패: " + "; ".join(snapshot["task_errors"]))
+        result = dict(snapshot["state"])
+        result["hitl"] = {"thread_id": snapshot["thread_id"], "status": snapshot["status"],
+                          "interrupt_id": snapshot["interrupts"][0]["id"] if snapshot["interrupts"] else None}
+        if snapshot["status"] == "paused":
+            result["decision"] = "human_review_required"  # 중단 시점 State에는 아직 판정이 없다.
         return runs.save_core_review(run_id, result, action=body.action, reason=body.reason, role=role)
 
     @app.get("/api/runs/{run_id}/files/{name}")
