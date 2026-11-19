@@ -176,8 +176,14 @@ def test_past_collection_uses_hwp_rfp_and_rechecks_old_no_pdf() -> None:
         assert not (pp.PAST_DIR / "BAD-000").exists(), "읽을 수 없는 HWP는 저장하지 않음"
         checked = json.loads((pp.PAST_DIR / "_checked.json").read_text(encoding="utf-8"))
         assert checked == {"NONE-000": "no_rfp", "BAD-000": "rfp_unreadable"}, checked
-        profile = pp.project_profile(pp.PAST_DIR / "OLD-000/rfp.hwpx", "OLD 사업")
-        assert profile.startswith("사업명: OLD 사업") and "사업 개요 및 목적" in profile
+        # This minimal format fixture has a heading and a table cell, not a business description.
+        # T3 now quarantines such sources instead of embedding arbitrary front matter.
+        try:
+            pp.project_profile(pp.PAST_DIR / "OLD-000/rfp.hwpx", "OLD 사업")
+        except pp.ProfileExtractionError:
+            pass
+        else:
+            raise AssertionError("사업 본문 없는 최소 HWPX는 확인 필요로 분리")
         looked.clear()
         again = pp.collect_past_projects(days=7, max_projects=10, today=date(2026, 11, 17), log=lambda *_: None)
         assert looked == [] and again["already_checked"] == 2 and again["already_saved"] == 2, again
