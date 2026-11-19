@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from contextlib import ExitStack
 import importlib.util
+import json
 from pathlib import Path
 import sys
 from tempfile import TemporaryDirectory
@@ -41,7 +42,25 @@ class WorkflowScenarios(unittest.TestCase):
         return w.CoreInfoVerification(document_id="fixture", status=w.VerificationStatus(status),
                                       categories={"amount": category}, routing_reasons=["amount: " + status])
 
-    def execute(self, statuses, *, retrieval_limit=2, checkpointer=None):
+    LOG_DIR = ROOT / "outputs" / "workflow_scenarios"
+
+    def execute(self, statuses, **kwargs):
+        """실행 뒤 Node 순서·State 변화·분기·최종 상태를 사례별 JSON으로 남긴다(보완 6 로그 요구)."""
+        state, paused, calls, count = self._execute(statuses, **kwargs)
+        log = {"scenario": self._testMethodName,
+               "execution_history": state.get("execution_history", []),
+               "paused_at": paused["execution_history"][-1]["node"] if paused else None,
+               "routing_plan": state.get("routing_plan"), "retrieval_round": state.get("retrieval_round"),
+               "search_calls": calls, "verify_calls": count, "decision": state.get("decision"),
+               "verification_status": (state.get("verification") or {}).get("status"),
+               "report_validation_status": (state.get("report_validation") or {}).get("status"),
+               "review_history": state.get("review_history", [])}
+        self.LOG_DIR.mkdir(parents=True, exist_ok=True)
+        (self.LOG_DIR / f"{self._testMethodName}.json").write_text(
+            json.dumps(log, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+        return state, paused, calls, count
+
+    def _execute(self, statuses, *, retrieval_limit=2, checkpointer=None):
         """실제 StateGraph를 사용하고 PDF 추출·외부 API·검색 결과만 고정한다."""
         w = self.w
         with ExitStack() as stack:

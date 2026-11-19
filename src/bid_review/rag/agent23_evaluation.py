@@ -85,7 +85,11 @@ def evaluate_agent23(state: dict[str, Any]) -> dict[str, Any]:
 
     search_status = state.get("similar_projects_status") or "not_run"
     projects = state.get("similar_projects")
-    if not isinstance(projects, list) or not search_status.startswith("found "):
+    if search_status == "none_above_threshold" and isinstance(projects, list) and not projects:
+        # 검색은 정상 수행됐고 임계값 이상 후보가 없을 뿐이다 → 보고서에 참고로 남기되 보류 사유로 세지 않는다.
+        add("t3_search", "info", "임계값 이상 유사사업 후보가 없습니다. 후보 없음은 유사사업 부재의 증거가 아닙니다.")
+        projects = []
+    elif not isinstance(projects, list) or not search_status.startswith("found "):
         add("t3_search", "needs_review", f"유사사업 검색 상태: {search_status}. 후보 없음은 유사사업 부재의 증거가 아닙니다.")
         projects = []
     elif not projects:
@@ -117,13 +121,17 @@ def evaluate_agent23(state: dict[str, Any]) -> dict[str, Any]:
         add(prefix + ":source", "passed" if source_ok else "needs_review",
             f"{notice_id}: 공고 식별자·URL 및 RFP 원문 발췌를 다시 대조했습니다. 유사성 판정은 담당자 검토 대상입니다."
             if source_ok else f"{notice_id or '식별자 없음'}: 공고 출처 또는 RFP 원문 발췌를 확인할 수 없습니다.")
+        # 유사도는 모든 후보에 붙는 해석 주의사항이다. needs_review로 두면 후보가 하나만 있어도
+        # T4가 항상 보류가 되므로 참고(info)로 기록한다. 출처·낙찰 연결 오류만 보류 사유로 센다.
         if item.get("same_project_suspected"):
-            add(prefix + ":similarity", "needs_review", "동일 사업·재공고 의심 후보는 별도 비교 실적으로 확정할 수 없습니다.")
+            add(prefix + ":similarity", "info", "동일 사업·재공고 의심 후보는 별도 비교 실적으로 확정할 수 없습니다(비교 목록 제외).")
         else:
-            add(prefix + ":similarity", "needs_review", "임베딩 유사도는 사업 범위의 실질적 유사성 또는 실적 인정 근거가 아닙니다.")
+            add(prefix + ":similarity", "info", "임베딩 유사도는 사업 범위의 실질적 유사성 또는 실적 인정 근거가 아닙니다.")
         if item.get("award"):
-            # 기존 색인은 재공고 그룹의 다른 차수 낙찰정보를 가져올 수 있다.
-            linked = item.get("award_notice_id") == notice_id and bool(item.get("award_source_url"))
+            # 재공고 그룹의 다른 공고번호 낙찰정보는 이 후보의 낙찰로 쓰지 않는다(같은 공고번호의 차수만 인정).
+            award_id = str(item.get("award_notice_id") or "")
+            linked = bool(award_id and notice_id and award_id.split("-")[0] == notice_id.split("-")[0]
+                          and str(item.get("award_source_url") or "").startswith(("https://", "http://")))
             add(prefix + ":award", "passed" if linked else "needs_review",
                 "낙찰 공고·차수 식별자와 출처가 후보 공고와 일치합니다. 금액·수상자 원문은 담당자 확인 대상입니다."
                 if linked else "낙찰정보의 공고번호·차수·출처 연결이 검증되지 않아 보고서에 확정 사실로 쓸 수 없습니다.")

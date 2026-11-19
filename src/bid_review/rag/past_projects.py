@@ -309,7 +309,8 @@ def build_past_project_index(embed=None, log=print) -> dict[str, Any]:
             excluded_contract += 1  # 폴더는 남긴다(이어받기 때 재조회 없음); 색인에서만 뺀다 (M29)
             continue
         number = meta["notice_id"].split("-")[0]
-        award = next((value for key, value in sorted(awards.items(), reverse=True) if key.split("-")[0] == number), None)
+        award_id, award = next(((key, value) for key, value in sorted(awards.items(), reverse=True)
+                                if key.split("-")[0] == number), (None, None))
         try:
             rfp_path = rfp_file(meta_path.parent)
             attachment_name = (meta.get("rfp_attachment") or {}).get("name", "")
@@ -330,7 +331,9 @@ def build_past_project_index(embed=None, log=print) -> dict[str, Any]:
                          "amount_krw": meta.get("asignBdgtAmt") or meta.get("presmptPrce"), "notice_date": meta.get("bidNtceDt"),
                          "notice_url": meta.get("bidNtceDtlUrl"), "rfp_attachment": meta.get("rfp_attachment"),
                          "rfp_path": str(rfp_path.relative_to(PROJECT_ROOT)),
-                         "award": award, "profile": profile})
+                         "award": award, "award_notice_id": award_id,
+                         # 낙찰정보 출처: 같은 공고번호의 나라장터 공고 상세(개찰결과 확인 화면)
+                         "award_source_url": meta.get("bidNtceDtlUrl") if award else None, "profile": profile})
     INDEX_DIR.mkdir(parents=True, exist_ok=True)
     (INDEX_DIR / "past_projects_review.json").write_text(json.dumps({
         "profile_version": PROFILE_VERSION, "review_required": len(profile_review), "items": profile_review,
@@ -346,7 +349,10 @@ def build_past_project_index(embed=None, log=print) -> dict[str, Any]:
         members.sort(key=lambda item: str(item.get("notice_date") or ""), reverse=True)
         lead = dict(members[0])
         lead["related_notice_ids"] = [item["notice_id"] for item in members]
-        lead["award"] = next((item["award"] for item in members if item["award"]), None)
+        awarded = next((item for item in members if item["award"]), None)  # 낙찰·공고번호·출처는 같은 공고에서
+        lead.update(award=awarded["award"] if awarded else None,
+                    award_notice_id=awarded["award_notice_id"] if awarded else None,
+                    award_source_url=awarded["award_source_url"] if awarded else None)
         projects.append(lead)
     embed = embed or openai_embedder(EMBEDDING_MODEL)
     try:

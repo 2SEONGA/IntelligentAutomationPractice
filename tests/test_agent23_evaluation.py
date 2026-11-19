@@ -49,7 +49,8 @@ class Agent23EvaluationTests(unittest.TestCase):
         result = evaluate_agent23(self.state)
         self.assertEqual(status(result, "t2_legal_entity"), "passed")
         self.assertEqual(status(result, "t2_match:REQ-1"), "passed")
-        self.assertEqual(status(result, "t3_search"), "needs_review")
+        self.assertEqual(status(result, "t3_search"), "info")  # 임계값 이상 후보 없음은 보류 사유가 아님
+        self.assertEqual(result["agent23_evaluation"]["status"], "passed")
 
     def test_wrong_legal_entity_kept_for_review(self):
         self.state["capability"]["company_name"] = "다른 법인"
@@ -82,6 +83,23 @@ class Agent23EvaluationTests(unittest.TestCase):
             result = evaluate_agent23(self.state)
         self.assertEqual(status(result, "t3_candidate:1:source"), "passed")
         self.assertEqual(status(result, "t3_candidate:1:award"), "needs_review")
+        self.assertEqual(status(result, "t3_candidate:1:similarity"), "info")
+
+    def test_t3_award_linked_to_same_notice_number_passes(self):
+        source = self.root / "rfp.pdf"
+        source.write_bytes(b"%PDF- fixture")
+        candidate = {"notice_id": "R26-001", "title": "유사 사업", "buyer": "기관",
+                     "notice_url": "https://example.org/notice", "rfp_path": "rfp.pdf",
+                     "profile_excerpt": "사업명: 유사 사업", "similarity": 0.81, "award": {"bidwinnrNm": "낙찰사"},
+                     "award_notice_id": "R26-000", "award_source_url": "https://example.org/notice"}
+        self.state.update(similar_projects_status="found 1", similar_projects=[candidate])
+        with patch("bid_review.rag.agent23_evaluation.PROJECT_ROOT", self.root), \
+             patch("bid_review.rag.agent23_evaluation._source_profile", return_value="사업명: 유사 사업\n사업범위"):
+            result = evaluate_agent23(self.state)
+            self.assertEqual(status(result, "t3_candidate:1:award"), "passed")  # 같은 공고번호의 다른 차수
+            self.assertEqual(result["agent23_evaluation"]["status"], "passed")  # 유사도 info만으로 보류되지 않음
+            candidate["award_notice_id"] = "R27-000"  # 재공고 그룹의 다른 공고번호 낙찰
+            self.assertEqual(status(evaluate_agent23(self.state), "t3_candidate:1:award"), "needs_review")
 
     def test_t3_missing_original_excerpt(self):
         self.state.update(similar_projects_status="found 1", similar_projects=[{
@@ -95,6 +113,7 @@ class Agent23EvaluationTests(unittest.TestCase):
         self.assertEqual(evaluate_agent23(self.state)["agent23_evaluation"]["status"], "not_run")
 
     def test_evaluation_reaches_report_and_marks_hold(self):
+        self.state["capability"]["company_name"] = "다른 법인"  # 실제 보류 사유(법인 불일치)
         self.state.update(rfp=RFPAnalysisResult().model_dump(mode="json"),
                           verification={"status": "confirmed"})
         self.state.update(evaluate_agent23(self.state))
@@ -113,6 +132,7 @@ class Agent23EvaluationTests(unittest.TestCase):
         self.assertTrue(any(c["check_id"] == "agent23_evidence" and c["status"] == "needs_review" for c in checks))
 
     def test_tampered_evaluation_transfer_fails(self):
+        self.state["capability"]["company_name"] = "다른 법인"  # 실제 보류 사유(법인 불일치)
         self.state.update(rfp=RFPAnalysisResult().model_dump(mode="json"),
                           verification={"status": "confirmed"})
         self.state.update(evaluate_agent23(self.state))

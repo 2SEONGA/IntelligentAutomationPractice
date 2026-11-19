@@ -94,6 +94,8 @@ python scripts/compare_workflow_modes.py --cases workflow_cases.json --output ou
 
 프로그램은 두 실행이 모두 `t23_evaluate`와 `t4_validate`에 도달하고 검증 상태가 `passed` 또는 `needs_review`이며 입력 파일이 바뀌지 않은 경우만 유효 비교로 집계한다. 최소 5개 *서로 다른* 유효 사례가 필요하다. `result_equivalent`는 T2·T3 결과, 평가, 보고서, 검증, 결정의 구조화 값을 대조한다. 실행 ID, 기록 시각, 이벤트 순서는 비교하지 않는다. 실험 중 외부 공고 API 응답이나 색인 내용이 바뀔 수 있으므로 차이가 난 항목은 원본 `state.json`에서 확인한다.
 
+**토큰 측정 범위 확인(M34, 2026-11-19):** LangGraph 경로(T1 규칙 추출, T1.5 규칙 검증, T2 `CapabilityMatcher` 규칙 매칭, T3 임베딩 검색, T4 규칙 기반 `ReportWriter`)는 LLM을 호출하지 않는다(`BidReviewCrew`는 회사 자료 로드 함수만 사용). 따라서 이 경로의 토큰은 OpenAI 임베딩 입력 토큰이 전부이고 출력 토큰은 구조상 0이다. CrewAI 보고서 경로를 비교에 넣을 경우에만 LLM 입력·출력 토큰 집계를 추가해야 한다.
+
 **토큰 측정 범위:** 이 구현에서는 직접 호출하는 OpenAI 임베딩 API 응답의 `usage`만 합산한다. 다른 공급자의 호출이나 사용량이 반환되지 않은 요청을 임의로 추정하지 않는다. `requests_with_usage`가 0이면 표시된 0을 전체 토큰 사용량으로 해석하지 않는다. 캐시 상태가 달라지면 시간과 토큰 비교가 왜곡되므로 동일한 색인을 사전에 준비한다.
 
 ## 완료 판단
@@ -113,7 +115,7 @@ git add src/bid_review/rag/workflow.py src/bid_review/rag/state_history.py \
   src/bid_review/rag/usage_tracking.py src/bid_review/rag/semantic.py \
   scripts/run_langgraph_review.py scripts/compare_workflow_modes.py \
   tests/test_parallel_workflow.py \
-  docs/final_project/implementation/leejuahn/07_Sequential_Parallel_Workflow.md
+  docs/final_project/implementation/이주안_개선점/07_Sequential_Parallel_Workflow.md
 git diff --cached --stat
 git commit -m "Add selectable sequential and parallel review workflows"
 ```

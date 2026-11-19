@@ -36,8 +36,8 @@
 
 | 파일 | 변경 내용 |
 |---|---|
-| `tests/test_workflow_scenarios.py` | 신규: 운영 그래프의 다섯 가지 업무 상황 통합 테스트 |
-| `docs/final_project/implementation/leejuahn/06_Workflow_Scenarios.md` | 신규: 조건·검증 항목·결과 기록 |
+| `tests/test_workflow_scenarios.py` | 신규: 운영 그래프의 다섯 가지 업무 상황 통합 테스트. 2026-11-19(M34) 사례별 로그 `outputs/workflow_scenarios/<테스트명>.json` 저장 추가(Node 순서·상태·분기·검색 횟수·최종 상태) |
+| `docs/final_project/implementation/이주안_개선점/06_Workflow_Scenarios.md` | 신규: 조건·검증 항목·결과 기록 |
 
 운영 `src/` 코드는 이번 보완에서 변경하지 않는다. 테스트 중 실제 코드 결함이 발견되면 원인을 확인한 다음 해당 파일을 수정하고 이 문서에 추가한다.
 
