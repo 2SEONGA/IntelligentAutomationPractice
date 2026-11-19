@@ -5,7 +5,7 @@ import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from bid_review.notice_filter import amount_of, judge  # noqa: E402
+from bid_review.notice_filter import amount_label, amount_of, judge  # noqa: E402
 from bid_review.settings import load_config  # noqa: E402
 
 RULES = load_config("notice_filter")
@@ -35,6 +35,28 @@ def test_amount_boundaries() -> None:
     assert amount_of(notice(asignBdgtAmt="", presmptPrce="123")) == 123
 
 
+def test_amount_vat_basis() -> None:
+    """40억 기준은 VAT 포함. 추정가격(VAT 별도)은 1.1배로 환산한 뒤 비교한다."""
+    assert RULES["min_amount_vat_basis"] == "included"
+    assert amount_label(RULES) == "40억 원 이상 (VAT 포함)"
+    # 추정가격 37억(VAT 별도) = 40.7억(VAT 포함) → 통과. 숫자만 보면 40억 미만이라 제외됐을 공고.
+    assert rule(notice(asignBdgtAmt="", presmptPrce=str(37 * EOK)), "amount") == "검토 대상"
+    assert rule(notice(asignBdgtAmt="", presmptPrce=str(36 * EOK)), "amount") == "제외"  # 39.6억
+    result = judge(notice(asignBdgtAmt="", presmptPrce=str(37 * EOK)), RULES, NOW)
+    assert "추정가격 37.0억 VAT 별도 환산" in result["rules"]["amount"]["reason"]
+    assert result["amount_vat_basis"] == "excluded" and result["amount_criterion"] == "40억 원 이상 (VAT 포함)"
+    # 기준을 VAT 별도로 바꾸면 배정예산(VAT 포함) 44억 = 40억 VAT 별도 → 통과, 43억 → 제외
+    excl = {**RULES, "min_amount_vat_basis": "excluded"}
+    assert judge(notice(asignBdgtAmt=str(44 * EOK)), excl, NOW)["rules"]["amount"]["verdict"] == "검토 대상"
+    assert judge(notice(asignBdgtAmt=str(43 * EOK)), excl, NOW)["rules"]["amount"]["verdict"] == "제외"
+    assert amount_label(excl) == "40억 원 이상 (VAT 별도)"
+    # VAT 기준을 모르는 금액 필드·기준 설정은 임의 판정하지 않고 확인 필요
+    unknown_field = {**RULES, "amount_field_vat_basis": {"asignBdgtAmt": "unknown"}}
+    assert judge(notice(), unknown_field, NOW)["rules"]["amount"] == {
+        "verdict": "확인 필요", "reason": "배정예산 50.0억의 VAT 포함 여부 확인 필요"}
+    assert judge(notice(), {**RULES, "min_amount_vat_basis": "?"}, NOW)["rules"]["amount"]["verdict"] == "확인 필요"
+
+
 def test_deadline() -> None:
     assert rule(notice(bidClseDt="2026-10-26 10:00:00"), "deadline") == "제외"
     assert rule(notice(bidClseDt="2026-10-29 10:00:00"), "deadline") == "확인 필요"
@@ -60,7 +82,7 @@ def test_contract_and_conditions() -> None:
 def test_priority_and_reasons() -> None:
     result = judge(notice(asignBdgtAmt=str(int(0.4 * EOK)), cntrctCnclsMthdNm="제한경쟁"), RULES, NOW)
     assert result["verdict"] == "제외"
-    assert any("40억 미만(0.4억)" in r for r in result["reasons"]) and any("제한경쟁" in r for r in result["reasons"])
+    assert any("40억 미만(0.4억 VAT 포함)" in r for r in result["reasons"]) and any("제한경쟁" in r for r in result["reasons"])
     assert judge(notice(cntrctCnclsMthdNm="제한경쟁"), RULES, NOW)["verdict"] == "확인 필요"
     passed = judge(notice(), RULES, NOW)
     assert passed["verdict"] == "검토 대상" and passed["amount_krw"] == 50 * EOK and passed["deadline"] == "2026-11-20 10:00:00"

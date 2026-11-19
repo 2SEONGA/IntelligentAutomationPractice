@@ -1,6 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { findNotices, noticeAction, startNotes } from "./notices.ts";
+import { amountRule, findNotices, noticeAction, startNotes, vatBasisLabel } from "./notices.ts";
+
+test("the amount threshold always names its VAT basis", () => {
+  assert.equal(amountRule("40억", "included"), "40억 이상 (VAT 포함)");
+  assert.equal(amountRule("40억", "excluded", "미만"), "40억 미만 (VAT 별도)");
+  assert.equal(vatBasisLabel(undefined), "VAT 기준 확인 필요");
+});
 
 test("a notice waiting for its RFP can be resumed instead of being stuck", () => {
   assert.equal(noticeAction({ verdict: "검토 대상", case_folder: "f", run_id: null }, true), "resumeUpload");

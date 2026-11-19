@@ -2,6 +2,13 @@
 minimum_project_amount_krw: 1000000000
 rfp:
   low_text_page_characters: 40
+  # OCR(선택): pytesseract + tesseract(kor) 설치 시 동작, 없으면 기존 pypdf·pdfplumber만 사용.
+  # mode: off | fallback(텍스트가 짧거나 깨진 페이지만 OCR) | always(모든 페이지를 OCR 결과와 비교)
+  ocr:
+    mode: fallback
+    lang: kor+eng
+    resolution: 300
+    max_pages: 30
   requirement_overview_patterns:
     - "총\\s*(\\d+)\\s*건"
     - "요구사항\\s*(\\d+)\\s*건"

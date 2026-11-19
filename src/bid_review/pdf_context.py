@@ -42,6 +42,7 @@ def page_analysis_summary(result: RFPAnalysisResult) -> dict[str, Any]:
         "total_pages": len(result.page_analysis),
         "page_type_counts": {page_type: counts.get(page_type, 0) for page_type in PAGE_TYPE_LABELS},
         "ocr_required_pages": _pages([page.page_number for page in result.page_analysis if page.ocr_required]),
+        "ocr_applied_pages": _pages([page.page_number for page in result.page_analysis if page.ocr_applied]),
         "relevant_pages": {
             "basic_information": basic_pages,
             "eligibility_requirements": eligibility_pages,
@@ -54,8 +55,10 @@ def document_quality_context(result: RFPAnalysisResult) -> dict[str, Any]:
     summary = page_analysis_summary(result)
     return {
         "document_quality_status": _effective_quality_status(result),
-        "document_quality_summary": "목차와 표지 제외 후 본문·표 페이지를 중심으로 분석함",
+        "document_quality_summary": "목차와 표지 제외 후 본문·표 페이지를 중심으로 분석함"
+        + (f"; {len(summary['ocr_applied_pages'])}개 페이지는 OCR로 읽은 텍스트로 분석함" if summary["ocr_applied_pages"] else ""),
         "ocr_required_pages": summary["ocr_required_pages"],
+        "ocr_applied_pages": summary["ocr_applied_pages"],
         "relevant_pages": summary["relevant_pages"],
     }
 

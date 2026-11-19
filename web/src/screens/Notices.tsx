@@ -7,7 +7,7 @@ import { can, type Role } from "../role";
 import { eok } from "../summary";
 import type { Criteria, Notice, NoticeList, Status, View } from "../types";
 import { keywordLabel } from "../types";
-import { findNotices, noticeAction, splitReason, startNotes, type NoticeSort } from "../notices";
+import { amountRule, findNotices, noticeAction, splitReason, startNotes, type NoticeSort } from "../notices";
 import InfoBar, { type InfoItem } from "../components/InfoBar";
 import StatusBadge from "../components/StatusBadge";
 import Empty from "../components/Empty";
@@ -100,9 +100,9 @@ export default function Notices({ role, status, onNavigate, onChanged }: Props) 
     ...(last ? [{ label: "수집 조건", value: `최근 ${last.days}일 · ${keywordLabel(last.keywords)}` }] : []),
     ...(rules ? [
       { label: "적용 기준", value: rules.set },
-      { label: "검토 대상 기준", chips: [`${eok(rules.min_amount_krw)} 이상`, ...rules.ict_classes, `마감 ${rules.deadline_warn_days}일 넘게 남음`], row: true },
-      { label: "제외", chips: [`${eok(rules.min_amount_krw)} 미만`, "마감 지남", "ICT 아님", ...rules.exclude_contract_terms], tone: "negative" as const, row: true },
-      { label: "확인 필요", chips: [...rules.confirm_contract_terms, ...rules.confirm_flags.map((f: { label: string }) => f.label)], tone: "cautionary" as const, row: true },
+      { label: "검토 대상 기준", chips: [amountRule(eok(rules.min_amount_krw), rules.min_amount_vat_basis), ...rules.ict_classes, `마감 ${rules.deadline_warn_days}일 넘게 남음`], row: true },
+      { label: "제외", chips: [amountRule(eok(rules.min_amount_krw), rules.min_amount_vat_basis, "미만"), "마감 지남", "ICT 아님", ...rules.exclude_contract_terms], tone: "negative" as const, row: true },
+      { label: "확인 필요", chips: ["금액 VAT 기준 미확인", ...rules.confirm_contract_terms, ...rules.confirm_flags.map((f: { label: string }) => f.label)], tone: "cautionary" as const, row: true },
     ] : []),
   ];
 

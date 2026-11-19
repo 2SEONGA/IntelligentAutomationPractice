@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button, Loading, SectionMessage, TextArea, Typography } from "@montage-ui/core";
 import { applyCriteriaSet, deleteCriteriaSet, getCriteria, saveCriteriaSet } from "../api";
+import { vatBasisLabel } from "../notices";
 import { DEFAULT_SET, formErrors, fromValues, toValues, type CriteriaForm } from "../criteria";
 import { can, type Role } from "../role";
 import { eok } from "../summary";
@@ -45,7 +46,7 @@ function ScoreBand({ go, review }: { go: number; review: number }) {
 }
 
 const FIELDS: { key: keyof CriteriaForm; label: string; hint?: string; wide?: boolean }[] = [
-  { key: "minEok", label: "사업금액 하한 (억 원)" },
+  { key: "minEok", label: "사업금액 하한 (억 원)", hint: "VAT 기준은 config/notice_filter.yaml의 min_amount_vat_basis로 정함" },
   { key: "warnDays", label: "마감 경고 일수" },
   { key: "go", label: "Go 권고 점수 (이상)" },
   { key: "review", label: "본부장 검토 점수 (이상)" },
@@ -211,19 +212,19 @@ export default function Criteria({ role }: { role: Role }) {
         </Typography>
         <Lanes lanes={[
           { tone: "pos", title: "검토 대상", note: "모든 조건을 만족하면", items: [
-            `사업금액 ${eok(f.min_amount_krw)} 이상 (배정예산, 없으면 추정가격)`,
+            `사업금액 ${eok(f.min_amount_krw)} 이상 (${vatBasisLabel(f.min_amount_vat_basis)} · 배정예산, 없으면 추정가격을 같은 VAT 기준으로 환산)`,
             `조달 분류 ${f.ict_classes.join(", ")} (분류가 없으면 공고명 키워드)`,
             `마감까지 ${f.deadline_warn_days}일 넘게 남음`,
             `${f.exclude_contract_terms.join(", ")} 아님`,
           ] },
           { tone: "caut", title: "담당자 확인 필요", note: "공고문 원문을 보고 포함·제외 (HITL-2)", items: [
-            "사업금액 정보 없음",
+            "사업금액 정보 없음 또는 VAT 포함 여부 미확인",
             `마감일 없음 또는 ${f.deadline_warn_days}일 이내`,
             ...f.confirm_contract_terms.map((t: string) => `${t} 공고`),
             ...flags.map((t) => `${t} 있음`),
           ] },
           { tone: "neg", title: "제외", note: "하나라도 해당하면", items: [
-            `사업금액 ${eok(f.min_amount_krw)} 미만`,
+            `사업금액 ${eok(f.min_amount_krw)} 미만 (${vatBasisLabel(f.min_amount_vat_basis)})`,
             "마감 지남",
             "ICT 분야 아님",
             ...f.exclude_contract_terms.map((t: string) => `${t}`),

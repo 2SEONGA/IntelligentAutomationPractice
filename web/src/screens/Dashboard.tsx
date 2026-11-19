@@ -62,7 +62,7 @@ export default function Dashboard({ role, onNavigate }: Props) {
       )}
       <div className="kpis">
         <Card label="수집한 공고" value={cards.collected_total} note={`최근 수집 ${cards.collected_recent.toLocaleString("ko-KR")}건 · 누적`} />
-        <Card label="규칙 필터 통과" value={cards.passed} note="40억 이상 · ICT · 마감 전" />
+        <Card label="규칙 필터 통과" value={cards.passed} note="40억 이상(VAT 포함) · ICT · 마감 전" />
         <Card label="담당자 확인 필요" value={cards.confirm} note="금액·마감 없음, 참가 조건 제한" tone="var(--semantic-foreground-cautionary-primary)" />
         <Card label="결재 대기" value={cards.approvals_pending} note="본부장 결정 필요" tone={cards.approvals_pending ? "var(--semantic-foreground-negative-primary)" : undefined} />
       </div>

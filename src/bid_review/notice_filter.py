@@ -6,19 +6,53 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
+from .vat import BASIS_LABELS, G2B_FIELD_BASIS, convert
+
 VERDICTS = ("검토 대상", "확인 필요", "제외")
 EOK = 100_000_000
 
 
-def amount_of(notice: dict) -> int | None:
-    for field in ("asignBdgtAmt", "presmptPrce"):
+AMOUNT_FIELDS = ("asignBdgtAmt", "presmptPrce")
+
+
+def amount_source(notice: dict) -> tuple[int, str] | None:
+    """(금액, API 필드명). 배정예산을 먼저 쓰고 없으면 추정가격."""
+    for field in AMOUNT_FIELDS:
         try:
             value = int(float(notice.get(field) or 0))
         except ValueError:
             continue
         if value > 0:
-            return value
+            return value, field
     return None
+
+
+def amount_of(notice: dict) -> int | None:
+    source = amount_source(notice)
+    return source[0] if source else None
+
+
+def criterion_basis(rules: dict) -> str:
+    """40억 기준의 VAT 기준(included/excluded). 설정이 없거나 잘못되면 unknown."""
+    basis = rules.get("min_amount_vat_basis", "included")
+    return basis if basis in ("included", "excluded") else "unknown"
+
+
+def amount_label(rules: dict) -> str:
+    """화면·사유에 쓰는 기준 표기. 예: '40억 원 이상 (VAT 포함)'."""
+    return f"{rules['min_amount_krw'] // EOK}억 원 이상 ({BASIS_LABELS[criterion_basis(rules)]})"
+
+
+def normalized_amount(notice: dict, rules: dict) -> tuple[int | None, str, str]:
+    """(기준 VAT로 환산한 금액, 원래 필드의 VAT 기준, 필드명). 환산할 수 없으면 금액은 None."""
+    source = amount_source(notice)
+    if source is None:
+        return None, "unknown", ""
+    amount, field = source
+    field_basis = {**G2B_FIELD_BASIS, **(rules.get("amount_field_vat_basis") or {})}.get(field, "unknown")
+    if field_basis not in ("included", "excluded"):
+        field_basis = "unknown"
+    return convert(amount, field_basis, criterion_basis(rules)), field_basis, field
 
 
 def _amount(notice: dict, rules: dict) -> tuple[str, str]:
@@ -26,9 +60,20 @@ def _amount(notice: dict, rules: dict) -> tuple[str, str]:
     minimum = rules["min_amount_krw"]
     if amount is None:
         return "확인 필요", "사업금액 없음"
-    if amount < minimum:
-        return "제외", f"{minimum // EOK}억 미만({amount / EOK:,.1f}억)"
-    return "검토 대상", f"사업금액 {amount / EOK:,.1f}억"
+    target = criterion_basis(rules)
+    if target == "unknown":
+        return "확인 필요", "40억 기준의 VAT 포함/별도 설정 확인 필요"
+    normalized, field_basis, field = normalized_amount(notice, rules)
+    label = "배정예산" if field == "asignBdgtAmt" else "추정가격"
+    if normalized is None:
+        # VAT 포함 여부를 모르는 금액은 임의로 포함/별도 처리하지 않는다.
+        return "확인 필요", f"{label} {amount / EOK:,.1f}억의 VAT 포함 여부 확인 필요"
+    shown = f"{normalized / EOK:,.1f}억 {BASIS_LABELS[target]}"
+    if field_basis != target:
+        shown += f", {label} {amount / EOK:,.1f}억 {BASIS_LABELS[field_basis]} 환산"
+    if normalized < minimum:
+        return "제외", f"{minimum // EOK}억 미만({shown})"
+    return "검토 대상", f"사업금액 {shown}"
 
 
 def _deadline(notice: dict, rules: dict, now: datetime) -> tuple[str, str]:
@@ -79,4 +124,5 @@ def judge(notice: dict, rules: dict, now: datetime) -> dict:
     reasons = [reason for v, reason in results.values() if v != "검토 대상"] or ["모든 규칙 통과"]
     return {"verdict": verdict, "reasons": reasons,
             "rules": {name: {"verdict": v, "reason": r} for name, (v, r) in results.items()},
-            "amount_krw": amount_of(notice), "deadline": (notice.get("bidClseDt") or "").strip() or None}
+            "amount_krw": amount_of(notice), "amount_vat_basis": normalized_amount(notice, rules)[1],
+            "amount_criterion": amount_label(rules), "deadline": (notice.get("bidClseDt") or "").strip() or None}

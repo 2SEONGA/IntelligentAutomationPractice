@@ -22,6 +22,16 @@ export function startNotes(info: StartInfo): string[] {
   return notes;
 }
 
+/** VAT basis of the amount threshold (config/notice_filter.yaml min_amount_vat_basis), shown next to "40억". */
+export function vatBasisLabel(basis: unknown): string {
+  return basis === "included" ? "VAT 포함" : basis === "excluded" ? "VAT 별도" : "VAT 기준 확인 필요";
+}
+
+/** "40억 이상 (VAT 포함)": the threshold always names its VAT basis so 포함/별도 amounts are not mixed. */
+export function amountRule(eokText: string, basis: unknown, side: "이상" | "미만" = "이상"): string {
+  return `${eokText} ${side} (${vatBasisLabel(basis)})`;
+}
+
 /** "마감 임박(2026-10-28)" → ["마감 임박", "(2026-10-28)"], "제한경쟁 — 공고문 원문 확인" → ["제한경쟁", "— 공고문 원문 확인"]. */
 export function splitReason(reason: string): [string] | [string, string] {
   const dash = reason.indexOf(" — ");

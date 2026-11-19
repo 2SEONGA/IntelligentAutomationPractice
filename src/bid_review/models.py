@@ -117,6 +117,8 @@ class PageAnalysis(BaseModel):
     table_count: int = Field(default=0, ge=0)
     ocr_required: bool = False
     ocr_reason: str | None = None
+    # OCR 텍스트를 이 페이지의 추출 텍스트로 채택했는지(기존 텍스트보다 나을 때만).
+    ocr_applied: bool = False
 
 
 class RFPQualityIssue(BaseModel):
