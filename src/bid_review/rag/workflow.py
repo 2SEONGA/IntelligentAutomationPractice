@@ -7,8 +7,17 @@ unverified RFP silently flow into an automated fit conclusion.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Literal, TypedDict
+from typing import Annotated, Any, Literal, TypedDict
+from uuid import uuid4
+from time import perf_counter
 
+from .report_nodes import generate_t4_report
+from .agent23_evaluation import evaluate_agent23
+from .conditional_routing import plan_verification
+from .state_history import case_identity, validate_api_identity, source_matches, citation_conflicts, record_stage, merge_execution_history
+from .hitl_review import pause_for_human_review, route_after_human_review
+# HITL persistent review integration
+from .report_validation import validate_t4_report
 from langgraph.graph import END, START, StateGraph
 
 from ..agent01_rfp import RFPExtractor
@@ -27,6 +36,7 @@ from .semantic import MIN_SCORE, SemanticUnavailable, search_semantic
 COMPANY_MIN_SCORE = 0.36
 from .retriever import RetrievedEvidence, search_keyword
 from ..models import RFPAnalysisResult, RetrievedCompanyEvidenceCandidate
+from ..money import parse_krw
 from .verification import (
     CoreInfoVerification, EvidenceCitation, T15Verifier, VerificationCheck,
     VerificationStatus, _category_state,
@@ -50,14 +60,28 @@ class BidReviewState(TypedDict, total=False):
     company_retrieval_skipped: dict[str, str]  # requirement id → 행정 조항 사유 (M22)
     retrieval_round: int
     retrieval_limit: int
-    review_decision: Literal["approved", "rejected"]
+    reanalysis_attempts: dict[str, int]
+    reanalysis_error: str
+    routing_plan: dict[str, Any]
+    review_decision: Literal["approved", "rejected"] | None
     review_note: str
     reviewer: str
     capability: dict[str, Any]
     semantic_retrieval_status: str
     similar_projects: list[dict[str, Any]]  # Agent 3 과거 유사 사업 후보 (M23)
     similar_projects_status: str
+    agent23_evaluation: dict[str, Any]
     human_override: dict[str, Any] | None  # 승인 감사 기록 — State에 없으면 LangGraph가 노드 반환값을 버림
+    market: dict[str, Any] | None
+    report: dict[str, Any] | None
+    t4_status: str
+    report_details: dict[str, Any] | None
+    report_validation: dict[str, Any]
+    run_id: str
+    source_fingerprints: dict[str, dict[str, str]]
+    review_history: list[dict[str, Any]]
+    case_identity: dict[str, Any]
+    execution_history: Annotated[list[dict[str, Any]], merge_execution_history]
     decision: str
     routing_reasons: list[str]
     errors: list[str]
@@ -67,8 +91,10 @@ def _model_from_state(value: dict[str, Any], model):
     return model.model_validate(value)
 
 
-def create_bid_review_graph():
-    """Compile the MVP workflow graph (T1 → T1.5 → retrieval/HITL → T2)."""
+def create_bid_review_graph(checkpointer=None, *, workflow_mode: Literal["sequential", "parallel"] = "sequential"):
+    """Compile either the established sequential graph or a T2/T3 parallel comparison graph."""
+    if workflow_mode not in {"sequential", "parallel"}:
+        raise ValueError("workflow_mode는 sequential 또는 parallel이어야 합니다.")
 
     def extract_rfp(state: BidReviewState) -> dict[str, Any]:
         path = Path(state["pdf_path"])
@@ -79,19 +105,22 @@ def create_bid_review_graph():
             notice_result = RFPExtractor(load_settings()).analyze(
                 Path(notice_pdf_path), document_kind="notice_pdf",
             )
-        notice_no = state.get("notice_no") or (
-            str(result.basic_info.notice_number.value)
-            if result.basic_info.notice_number.value else None
-        )
-        return {"rfp": result.model_dump(mode="json"),
+        identity = case_identity(state, result.basic_info.notice_number.value,
+                                 notice_result.basic_info.notice_number.value if notice_result else None)
+        return {"rfp": result.model_dump(mode="json"), "case_identity": identity,
+                "run_id": identity["run_id"],
                 "notice_pdf_analysis": notice_result.model_dump(mode="json") if notice_result else None,
                 "notice_pdf_status": "analyzed" if notice_result else ("unavailable" if notice_pdf_path else "not_provided"),
-                "notice_no": notice_no,
+                "notice_no": identity["notice_no"],
                 "notice_order": state.get("notice_order") or "000",
                 "retrieval_round": 0, "retrieval_limit": state.get("retrieval_limit", 2),
+                "reanalysis_attempts": {}, "reanalysis_error": "", "routing_plan": {},
                 "supplemental_evidence": [], "errors": []}
 
     def lookup_g2b_notice(state: BidReviewState) -> dict[str, Any]:
+        if (state.get("case_identity") or {}).get("conflicts"):
+            return {"g2b_notice_lookup": {"status": "not_requested",
+                    "error": "공고 식별 정보가 불일치하여 API 조회를 건너뛰었습니다."}}
         notice_no = state.get("notice_no")
         if not notice_no:
             return {"g2b_notice_lookup": {
@@ -115,12 +144,14 @@ def create_bid_review_graph():
             comparison = {"status": "attachment_metadata_unavailable" if attachment_info.get("status") == "unavailable"
                           else "g2b_notice_attachment_missing"}
         lookup["attachment_version_comparison"] = comparison
-        return {"g2b_notice_lookup": {"status": "found", **lookup}}
+        return {"g2b_notice_lookup": {"status": "found", **lookup},
+                "case_identity": validate_api_identity(state["case_identity"], lookup)}
 
     def verify_core_info(state: BidReviewState) -> dict[str, Any]:
         rfp = _model_from_state(state["rfp"], RFPAnalysisResult)
         lookup = state.get("g2b_notice_lookup", {})
-        notice_record = lookup.get("notice")
+        # 다른 공고로 조회된 API 값은 T1.5 검증 근거로 사용하지 않는다.
+        notice_record = lookup.get("notice") if not (state.get("case_identity") or {}).get("conflicts") else None
         if notice_record:
             notice_record = {**notice_record, "attachments": lookup.get("attachments", []),
                              "license_limits": lookup.get("license_limits", {})}
@@ -137,16 +168,31 @@ def create_bid_review_graph():
             g2b_attachment_comparison=lookup.get("attachment_version_comparison", {}),
             g2b_change_history=lookup.get("change_history", {}),
         )
+        identity = state.get("case_identity") or {}
+        if not identity.get("notice_no") and result.notice_no:
+            identity = {**identity, "notice_no": result.notice_no,
+                        "case_id": f"{result.notice_no}:{identity.get('notice_order', '000')}"}
+        detected = citation_conflicts(identity, result.model_dump(mode="json"))
+        identity_conflicts = list(dict.fromkeys([*(identity.get("conflicts") or []), *detected]))
+        if identity_conflicts:
+            result.routing_reasons.extend(identity_conflicts)
+            result.status = VerificationStatus.CONFLICT
         return {"verification": result.model_dump(mode="json"),
+                "case_identity": {**identity, "conflicts": identity_conflicts,
+                                  "status": "conflict" if identity_conflicts else "identified"},
                 "notice_no": result.notice_no,
                 "routing_reasons": result.routing_reasons}
 
     def retrieve_targeted_evidence(state: BidReviewState) -> dict[str, Any]:
         verification = _model_from_state(state["verification"], CoreInfoVerification)
         queries: list[str] = []
-        for category in verification.categories.values():
+        # 라우터가 고른 재검색 대상(routing_plan)만, 일정 별칭을 포함한 질의(evidence_queries)로 찾는다.
+        # 아래 후보 연결도 evidence_queries를 쓰므로 검색·연결 질의가 같아야 한다.
+        targets = {(t.get("category"), t.get("field"))
+                   for t in (state.get("routing_plan") or {}).get("targets", [])}
+        for name, category in verification.categories.items():
             for claim in category.claims:
-                if claim.status == VerificationStatus.RETRIEVE_MORE:
+                if claim.status == VerificationStatus.RETRIEVE_MORE and (name, claim.field) in targets:
                     queries.extend(evidence_queries(claim))
         seen: set[str] = set()
         semantic_status, semantic_note = "not_needed", ""
@@ -159,16 +205,21 @@ def create_bid_review_graph():
             seen.add(key)
             matches = search_keyword(query, limit=3, document_id=verification.document_id,
                                      match_mode="all")
+            identity = state.get("case_identity") or {}
+            matches = [item for item in matches if source_matches(identity, item.metadata, document_type="rfp_pdf")]
             if verification.notice_no:  # 같은 공고의 공고문 PDF (RFP가 "입찰공고문 참조"로 미루는 일정·금액)
                 matches += [item for item in search_keyword(query, limit=10, notice_no=verification.notice_no,
                                                              match_mode="all")
-                            if item.metadata.get("document_type") == "notice_pdf"][:3]
+                            if item.metadata.get("document_type") == "notice_pdf" and
+                            source_matches(identity, item.metadata, document_type="notice_pdf")][:3]
             if not matches and semantic_status != "unavailable":  # 원문과 다른 표현일 때만 의미 검색 보조 (M4)
                 try:
                     matches = [item for item in search_semantic(query, limit=2, document_id=verification.document_id)
                                + (search_semantic(query, limit=2, notice_no=verification.notice_no, document_type="notice_pdf")
                                   if verification.notice_no else [])
-                               if item.metadata["semantic_score"] >= MIN_SCORE]
+                               if item.metadata["semantic_score"] >= MIN_SCORE and
+                               source_matches(identity, item.metadata,
+                                              document_type=item.metadata.get("document_type", ""))]
                     semantic_status = "used"
                 except SemanticUnavailable as exc:
                     semantic_status, semantic_note = "unavailable", str(exc)
@@ -257,20 +308,70 @@ def create_bid_review_graph():
         return {**update, "verification": verification.model_dump(mode="json"),
                 "routing_reasons": reasons}
 
-    def route_after_verification(state: BidReviewState) -> Literal["retrieve_more", "company_match", "human_review"]:
-        if state.get("review_decision") == "approved":
-            return "company_match"
-        verification = _model_from_state(state["verification"], CoreInfoVerification)
-        if verification.status == VerificationStatus.CONFIRMED:
-            return "company_match"
-        can_retry = (
-            state.get("retrieval_round", 0) < state.get("retrieval_limit", 2)
-            and any(category.status == VerificationStatus.RETRIEVE_MORE
-                    for category in verification.categories.values())
-        )
-        if can_retry:
-            return "retrieve_more"
-        return "human_review"
+    def decide_next_step(state: BidReviewState) -> dict[str, Any]:
+        plan = plan_verification(state)
+        return {"routing_plan": plan, "routing_reasons": (
+            (state.get("verification") or {}).get("routing_reasons") or []) + [f"보완 4: {plan['reason']}"]}
+
+    def route_after_verification(state: BidReviewState) -> Literal["retrieve_more", "reanalyze", "company_match", "human_review"]:
+        return state["routing_plan"]["action"]
+
+    def reanalyze_interpretation(state: BidReviewState) -> dict[str, Any]:
+        """문제가 된 T1 항목만 다시 추출한다. 무변화/재실패는 다음 분기에서 담당자에게 보낸다."""
+        targets = state["routing_plan"]["targets"]
+        attempts = dict(state.get("reanalysis_attempts") or {})
+        for item in targets:
+            key = f"{item['category']}:{item['field']}"
+            attempts[key] = attempts.get(key, 0) + 1
+        try:
+            fresh = RFPExtractor(load_settings()).analyze(Path(state["pdf_path"]), document_kind="rfp_pdf")
+            prior = _model_from_state(state["rfp"], RFPAnalysisResult)
+            # 전체 추출 결과를 덮어쓰면 승인되거나 수정된 다른 항목이 사라진다.
+            for item in targets:
+                field = item["field"]
+                if item["category"] in {"amount", "schedule"} and hasattr(prior.basic_info, field):
+                    candidate = getattr(fresh.basic_info, field).model_copy(deep=True)
+                    # 재추출해도 금액 단위 변환이 틀리면, 원문 인용이 T1.5에서
+                    # 확인된 동일 페이지/문구인 경우에만 결정적 파서로 다시 계산한다.
+                    if item["category"] == "amount":
+                        old_claims = (state["verification"].get("categories", {})
+                                      .get("amount", {}).get("claims", []))
+                        old_candidate = getattr(prior.basic_info, field)
+                        old = next((c for c in old_claims if c.get("field") == field
+                                    and c.get("claim") == old_candidate.value
+                                    and any(cite.get("page") == old_candidate.source_page
+                                            for cite in c.get("citations", []))), None)
+                        quote_verified = bool(old and any(
+                            c.get("check_id") == "primary_source_quote" and c.get("status") == "confirmed"
+                            for c in old.get("checks", [])))
+                        if (quote_verified and candidate.source_page == old_candidate.source_page
+                                and candidate.source_excerpt == old_candidate.source_excerpt):
+                            amount = parse_krw(candidate.source_excerpt)
+                            if amount is not None:
+                                candidate.value = amount
+                    setattr(prior.basic_info, field, candidate)
+                    if hasattr(prior.basic_info_candidates, field):
+                        candidates = list(getattr(fresh.basic_info_candidates, field))
+                        for old_candidate in candidates:
+                            if (item["category"] == "amount" and candidate.value != old_candidate.value
+                                    and candidate.source_page == old_candidate.source_page
+                                    and candidate.source_excerpt == old_candidate.source_excerpt):
+                                old_candidate.invalid_reason = "T1.5 확인된 원문 금액 재계산으로 미선택"
+                        if candidate.value is not None:
+                            candidates = [candidate, *[c for c in candidates if c != candidate]]
+                        setattr(prior.basic_info_candidates, field, candidates)
+                    summary_field = {"budget_krw": "budget_krw", "estimated_price_krw": "estimated_price_krw",
+                                     "contract_period": "period"}.get(field)
+                    if summary_field:
+                        setattr(prior.project_summary, summary_field, getattr(prior.basic_info, field).value)
+            if any(item["field"] in {"proposal_deadline", "bid_deadline"} for item in targets):
+                prior.project_summary.submission_deadline = (
+                    prior.basic_info.proposal_deadline.value or prior.basic_info.bid_deadline.value)
+            return {"rfp": prior.model_dump(mode="json"), "reanalysis_attempts": attempts,
+                    "reanalysis_error": ""}
+        except (OSError, ValueError, KeyError) as exc:
+            return {"reanalysis_attempts": attempts,
+                    "reanalysis_error": f"T1 재분석 실패: {exc}"}
 
     def retrieve_company_evidence(state: BidReviewState) -> dict[str, Any]:
         """Retrieve source-linked company candidates only after the T1.5 gate."""
@@ -371,6 +472,9 @@ def create_bid_review_graph():
 
     def company_match(state: BidReviewState) -> dict[str, Any]:
         # Guard duplicated here so direct graph resumes cannot bypass T1.5.
+        if (state.get("case_identity") or {}).get("conflicts"):
+            return {"decision": "human_review_required",
+                    "routing_reasons": (state["case_identity"]["conflicts"])}
         verification = _model_from_state(state["verification"], CoreInfoVerification)
         approved_by_human = state.get("review_decision") == "approved" and bool(state.get("review_note", "").strip())
         if verification.status != VerificationStatus.CONFIRMED and not approved_by_human:
@@ -393,7 +497,14 @@ def create_bid_review_graph():
 
     def similar_projects(state: BidReviewState) -> dict[str, Any]:
         """Agent 3: 과거 나라장터 사업 중 사업 프로필이 비슷한 후보. 실패해도 흐름을 막지 않는다."""
-        if state.get("decision") not in ("company_matching_complete", "human_approved_company_matching_complete"):
+        if (state.get("case_identity") or {}).get("conflicts"):
+            return {"similar_projects_status": "not_run: 공고 식별 충돌"}
+        if workflow_mode == "parallel":
+            verification = _model_from_state(state["verification"], CoreInfoVerification)
+            approved = state.get("review_decision") == "approved" and bool(state.get("review_note", "").strip())
+            if verification.status != VerificationStatus.CONFIRMED and not approved:
+                return {"similar_projects_status": "not_run: T1.5 검증 또는 담당자 승인 필요"}
+        elif state.get("decision") not in ("company_matching_complete", "human_approved_company_matching_complete"):
             return {"similar_projects_status": "not_run: T2 미실행"}
         rfp = _model_from_state(state["rfp"], RFPAnalysisResult)
         notice = (state.get("g2b_notice_lookup") or {}).get("notice") or {}  # 공식 공고명·수요기관 우선, T1 값은 대체용
@@ -408,43 +519,63 @@ def create_bid_review_graph():
                 "similar_projects_status": f"found {len(results)}" if results else "none_above_threshold"}
 
     def human_review(state: BidReviewState) -> dict[str, Any]:
+        if checkpointer is not None:
+            return pause_for_human_review(state)
         if state.get("review_decision") == "rejected":
             return {"decision": "human_rejected", "routing_reasons": [state.get("review_note", "담당자가 후속 분석을 반려했습니다.")]}
         verification = _model_from_state(state["verification"], CoreInfoVerification)
         return {"decision": "human_review_required",
-                "routing_reasons": verification.routing_reasons or [
-                    "핵심정보 검증 결과를 담당자가 확인해야 합니다."
-                ]}
+                "routing_reasons": state.get("routing_reasons") or verification.routing_reasons or [
+                    "핵심정보 검증 결과를 담당자가 확인해야 합니다."]}
 
     graph = StateGraph(BidReviewState)
-    graph.add_node("t1_extract", extract_rfp)
-    graph.add_node("g2b_notice_lookup", lookup_g2b_notice)
-    graph.add_node("t15_verify", verify_core_info)
-    graph.add_node("targeted_retrieval", retrieve_targeted_evidence)
-    graph.add_node("t15_reverify", reverify_after_retrieval)
-    graph.add_node("t2_company_rag_retrieval", retrieve_company_evidence)
-    graph.add_node("t2_company_match", company_match)
-    graph.add_node("t3_similar_projects", similar_projects)
-    graph.add_node("human_review", human_review)
+    def tracked(name, node):
+        def execute(state):
+            start = perf_counter()
+            result = node(state)
+            return record_stage(state, name, result, duration_seconds=perf_counter() - start)
+        return execute
+    for name, node in (
+        ("t1_extract", extract_rfp), ("g2b_notice_lookup", lookup_g2b_notice),
+        ("t15_verify", verify_core_info), ("t15_route", decide_next_step),
+        ("targeted_retrieval", retrieve_targeted_evidence), ("t15_reverify", reverify_after_retrieval),
+        ("t1_reanalyze", reanalyze_interpretation), ("t2_company_rag_retrieval", retrieve_company_evidence),
+        ("t2_company_match", company_match), ("t3_similar_projects", similar_projects),
+        ("t23_evaluate", evaluate_agent23), ("t4_report", generate_t4_report),
+        ("t4_validate", validate_t4_report), ("human_review", human_review),
+    ):
+        graph.add_node(name, tracked(name, node))
+    if workflow_mode == "parallel":
+        graph.add_node("analysis_fork", tracked("analysis_fork", lambda state: {}))
     graph.add_edge(START, "t1_extract")
     graph.add_edge("t1_extract", "g2b_notice_lookup")
     graph.add_edge("g2b_notice_lookup", "t15_verify")
-    graph.add_conditional_edges("t15_verify", route_after_verification, {
+    graph.add_edge("t15_verify", "t15_route")
+    graph.add_conditional_edges("t15_route", route_after_verification, {
         "retrieve_more": "targeted_retrieval",
-        "company_match": "t2_company_rag_retrieval",
+        "reanalyze": "t1_reanalyze",
+        "company_match": "analysis_fork" if workflow_mode == "parallel" else "t2_company_rag_retrieval",
         "human_review": "human_review",
     })
     graph.add_edge("targeted_retrieval", "t15_reverify")
-    graph.add_conditional_edges("t15_reverify", route_after_verification, {
-        "retrieve_more": "targeted_retrieval",
-        "company_match": "t2_company_rag_retrieval",
-        "human_review": "human_review",
-    })
+    graph.add_edge("t15_reverify", "t15_route")
+    graph.add_edge("t1_reanalyze", "t15_verify")
     graph.add_edge("t2_company_rag_retrieval", "t2_company_match")
-    graph.add_edge("t2_company_match", "t3_similar_projects")
-    graph.add_edge("t3_similar_projects", END)
-    graph.add_edge("human_review", END)
-    return graph.compile()
+    if workflow_mode == "parallel":
+        graph.add_edge("analysis_fork", "t2_company_rag_retrieval")
+        graph.add_edge("analysis_fork", "t3_similar_projects")
+        graph.add_edge(["t2_company_match", "t3_similar_projects"], "t23_evaluate")
+    else:
+        graph.add_edge("t2_company_match", "t3_similar_projects")
+        graph.add_edge("t3_similar_projects", "t23_evaluate")
+    graph.add_edge("t23_evaluate", "t4_report")
+    graph.add_edge("t4_report", "t4_validate")
+    graph.add_edge("t4_validate", END)
+    graph.add_conditional_edges("human_review", route_after_human_review, {
+        "company_match": "analysis_fork" if workflow_mode == "parallel" else "t2_company_rag_retrieval",
+        "reverify": "t15_verify", "end": END,
+    })
+    return graph.compile(checkpointer=checkpointer)
 
 
 def run_bid_review(pdf_path: str | Path, company_path: str | Path | None = None,
@@ -452,7 +583,8 @@ def run_bid_review(pdf_path: str | Path, company_path: str | Path | None = None,
                    review_decision: Literal["approved", "rejected"] | None = None,
                    review_note: str = "", reviewer: str | None = None,
                    notice_order: str | None = None,
-                   notice_pdf_path: str | Path | None = None) -> BidReviewState:
+                   notice_pdf_path: str | Path | None = None,
+                   workflow_mode: Literal["sequential", "parallel"] = "sequential") -> BidReviewState:
     """Run a single bid document through the compiled LangGraph workflow."""
     path = Path(pdf_path).expanduser().resolve()
     if not path.is_file():
@@ -461,13 +593,14 @@ def run_bid_review(pdf_path: str | Path, company_path: str | Path | None = None,
     if company is not None and not company.is_file():
         raise FileNotFoundError(company)
     notice_pdf = Path(notice_pdf_path).expanduser().resolve() if notice_pdf_path else None
-    return create_bid_review_graph().invoke({
+    return create_bid_review_graph(workflow_mode=workflow_mode).invoke({
         "pdf_path": str(path),
         "notice_pdf_path": str(notice_pdf) if notice_pdf else None,
         "company_path": str(company) if company else None,
         "notice_no": notice_no,
         "notice_order": notice_order or "000",
         "retrieval_limit": max(0, min(retrieval_limit, 3)),
+        "run_id": uuid4().hex,
         **({"review_decision": review_decision, "review_note": review_note, "reviewer": reviewer}
            if review_decision else {}),
     })

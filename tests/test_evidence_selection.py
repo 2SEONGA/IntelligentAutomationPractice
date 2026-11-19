@@ -1,6 +1,7 @@
 """T1.5 candidate selection regression tests; no network, embeddings or LLM calls."""
 from pathlib import Path
 import sys
+import tempfile
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -9,9 +10,15 @@ sys.path.insert(0, str(ROOT / "src"))
 from bid_review.models import RFPAnalysisResult
 from bid_review.rag.evidence_selection import select_evidence_candidates
 from bid_review.rag.retriever import RetrievedEvidence
+from bid_review.rag.state_history import file_identity
 from bid_review.rag.verification import (
     CategoryVerification, CoreInfoVerification, VerifiedClaim, VerificationStatus as S,
 )
+
+# 그래프는 입력 PDF를 해시해 문서 식별자를 만들고, 그 식별자의 RFP 청크만 근거로 받는다(state_history).
+FIXTURE = Path(tempfile.mkdtemp()) / "fixture.pdf"
+FIXTURE.write_bytes(b"%PDF-1.4 evidence-selection fixture")
+FIXTURE_ID = file_identity(FIXTURE)["document_id"]
 
 
 def claim(category="amount", field="budget_krw", value=None, queries=None):
@@ -21,7 +28,8 @@ def claim(category="amount", field="budget_krw", value=None, queries=None):
 
 def evidence(cid, text, *, score=None, source="rfp_pdf", page=1):
     metadata = {"document_title": "테스트 원문", "document_type": source,
-                "page": page, "section": "사업 개요", "source_path": "/original.pdf"}
+                "page": page, "section": "사업 개요", "source_path": "/original.pdf",
+                "document_id": FIXTURE_ID}
     if score is not None:
         metadata["semantic_score"] = score
     return {"chunk_id": cid, "text": text, "metadata": metadata,
@@ -102,7 +110,7 @@ def run_graph(rows, *, semantic=False):
          patch.object(workflow, "search_semantic", return_value=hits if semantic else []), \
          patch.object(workflow.CapabilityMatcher, "analyze", side_effect=AssertionError("T2 must not run")), \
          patch.object(workflow, "search_similar_projects", side_effect=AssertionError("T3 must not run")):
-        return workflow.create_bid_review_graph().invoke({"pdf_path": "fixture.pdf", "retrieval_limit": 1})
+        return workflow.create_bid_review_graph().invoke({"pdf_path": str(FIXTURE), "retrieval_limit": 1})
 
 
 def test_graph_exposes_later_candidates_and_still_requires_human_review():
@@ -152,7 +160,7 @@ def test_graph_retrieves_schedule_alias_and_keeps_human_review():
          patch.object(workflow, "search_keyword", side_effect=keyword), \
          patch.object(workflow, "search_semantic", return_value=[]), \
          patch.object(workflow.CapabilityMatcher, "analyze", side_effect=AssertionError("T2 must not run")):
-        state = workflow.create_bid_review_graph().invoke({"pdf_path": "fixture.pdf", "retrieval_limit": 1})
+        state = workflow.create_bid_review_graph().invoke({"pdf_path": str(FIXTURE), "retrieval_limit": 1})
     result = state["verification"]["categories"]["schedule"]["claims"][0]
     assert "과업기간" in seen and result["citations"][0]["chunk_id"] == "real_period"
     assert result["status"] == "human_review" and state["decision"] == "human_review_required"
