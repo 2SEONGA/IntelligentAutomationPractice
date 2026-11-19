@@ -44,6 +44,8 @@ def openai_embedder(model: str = EMBEDDING_MODEL) -> Embedder:
 
     def embed(texts: list[str]) -> list[list[float]]:
         response = client.embeddings.create(model=model, input=texts)
+        from .usage_tracking import record_embedding_usage
+        record_embedding_usage(getattr(response, "usage", None))
         return [item.embedding for item in sorted(response.data, key=lambda item: item.index)]
     return embed
 
