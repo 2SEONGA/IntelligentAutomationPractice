@@ -11,7 +11,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from bid_review.models import BidReviewReport, CapabilityMatchingResult, RFPAnalysisResult
-from bid_review.policy import SOURCE_ARTIFACTS, TARGET_LEGAL_ENTITY
+from bid_review.policy import SOURCE_ARTIFACTS, TARGET_LEGAL_ENTITY, VISIBLE_COMPANY_NAME
 from bid_review.rag.agent23_evaluation import evaluate_agent23
 from bid_review.rag.report_nodes import generate_t4_report
 from bid_review.rag.report_validation import validate_t4_report
@@ -51,6 +51,14 @@ class Agent23EvaluationTests(unittest.TestCase):
         self.assertEqual(status(result, "t2_match:REQ-1"), "passed")
         self.assertEqual(status(result, "t3_search"), "info")  # 임계값 이상 후보 없음은 보류 사유가 아님
         self.assertEqual(result["agent23_evaluation"]["status"], "passed")
+
+    def test_short_company_name_matches(self):
+        # 실제 회사 자료는 짧은 상호(㈜아이티센엔텍)를 쓴다. 긴 기준명 안에서만 찾던 버그 재발 방지.
+        data = json.loads(self.profile.read_text(encoding="utf-8"))
+        data["company_name"] = VISIBLE_COMPANY_NAME
+        self.profile.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+        self.state["capability"]["company_name"] = VISIBLE_COMPANY_NAME
+        self.assertEqual(status(evaluate_agent23(self.state), "t2_legal_entity"), "passed")
 
     def test_wrong_legal_entity_kept_for_review(self):
         self.state["capability"]["company_name"] = "다른 법인"

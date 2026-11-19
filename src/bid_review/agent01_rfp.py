@@ -167,7 +167,7 @@ class RFPExtractor:
             record["decision"] = f"문서당 OCR 시도 상한 {options['max_pages']}쪽 도달 — 기존 추출 유지"
             return None, record
         started = time.perf_counter()
-        text = ocr.ocr_page(layout_page, options["lang"], int(options["resolution"]))
+        text = ocr.ocr_page(layout_page, options["lang"], int(options["resolution"]), int(options["psm"]))
         record.update(attempted=True, seconds=round(time.perf_counter() - started, 3), succeeded=bool(text and text.strip()))
         cleaned = "\n".join(_clean(line) for line in (text or "").splitlines() if _clean(line))
         adopted, why = ocr.choose(best_text, cleaned)
@@ -191,9 +191,19 @@ class RFPExtractor:
     def _table_rows(page) -> list[str]:
         rows: list[str] = []
         try:
-            for table in page.extract_tables() or []:
-                for row in table:
-                    cells = [_clean(str(cell or "")) for cell in row]
+            for table in page.find_tables():
+                # 병합 셀이 덮은 칸은 None으로 온다. 좌표상 위 셀이 이 행까지 세로로 이어질 때만 그 값을 채워
+                # 상위 구분(예: 기술능력 평가 > 정량평가)을 행마다 남긴다. 가로 병합 칸은 비워 둔다.
+                owner: dict[int, tuple[float, str]] = {}
+                for row, texts in zip(table.rows, table.extract()):
+                    cells = []
+                    for index, (box, text) in enumerate(zip(row.cells, texts)):
+                        if box is not None:
+                            owner[index] = (box[3], " ".join(str(text or "").split()))
+                            cells.append(owner[index][1])
+                        else:
+                            bottom, value = owner.get(index, (0.0, ""))
+                            cells.append(value if bottom > row.bbox[1] + 1 else "")
                     if sum(bool(cell) for cell in cells) >= 2:
                         rows.append(" | ".join(cells))
         except Exception:
@@ -205,11 +215,13 @@ class RFPExtractor:
         minimum = self.settings["rfp"]["low_text_page_characters"]
         compact = re.sub(r"\s+", "", text)
 
-        if len(compact) < minimum:
+        # 표지(그림자 글자)·목차(점선)·빈 제출 서식(반복 머리글)은 반복·기호가 정상이다. 시연 RFP의 OCR 필요 10쪽이 모두 이 오탐이었다.
+        structural = page_type in {"cover_page", "table_of_contents", "appendix_page"}
+        if len(compact) < minimum and page_type != "table_of_contents":
             reason = "추출 텍스트가 너무 짧음"
         elif page_type == "table_heavy_page" and not table_rows:
             reason = "표 비중이 높지만 표 구조를 추출하지 못함"
-        elif _symbol_ratio(text) > 0.35 or _is_repeated(text):
+        elif not structural and (_symbol_ratio(text) > 0.35 or _is_repeated(text)):
             reason = "반복 문자 또는 기호 비율이 높아 레이아웃 텍스트가 깨짐"
         else:
             return None

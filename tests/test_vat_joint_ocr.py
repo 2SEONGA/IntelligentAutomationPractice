@@ -17,6 +17,8 @@ WATER_NOTICE = ROOT / "data/notice_attachments/R26BK01762350-000/notice.pdf"
 UNIV_RFP = ROOT / "data/input/통합정보시스템 고도화 구축 용역.pdf"
 UNIV_NOTICE = ROOT / "data/notice_attachments/R26BK01747679-000/notice.pdf"
 EXTRACTOR = RFPExtractor(load_settings())
+# 시연 RFP에는 실제로 OCR이 필요한 쪽이 없다(표지·목차·빈 서식 오탐 정리 후). OCR 경로 검사는 모든 쪽을 비교하는 always 모드로 한다.
+ALWAYS = RFPExtractor({**EXTRACTOR.settings, "rfp": {**EXTRACTOR.settings["rfp"], "ocr": {"mode": "always"}}})
 _CACHE: dict = {}
 
 
@@ -158,13 +160,13 @@ def test_t15_api_crosscheck_vat_exception() -> None:
 
 
 def test_ocr_fallback_replaces_broken_page() -> None:
-    """OCR 엔진이 있으면 OCR 필요 페이지(통합정보시스템 1·2쪽 등)를 OCR 텍스트로 대체한다."""
+    """OCR 엔진이 있으면 OCR 텍스트가 더 나은 쪽을 OCR 텍스트로 대체한다."""
     original = (ocr.engine_available, ocr.ocr_page)
     ocr.engine_available = lambda: True
-    ocr.ocr_page = lambda page, lang="kor+eng", resolution=300: ("사업명 : 통합정보시스템 고도화 구축 용역\n발주기관 : 테스트대학교 정보화본부\n"
+    ocr.ocr_page = lambda page, lang="kor+eng", resolution=300, psm=4: ("사업명 : 통합정보시스템 고도화 구축 용역\n발주기관 : 테스트대학교 정보화본부\n"
                                                                "사업 개요와 추진 배경, 주요 과업 범위를 OCR로 읽은 본문 텍스트입니다" * 3)
     try:
-        pages, _, analyses, _ = EXTRACTOR._extract_pages(UNIV_RFP)
+        pages, _, analyses, _ = ALWAYS._extract_pages(UNIV_RFP)
         applied = [a.page_number for a in analyses if a.ocr_applied]
         assert applied and all("tesseract_ocr" in a.extraction_methods for a in analyses if a.ocr_applied)
         assert all(p.page_type != "body_page" or not p.ocr_applied or "통합정보시스템" in p.text for p in pages)
@@ -181,12 +183,12 @@ def test_ocr_text_reaches_extraction_and_agent_context() -> None:
     original = (ocr.engine_available, ocr.ocr_page)
     ocr.engine_available = lambda: True
     # 실제 OCR처럼 기존 글자를 보존하면서(금액·날짜 누락 없이) 표 이미지 속 내용을 더 읽어 낸 경우를 흉내 낸다.
-    ocr.ocr_page = lambda page, lang="kor+eng", resolution=300: (page.extract_text() or "") + "\n" + (
+    ocr.ocr_page = lambda page, lang="kor+eng", resolution=300, psm=4: (page.extract_text() or "") + "\n" + (
         "가. 사업금액 : 금 123,000,000원 (부가가치세 포함)\n"
         "나. 사업기간 : 계약일로부터 2027년 3월 31일까지\n"
         "다. 입찰참가자격 : 소프트웨어사업자로 등록한 업체로서 중소기업확인서를 소지한 자")
     try:
-        result = RFPExtractor(EXTRACTOR.settings).analyze(UNIV_RFP)
+        result = RFPExtractor(ALWAYS.settings).analyze(UNIV_RFP)
     finally:
         ocr.engine_available, ocr.ocr_page = original
     applied = {a.page_number for a in result.page_analysis if a.ocr_applied}
@@ -219,23 +221,40 @@ def test_ocr_attempt_limit_counts_attempts_and_logs_decisions() -> None:
     calls: list[int] = []
     ocr.engine_available = lambda: True
 
-    def fake(page, lang="kor+eng", resolution=300):
+    def fake(page, lang="kor+eng", resolution=300, psm=4):
         calls.append(1)
         return "※ ◆ ■"  # 매번 미채택될 깨진 결과
     ocr.ocr_page = fake
     try:
-        limited = RFPExtractor({**EXTRACTOR.settings, "rfp": {**EXTRACTOR.settings["rfp"], "ocr": {"mode": "fallback", "max_pages": 2}}})
+        limited = RFPExtractor({**EXTRACTOR.settings, "rfp": {**EXTRACTOR.settings["rfp"], "ocr": {"mode": "always", "max_pages": 2}}})
         analyses = limited._extract_pages(UNIV_RFP)[2]
         attempted = [a for a in analyses if a.ocr_attempted]
         assert len(calls) == 2 and len(attempted) == 2, "채택이 0건이어도 시도 2번에서 멈춘다"
         assert all(a.ocr_succeeded and a.ocr_decision.startswith("미채택") and not a.ocr_applied for a in attempted)
-        skipped = [a for a in analyses if a.ocr_required and not a.ocr_attempted]
+        skipped = [a for a in analyses if not a.ocr_attempted]
         assert skipped and all("상한" in (a.ocr_decision or "") for a in skipped)
     finally:
         ocr.engine_available, ocr.ocr_page = original
     no_engine = analyze(UNIV_RFP).page_analysis
     assert all(not a.ocr_attempted for a in no_engine)
     assert all("엔진 없음" in a.ocr_decision for a in no_engine if a.ocr_required)
+
+
+def test_structural_pages_are_not_ocr_false_positives() -> None:
+    """표지 그림자 글자·목차 점선·빈 제출 서식의 반복은 정상이다. 시연 RFP 3건에서 OCR 필요 쪽이 없어야 한다."""
+    for path in sorted((ROOT / "data/input").glob("*.pdf")):
+        flagged = [a.page_number for a in analyze(path).page_analysis if a.ocr_required]
+        assert flagged == [], (path.name, flagged)
+    assert EXTRACTOR._ocr_reason("통통통통합합합합정정정정보보보보", "body_page", []) is not None  # 본문이면 여전히 깨짐으로 본다
+
+
+def test_merged_table_cells_keep_parent_labels() -> None:
+    """세로 병합 셀은 행마다 상위 구분을 채우고, 가로 병합 칸은 위 값으로 잘못 채우지 않는다(상수도관 26쪽 평가표)."""
+    page = next(p for p in EXTRACTOR._extract_pages(WATER_RFP)[0] if p.number == 26)
+    credit = next(r for r in page.table_rows if "신용평가 등급" in r)
+    assert credit.startswith("기술 능력 평가 (90점) | 정량 평가 (20점) | 경영상태") and credit.endswith("| 2 | 사업부서 평가")
+    price = next(r for r in page.table_rows if "입찰가격 평점산식" in r)
+    assert price.startswith("가격평가 (10점) |  | 입찰가격") and "정성" not in price
 
 
 if __name__ == "__main__":

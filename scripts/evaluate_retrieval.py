@@ -63,7 +63,9 @@ def _citation_ok(hit, pages: dict[int, str]) -> bool:
     page_text = pages.get(hit.metadata.get("page"))
     if page_text is None:
         return False
-    lines = [_norm(line.replace("표 행:", "")) for line in hit.text.splitlines()]
+    # 표 행은 병합 셀의 상위 구분을 채운 셀 조합이라 줄 전체가 원문에 연속으로 있지 않다. 셀마다 그 쪽에 있는지 본다.
+    lines = [_norm(part) for line in hit.text.splitlines()
+             for part in (line[len("표 행:"):].split("|") if line.startswith("표 행:") else [line])]
     lines = [line for line in lines if len(line) >= 4]
     if not lines:
         return True

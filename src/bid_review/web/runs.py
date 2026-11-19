@@ -228,7 +228,8 @@ def list_cases() -> list[dict]:
         decision = _decision(path)
         submits = [h["at"] for h in flow["history"] if h["action"] in ("submit", "resubmit")]
         debug = case / "debug"
-        checklist = _checklist(path, report, _read_json(debug / "01_rfp_analysis.json"), _read_json(debug / "02_capability_matching.json"))
+        checklist = _checklist(path, report, _read_json(debug / "01_rfp_analysis.json"), _read_json(debug / "02_capability_matching.json"),
+                               load_core_review(case, path))
         cases.append({
             "case_id": case.relative_to(OUTPUTS).as_posix(), "run_id": encode_run_id(path), "project_name": _project_name(path),
             "created_at": _created_at(path), "mode": _mode(path), "via_web": _via_web(path),
@@ -266,10 +267,11 @@ def list_runs() -> list[dict]:
     return sorted(runs, key=lambda r: r["created_at"], reverse=True)
 
 
-def _checklist(path: Path, report: dict, rfp: dict | None, capability: dict | None) -> dict:
+def _checklist(path: Path, report: dict, rfp: dict | None, capability: dict | None, core_review: dict | None = None) -> dict:
     name, config = criteria.checklist_for(path.parent)
     awards = (_read_json(AWARDS_FILE) or {}).get("awards", [])
-    items = apply_overrides(evaluate(report, rfp, capability, config, awards), _read_json(_sidecar(path, "checklist")) or {})
+    items = apply_overrides(evaluate(report, rfp, capability, config, awards, core_review),
+                            _read_json(_sidecar(path, "checklist")) or {})
     return {"version": config["version"], "criteria_set": name, "items": items, "summary": summarize(items, config)}
 
 
@@ -284,7 +286,7 @@ def load_run(run_id: str) -> dict:
     return {
         "id": run_id, "project_name": _project_name(path), "created_at": _created_at(path), "mode": _mode(path), "via_web": _via_web(path),
         "report": report, "rfp": rfp, "capability": capability, "market": market, "details_available": details,
-        "checklist": _checklist(path, report, rfp, capability), "decision": _decision(path),
+        "checklist": _checklist(path, report, rfp, capability, load_core_review(path.parent, path)), "decision": _decision(path),
         "core_review": load_core_review(path.parent, path),
         "core_review_audit": _read_json(path.parent / "core_review_audit.json"),
         "workflow": workflow(path.parent), "is_current": details, "rerun_available": _find_pdf(path) is not None,

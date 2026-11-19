@@ -124,6 +124,50 @@ def test_real_cdw_output() -> None:
     assert summarize(items, CHECKLIST)["recommendation"] == "보류"
 
 
+def core(budget=117_700_000, crosscheck="confirmed", joint="(없음)공동수급불허", joint_status="confirmed",
+         clause=None, **notice_extra):
+    """LangGraph T1.5 결과(langgraph_review.json)의 K2·K3 관련 부분만 흉내 낸다."""
+    eligibility = [{"category": "eligibility", "field": "g2b_joint_contract", "claim": joint, "status": joint_status}]
+    if clause:
+        eligibility.append({"category": "eligibility", "field": "condition_6", "claim": clause, "status": "human_review"})
+    return {"verification": {"categories": {
+                "amount": {"claims": [{"category": "amount", "field": "g2b_crosscheck_budget_krw", "status": crosscheck}]},
+                "eligibility": {"claims": eligibility}}},
+            "g2b_notice_lookup": {"notice": {"asignBdgtAmt": str(budget), "presmptPrce": "", **notice_extra}}}
+
+
+def k(core_review):
+    return items_by_id(evaluate({"project_scale": None}, None, None, CHECKLIST, [], core_review))
+
+
+def test_k2_k3_from_t15() -> None:
+    # 상수도관: 배정예산 1.177억(VAT 포함, RFP와 일치) < 40억 → 미충족, 공동수급 불허 일치 + 지역 제한 없음 → 충족
+    got = k(core(clause="대기업 참여 제한 사업임"))
+    assert got["K2"]["ai"] == "미충족" and "1.18억" in got["K2"]["evidence"] and "대기업 참여 제한" in got["K2"]["evidence"]
+    assert got["K3"]["ai"] == "충족" and "공동수급불허" in got["K3"]["evidence"]
+    assert summarize(list(got.values()), CHECKLIST)["knockout_result"] == "No-Go"
+    assert k(core(budget=40 * EOK))["K2"]["ai"] == "충족"
+    assert k(core(budget=50 * EOK, clause="대기업 참여 제한"))["K2"]["ai"] == "확인 필요", "하한 이상 + 제한 조항은 사람이 확인"
+    # RFP와 나라장터 금액이 일치하지 않으면(confirmed 아님) 자동 판정하지 않는다
+    assert k(core(crosscheck="conflict"))["K2"]["ai"] == "확인 필요"
+    assert k(core(joint_status="human_review"))["K3"]["ai"] == "확인 필요"
+    assert k(core(rgnLmtBidLocplcJdgmBssNm="법인등기부상 본점소재지"))["K3"]["ai"] == "확인 필요"
+    assert k(core(joint="공동이행 의무"))["K3"]["ai"] == "확인 필요"
+    # T1.5 결과가 없으면 기존처럼 확인 필요, 담당자 수정이 여전히 우선
+    assert k(None)["K2"]["ai"] == "확인 필요" and k(None)["K3"]["ai"] == "확인 필요"
+    overridden = items_by_id(apply_overrides(list(k(core()).values()), {"K2": "충족"}))
+    assert overridden["K2"]["value"] == "충족" and overridden["K2"]["ai"] == "미충족" and overridden["K2"]["overridden"]
+
+
+def test_k2_k3_real_sangsudo_state() -> None:
+    """오늘 실제 실행(상수도관 T1→T4) 결과로 K2 미충족·K3 충족이 나오는지. 결과 폴더가 없으면 건너뛴다."""
+    status = ROOT / "outputs/hitl/real-sangsudo-261119b/status.json"
+    if not status.is_file():
+        return
+    got = k(json.loads(status.read_text(encoding="utf-8"))["state"])
+    assert got["K2"]["ai"] == "미충족" and got["K3"]["ai"] == "충족", (got["K2"], got["K3"])
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

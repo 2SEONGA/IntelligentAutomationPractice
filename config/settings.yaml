@@ -8,6 +8,7 @@ rfp:
     mode: fallback
     lang: kor+eng
     resolution: 300
+    psm: 4  # tesseract 페이지 분할. 3(자동)은 표·박스 레이아웃에서 글자 일치율 0.2~0.3
     max_pages: 30
   requirement_overview_patterns:
     - "총\\s*(\\d+)\\s*건"

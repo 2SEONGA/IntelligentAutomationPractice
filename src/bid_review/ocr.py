@@ -6,7 +6,7 @@ OCR 엔진(pytesseract + tesseract, 한국어 kor 데이터)이 없으면 아무
 
 설정(config/settings.yaml → rfp.ocr):
   mode: off | fallback(기본, OCR 필요 페이지만) | always(모든 페이지를 OCR과 비교)
-  lang: kor+eng, resolution: 300, max_pages: 문서당 OCR "시도" 페이지 상한(채택 수가 아니라 실행 수)
+  lang: kor+eng, resolution: 300, psm: 4(tesseract 페이지 분할), max_pages: 문서당 OCR "시도" 페이지 상한(채택 수가 아니라 실행 수)
 """
 from __future__ import annotations
 
@@ -15,7 +15,9 @@ import re
 import shutil
 from typing import Any
 
-DEFAULTS: dict[str, Any] = {"mode": "fallback", "lang": "kor+eng", "resolution": 300, "max_pages": 30}
+# psm 4(한 단 문서로 위→아래 읽기): 시연 RFP 실측에서 기본 psm 3(자동 분할)은 박스·표 레이아웃을 잘게 쪼개
+# 글자 일치율 0.17~0.34였고, psm 4는 0.955~0.994였다.
+DEFAULTS: dict[str, Any] = {"mode": "fallback", "lang": "kor+eng", "resolution": 300, "max_pages": 30, "psm": 4}
 
 
 def config(settings: dict) -> dict[str, Any]:
@@ -26,15 +28,15 @@ def engine_available() -> bool:
     return bool(importlib.util.find_spec("pytesseract") and shutil.which("tesseract"))
 
 
-def ocr_page(layout_page, lang: str = "kor+eng", resolution: int = 300) -> str | None:
+def ocr_page(layout_page, lang: str = "kor+eng", resolution: int = 300, psm: int = 4) -> str | None:
     """pdfplumber 페이지 1장을 이미지로 렌더링해 OCR한다. 실패하면 None(추출을 멈추지 않는다)."""
     if not engine_available():
         return None
     try:
         import pytesseract  # noqa: PLC0415 - 선택 의존성
 
-        image = layout_page.to_image(resolution=resolution).original
-        return pytesseract.image_to_string(image, lang=lang) or None
+        image = layout_page.to_image(resolution=resolution).original.convert("L")
+        return pytesseract.image_to_string(image, lang=lang, config=f"--psm {int(psm)}") or None
     except Exception:
         return None
 

@@ -36,7 +36,7 @@ def compare(pdf_path: Path, extractor: RFPExtractor) -> list[dict]:
             page_type, _ = extractor._classify_page(number, best, tables)
             reason = extractor._ocr_reason(best, page_type, tables)
             started = time.perf_counter()
-            ocr_text = ocr.ocr_page(layout_page, options["lang"], int(options["resolution"]))
+            ocr_text = ocr.ocr_page(layout_page, options["lang"], int(options["resolution"]), int(options["psm"]))
             seconds = round(time.perf_counter() - started, 3)
             before = ocr.text_metrics(best)
             after = ocr.text_metrics(ocr_text or "") if ocr_text is not None else None

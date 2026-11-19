@@ -12,7 +12,7 @@ from urllib.parse import urlsplit
 from pydantic import ValidationError
 
 from ..models import CapabilityMatchingResult, CompanyProfile
-from ..policy import TARGET_LEGAL_ENTITY
+from ..policy import TARGET_LEGAL_ENTITY, VISIBLE_COMPANY_NAME
 from ..settings import PROJECT_ROOT
 
 
@@ -53,7 +53,7 @@ def evaluate_agent23(state: dict[str, Any]) -> dict[str, Any]:
 
     if capability is not None:
         names_match = bool(profile and capability.company_name == profile.company_name
-                           and TARGET_LEGAL_ENTITY in profile.company_name)
+                           and profile.company_name in {TARGET_LEGAL_ENTITY, VISIBLE_COMPANY_NAME})
         add("t2_legal_entity", "passed" if names_match else "needs_review",
             "회사 분석 법인명과 원자료의 분석 대상 법인명이 일치합니다. 법적 실체의 최종 확인은 별도입니다."
             if names_match else "회사 분석 법인과 원자료/분석 대상 법인의 일치 여부를 확인해야 합니다.")

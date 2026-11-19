@@ -8,12 +8,16 @@ from difflib import SequenceMatcher
 import re
 from typing import Any
 
+from .notice_filter import normalized_amount
+
 UNKNOWN = "확인 필요"
 EOK = 100_000_000
 SIMILAR_NAME_RATIO = 0.6
 
 
-def evaluate(report: dict, rfp: dict | None, capability: dict | None, checklist: dict, awards: list[dict]) -> list[dict]:
+def evaluate(report: dict, rfp: dict | None, capability: dict | None, checklist: dict, awards: list[dict],
+             core_review: dict | None = None) -> list[dict]:
+    """core_review: LangGraph T1.5 결과(langgraph_review.json). 있으면 K2·K3를 확인된 나라장터 값으로 판정한다."""
     rfp, capability = rfp or {}, capability or {}
     summary = rfp.get("project_summary") or {}
     scale = report.get("project_scale") or {}
@@ -22,10 +26,11 @@ def evaluate(report: dict, rfp: dict | None, capability: dict | None, checklist:
     previous = _previous_round(buyer, name, awards)
     scoring = {item["id"]: item for item in checklist["scoring"]}
 
+    k2_rule = next(item for item in checklist["knockout"] if item["id"] == "K2")
     judged: dict[str, tuple[Any, str, int | None]] = {
         "K1": (*_aggregate(capability.get("eligibility_matches")), None),
-        "K2": (UNKNOWN, _scale_note(scale.get("amount_krw")), scale.get("source_page")),
-        "K3": (UNKNOWN, "공동수급·지역 조건은 공고문 원문으로 확인", None),
+        "K2": _large_firm_limit(core_review, k2_rule) or (UNKNOWN, _scale_note(scale.get("amount_krw")), scale.get("source_page")),
+        "K3": _joint_and_region(core_review) or (UNKNOWN, "공동수급·지역 조건은 공고문 원문으로 확인", None),
         "K4": (*_aggregate(capability.get("staffing_matches")), None),
         "S1": (_amount_points(scale.get("amount_krw")), _scale_note(scale.get("amount_krw")), scale.get("source_page")),
         "S2": _business_type(f"{name} {summary.get('scope') or ''}", scoring["S2"]["keywords"]),
@@ -71,6 +76,54 @@ def summarize(items: list[dict], checklist: dict) -> dict:
         recommendation = band(score)
     return {"knockout_result": result, "knockout_passed": knockout.count("충족"), "score": score, "score_max": score_max,
             "undetermined": undetermined, "recommendation": recommendation}
+
+
+def _claims(core_review: dict | None) -> dict[str, dict]:
+    categories = ((core_review or {}).get("verification") or {}).get("categories") or {}
+    return {claim["field"]: claim for category in categories.values() for claim in category.get("claims", [])}
+
+
+def _g2b_notice(core_review: dict | None) -> dict:
+    return ((core_review or {}).get("g2b_notice_lookup") or {}).get("notice") or {}
+
+
+def _large_firm_limit(core_review: dict | None, rule: dict) -> tuple[str, str, None] | None:
+    """K2: 나라장터 금액이 RFP와 일치(T1.5 confirmed)할 때만 대기업 참여 하한과 비교한다. 아니면 None(기존 확인 필요)."""
+    claims, notice = _claims(core_review), _g2b_notice(core_review)
+    crosschecked = any(claims.get(field, {}).get("status") == "confirmed"
+                       for field in ("g2b_crosscheck_budget_krw", "g2b_crosscheck_estimated_price_krw"))
+    if not (crosschecked and notice):
+        return None
+    minimum, basis = int(rule.get("min_amount_krw", 40 * EOK)), rule.get("amount_vat_basis", "included")
+    amount, _, field = normalized_amount(notice, {"min_amount_vat_basis": basis})
+    if amount is None:
+        return None
+    label = "배정예산" if field == "asignBdgtAmt" else "추정가격"
+    shown = f"나라장터 {label} 환산 {amount / EOK:,.2f}억 원({'VAT 포함' if basis == 'included' else 'VAT 별도'}, RFP와 일치)"
+    clause = next((str(c["claim"]) for c in claims.values()
+                   if c.get("category") == "eligibility" and "대기업" in str(c.get("claim")) and "제한" in str(c.get("claim"))), None)
+    clause_note = f" · 공고 조항: '{clause}'" if clause else ""
+    if amount < minimum:
+        return "미충족", f"{shown} < 대기업 참여 하한 {minimum // EOK}억 원{clause_note}", None
+    if clause:  # 하한 이상인데 제한 조항이 있으면 예외 인정 여부를 사람이 본다.
+        return UNKNOWN, f"{shown} ≥ 하한 {minimum // EOK}억 원이나 대기업 참여 제한 조항 있음{clause_note}", None
+    return "충족", f"{shown} ≥ 대기업 참여 하한 {minimum // EOK}억 원", None
+
+
+def _joint_and_region(core_review: dict | None) -> tuple[str, str, None] | None:
+    """K3: 공동수급 방식이 나라장터·RFP에서 일치(confirmed)할 때 판정한다. 지역 제한이 보이면 사람이 본다."""
+    joint, notice = _claims(core_review).get("g2b_joint_contract"), _g2b_notice(core_review)
+    if not (joint and joint.get("status") == "confirmed" and notice):
+        return None
+    method = str(joint.get("claim") or "")
+    region = notice.get("rgnLmtBidLocplcJdgmBssNm") or notice.get("cmmnSpldmdCorpRgnLmtYn") == "Y" \
+        or notice.get("rgnDutyJntcontrctRt") or any(notice.get(f"jntcontrctDutyRgnNm{i}") for i in (1, 2, 3))
+    if region:
+        return UNKNOWN, f"공동수급 '{method}'(나라장터·RFP 일치) · 지역 제한·지역 의무공동도급 표시 있음 — 본사 소재지 확인", None
+    if "의무" in method:
+        return UNKNOWN, f"공동수급 '{method}' — 의무 공동수급 구성원 확인", None
+    # ponytail: 단독 참여 전제. 하도급 제한은 API에 없어 원문 확인으로 남긴다.
+    return "충족", f"공동수급 '{method}'(나라장터·RFP 일치), 단독 참여와 충돌 없음 · 지역 제한 표시 없음(나라장터) · 하도급 제한은 원문 확인", None
 
 
 def _value(container: dict | None, field: str) -> Any:
