@@ -126,7 +126,7 @@ export default function Dashboard({ role, onNavigate }: Props) {
                 {deadlines.map((d) => (
                   <tr key={`${d.name}-${d.deadline}`} className="clickable" onClick={() => onNavigate({ view: "notices" })}>
                     <td><button type="button" className="row-link">{d.name}</button>
-                      <Typography variant="caption1" color="semantic.foreground.neutral.secondary">{d.agency} · {d.amount_krw ? eok(d.amount_krw) : "금액 없음"}</Typography></td>
+                      <Typography variant="caption1" color="semantic.foreground.neutral.secondary">{d.agency} · {(d.amount_basis_krw ?? d.amount_krw) ? eok((d.amount_basis_krw ?? d.amount_krw) as number) : "금액 없음"}</Typography></td>
                     <td style={{ width: 80 }}><StatusBadge label={d.d_day <= 0 ? "D-Day" : `D-${d.d_day}`} tone={d.d_day <= 7 ? "No-Go" : "보류"} /></td>
                   </tr>
                 ))}

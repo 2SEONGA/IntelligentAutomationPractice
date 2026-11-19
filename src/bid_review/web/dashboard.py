@@ -29,6 +29,7 @@ def compute_dashboard(notices: dict, cases: list[dict], now: datetime) -> dict:
         if n.get("case_folder"):
             continue
         deadlines.append({"name": n["bidNtceNm"], "agency": n.get("dminsttNm"), "amount_krw": n["judged"].get("amount_krw"),
+                          "amount_basis_krw": n["judged"].get("amount_basis_krw"),
                           "deadline": n["judged"]["deadline"], "d_day": (deadline.date() - now.date()).days,
                           "case_folder": n.get("case_folder")})
     return {

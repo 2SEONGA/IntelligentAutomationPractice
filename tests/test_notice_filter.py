@@ -45,6 +45,11 @@ def test_amount_vat_basis() -> None:
     result = judge(notice(asignBdgtAmt="", presmptPrce=str(37 * EOK)), RULES, NOW)
     assert "추정가격 37.0억 VAT 별도 환산" in result["rules"]["amount"]["reason"]
     assert result["amount_vat_basis"] == "excluded" and result["amount_criterion"] == "40억 원 이상 (VAT 포함)"
+    # 원금액(amount_krw)과 선별에 쓴 환산 금액(amount_basis_krw)을 분리해 돌려준다.
+    assert result["amount_krw"] == 37 * EOK and result["amount_basis_krw"] == int(37 * EOK * 1.1)
+    assert result["amount_source_field"] == "presmptPrce" and result["amount_criterion_basis"] == "included"
+    unknown = judge(notice(), {**RULES, "amount_field_vat_basis": {"asignBdgtAmt": "unknown"}}, NOW)
+    assert unknown["amount_krw"] == 50 * EOK and unknown["amount_basis_krw"] is None, "VAT 기준을 모르면 환산하지 않음"
     # 기준을 VAT 별도로 바꾸면 배정예산(VAT 포함) 44억 = 40억 VAT 별도 → 통과, 43억 → 제외
     excl = {**RULES, "min_amount_vat_basis": "excluded"}
     assert judge(notice(asignBdgtAmt=str(44 * EOK)), excl, NOW)["rules"]["amount"]["verdict"] == "검토 대상"

@@ -44,9 +44,25 @@ def _rfp_pages(path: Path, max_pages: int) -> list[str]:
         lines = hwp_text(path).splitlines()
         return ["\n".join(lines[i:i + HWP_LINES_PER_PAGE]) for i in range(0, len(lines), HWP_LINES_PER_PAGE)][:max_pages]
     import pdfplumber
+    from pypdf import PdfReader
 
+    # 쪽마다 따로 읽는다. pdfminer가 한 쪽의 글꼴 정보(DescendantFonts 등)를 못 읽어도 문서 전체를 버리지 않고
+    # 그 쪽만 pypdf로 다시 시도하고, 그래도 안 되면 빈 쪽으로 둔다(예: R26BK01765343 1쪽).
+    texts: list[str] = []
     with pdfplumber.open(path) as pdf:
-        return [page.extract_text() or "" for page in pdf.pages[:max_pages]]
+        reader = None
+        for number, page in enumerate(pdf.pages[:max_pages]):
+            try:
+                texts.append(page.extract_text() or "")
+                continue
+            except Exception:
+                pass
+            try:
+                reader = reader or PdfReader(str(path))
+                texts.append(reader.pages[number].extract_text() or "")
+            except Exception:
+                texts.append("")
+    return texts
 
 
 def rfp_file(folder: Path) -> Path | None:

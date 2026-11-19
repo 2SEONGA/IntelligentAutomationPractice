@@ -42,11 +42,27 @@ export function splitReason(reason: string): [string] | [string, string] {
 }
 
 export type NoticeSort = "deadline" | "amount";
-type Findable = { bidNtceNm: string; dminsttNm: string; ntceInsttNm: string; judged: { amount_krw: number | null; deadline: string | null } };
+type Judged = { amount_krw: number | null; amount_basis_krw?: number | null; amount_vat_basis?: string;
+  amount_source_field?: string | null; amount_criterion_basis?: string; deadline: string | null };
+type Findable = { bidNtceNm: string; dminsttNm: string; ntceInsttNm: string; judged: Judged };
+
+/** The amount the 40억 rule actually compared (VAT-normalised); older verdicts without it fall back to the raw amount. */
+export function basisAmount(judged: Judged): number | null {
+  return judged.amount_basis_krw ?? judged.amount_krw ?? null;
+}
+
+/** Caption under the amount when the raw API amount differs from the compared one, e.g. "추정가격 37억 VAT 별도". */
+export function rawAmountNote(judged: Judged, eokText: (n: number) => string): string | null {
+  if (judged.amount_krw == null) return null;
+  const label = judged.amount_source_field === "presmptPrce" ? "추정가격" : "배정예산";
+  if (judged.amount_basis_krw == null && judged.amount_vat_basis === "unknown") return `${label} ${eokText(judged.amount_krw)} · VAT 기준 확인 필요`;
+  if (judged.amount_basis_krw == null || judged.amount_basis_krw === judged.amount_krw) return null;
+  return `${label} ${eokText(judged.amount_krw)} ${vatBasisLabel(judged.amount_vat_basis)} 환산`;
+}
 
 /** Search by title or agency (case/space-insensitive), then sort; notices missing the sort value go last. */
 export function findNotices<T extends Findable>(rows: T[], query: string, sort: NoticeSort): T[] {
   const hits = rows.filter((n) => textMatch(query, n.bidNtceNm, n.dminsttNm, n.ntceInsttNm));
-  const key = (n: T) => (sort === "amount" ? -(n.judged.amount_krw ?? -Infinity) : n.judged.deadline ?? "9999");
+  const key = (n: T) => (sort === "amount" ? -(basisAmount(n.judged) ?? -Infinity) : n.judged.deadline ?? "9999");
   return [...hits].sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));
 }

@@ -7,7 +7,7 @@ import { can, type Role } from "../role";
 import { eok } from "../summary";
 import type { Criteria, Notice, NoticeList, Status, View } from "../types";
 import { keywordLabel } from "../types";
-import { amountRule, findNotices, noticeAction, splitReason, startNotes, type NoticeSort } from "../notices";
+import { amountRule, basisAmount, findNotices, rawAmountNote, noticeAction, splitReason, startNotes, type NoticeSort } from "../notices";
 import InfoBar, { type InfoItem } from "../components/InfoBar";
 import StatusBadge from "../components/StatusBadge";
 import Empty from "../components/Empty";
@@ -92,7 +92,7 @@ export default function Notices({ role, status, onNavigate, onChanged }: Props) 
   const inTab = data.notices.filter((n) => (tab === "started" ? !!n.case_folder : n.verdict === tab && !n.case_folder));
   const today = new Date().toLocaleDateString("sv-SE");  // YYYY-MM-DD in local time
   const rows = findNotices(inTab.filter((n) => (due === "all" || deadlineBucket(n.judged.deadline, today) === due)
-    && (budget === "all" || amountBucket(n.judged.amount_krw) === budget)), query, sort);
+    && (budget === "all" || amountBucket(basisAmount(n.judged)) === budget)), query, sort);
   const last = data.runs[data.runs.length - 1];
   const staff = can(role, "collect");
   const info: InfoItem[] = [
@@ -157,7 +157,12 @@ export default function Notices({ role, status, onNavigate, onChanged }: Props) 
                       <a className="title-link" href={n.bidNtceDtlUrl} target="_blank" rel="noreferrer">{n.bidNtceNm} ↗</a>
                       <Typography display="block" variant="caption1" color="semantic.foreground.neutral.secondary" sx={{ marginTop: "4px" }}>{n.dminsttNm} · {n.cntrctCnclsMthdNm}</Typography>
                     </td>
-                    <td><Typography variant="label2">{n.judged.amount_krw ? eok(n.judged.amount_krw) : "—"}</Typography></td>
+                    <td>
+                      <Typography variant="label2">{basisAmount(n.judged) ? eok(basisAmount(n.judged) as number) : "—"}</Typography>
+                      {rawAmountNote(n.judged, eok) && (
+                        <Typography display="block" variant="caption2" color="semantic.foreground.neutral.secondary">{rawAmountNote(n.judged, eok)}</Typography>
+                      )}
+                    </td>
                     <td><Typography variant="label2">{n.judged.deadline ? n.judged.deadline.slice(5, 10).replace("-", "/") : "—"}</Typography></td>
                     <td>
                       <div className="verdict-cell">

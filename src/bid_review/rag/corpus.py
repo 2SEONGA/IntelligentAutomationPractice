@@ -13,7 +13,7 @@ from zoneinfo import ZoneInfo
 
 import yaml
 
-from ..agent01_rfp import RFPExtractor
+from ..agent01_rfp import RFPExtractor, _is_toc_page
 from ..settings import PROJECT_ROOT, load_settings
 
 
@@ -30,6 +30,15 @@ SECTION_HEADING = re.compile(
     r"[가-하]\s*[.)、]\s*\S.*)$"
 )
 MAX_CHUNK_CHARACTERS = 1800
+# 같은 쪽의 짧은 절(예: "나. 사업금액 : 금 107,000,000원 (부가가치세 별도)" 한 줄)을 이 길이까지 이어 붙인다.
+# 제목마다 잘라 중앙값 75자짜리 chunk가 되면 금액·VAT·기간이 서로 다른 chunk로 갈라지고 문맥이 사라졌다.
+MERGE_TARGET_CHARACTERS = 600
+MERGE_MAX_CHARACTERS = 1200
+CHUNK_SCHEMA_VERSION = 2
+PAGE_NUMBER_LINE = re.compile(r"^(?:-\s*\d{1,3}\s*-|\d{1,3}\s*/\s*\d{1,3}|(?:page|p\.)\s*\d{1,3}|\d{1,3}|[-–—]\s*[ivxⅰ-ⅹ]+\s*[-–—])$", re.I)
+FORM_PLACEHOLDER = re.compile(r"YYYY|MM\.DD|○○|OO기관|\(인\)|기재\s*(?:함|하시오|할\s*것)?\s*$|년\s+월\s+일")
+# 머리글·바닥글로 보이더라도 지우면 안 되는 업무·법적 의미어.
+PROTECTED_TERMS = re.compile(r"참가자격|공동\s*(?:수급|도급|계약|이행)|하도급|계약|금액|예산|부가가치세|VAT|기간|조\s*\(|제\s*\d+\s*조|제한|금지|불허")
 G2B_SERVICE_URL = "https://www.data.go.kr/data/15129397/openapi.do"
 NOTICE_FIELD_LABELS = {
     "bidNtceNo": "나라장터 공고번호",
@@ -125,6 +134,92 @@ def _split_text(text: str, max_chars: int = MAX_CHUNK_CHARACTERS) -> list[str]:
     if current:
         chunks.append(current)
     return chunks
+
+
+def _repeated_lines(pages: list, minimum_pages: int = 3, ratio: float = 0.3) -> set[str]:
+    """문서의 여러 쪽에 반복되는 짧은 줄(머리글·바닥글). 업무·법적 의미어가 있는 줄은 제외한다."""
+    counts: dict[str, int] = {}
+    for page in pages:
+        for line in {re.sub(r"\s+", " ", raw).strip() for raw in page.text.splitlines()}:
+            if 2 <= len(line) <= 60:
+                counts[line] = counts.get(line, 0) + 1
+    threshold = max(minimum_pages, int(len(pages) * ratio + 0.999))
+    return {line for line, count in counts.items() if count >= threshold and not PROTECTED_TERMS.search(line)}
+
+
+def clean_page_text(text: str, repeated: set[str]) -> tuple[str, dict[str, int]]:
+    """검색에 불필요한 쪽 번호·반복 머리글/바닥글 줄만 지운다. 표·조항 번호·제목·법적 조항은 그대로 둔다."""
+    kept: list[str] = []
+    removed = {"page_number_lines": 0, "repeated_header_footer_lines": 0}
+    for raw in text.splitlines():
+        line = re.sub(r"\s+", " ", raw).strip()
+        if line and PAGE_NUMBER_LINE.match(line):
+            removed["page_number_lines"] += 1
+            continue
+        if line in repeated:
+            removed["repeated_header_footer_lines"] += 1
+            continue
+        kept.append(raw)
+    return "\n".join(kept), removed
+
+
+def retrieval_role(text: str, page_type: str | None) -> str:
+    """검색 결과 정렬에 쓰는 chunk 역할. 지우지 않고 표시만 한다(불확실한 데이터는 검토 대상으로 남김).
+
+    body: 실제 사업 본문 · toc: 목차 · form_template: 작성 안내·빈 서식 · cover: 표지
+    """
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    if not lines:
+        return "body"
+    if page_type == "table_of_contents" or _is_toc_page(text):
+        return "toc"
+    placeholders = sum(bool(FORM_PLACEHOLDER.search(line)) for line in lines)
+    if page_type == "appendix_page" and (placeholders or re.search(r"서식|별지|양식", text)) and not PROTECTED_TERMS.search(
+            " ".join(line for line in lines if not FORM_PLACEHOLDER.search(line) and not re.search(r"서식|별지|양식", line))):
+        return "form_template"
+    if placeholders >= max(1, len(lines) // 3):
+        return "form_template"
+    if page_type == "cover_page":
+        return "cover"
+    return "body"
+
+
+CONTRACT_CLAUSE = re.compile(r"제\s*\d+\s*조|계약\s*(?:상대자|당사자|해제|해지|보증금)|지체상금|손해배상|하자\s*보수|준거법|분쟁|갑\s*과\s*을|\"갑\"|\"을\"")
+BUSINESS_CONTENT = re.compile(r"구축|개발|고도화|시스템|플랫폼|데이터|기능|서비스|운영|유지|분석|연계|도입|개선")
+
+
+def text_quality_flags(text: str) -> dict[str, Any]:
+    """사업 본문으로 쓰기에 의심스러운 텍스트 표시(삭제하지 않고 사람 검토 대상으로만 표시).
+
+    - toc_like: 목차 표제 또는 점선·쪽 번호 줄이 많음
+    - contract_clause_like: 계약 일반조건(제n조, 지체상금, 손해배상 등)이 사업 내용어보다 많음
+    - too_short: 본문이 300자 미만
+    """
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    clause_hits = len(CONTRACT_CLAUSE.findall(text))
+    business_hits = len(BUSINESS_CONTENT.findall(text))
+    flags = {
+        "toc_like": _is_toc_page(text) or sum(bool(re.search(r"[·.…‥ㆍ]{4,}\s*\d{0,3}\s*$", line)) for line in lines) >= 3,
+        "contract_clause_like": clause_hits >= 5 and clause_hits > business_hits,
+        "too_short": len(re.sub(r"\s+", "", text)) < 300,
+    }
+    flags["needs_review"] = any(flags.values())
+    flags["clause_terms"], flags["business_terms"] = clause_hits, business_hits
+    return flags
+
+
+def _merge_small_sections(sections: list[tuple[str, str, str]]) -> list[tuple[str, str, str, list[str]]]:
+    """같은 쪽의 짧은 본문 절을 이어 붙여 금액·VAT·기간 같은 인접 조건이 한 chunk에 남게 한다(표 chunk는 따로)."""
+    merged: list[tuple[str, str, str, list[str]]] = []
+    for name, body, kind in sections:
+        if (merged and kind == "text" and merged[-1][2] == "text"
+                and len(merged[-1][1]) < MERGE_TARGET_CHARACTERS
+                and len(merged[-1][1]) + len(body) + 1 <= MERGE_MAX_CHARACTERS):
+            first, text, _, path = merged[-1]
+            merged[-1] = (first, f"{text}\n{body}", kind, path + [name])
+        else:
+            merged.append((name, body, kind, [name]))
+    return merged
 
 
 def _page_sections(text: str, table_rows: list[str]) -> list[tuple[str, str, str]]:
@@ -240,6 +335,9 @@ def _index_notice_metadata(
                 "page": None,
                 "section": section,
                 "content_kind": "structured_notice_field",
+                "retrieval_role": "body",
+                "document_version": notice_order,
+                "chunk_schema_version": CHUNK_SCHEMA_VERSION,
                 "field_name": field_name,
                 "field_label": label,
                 "field_value": value_text,
@@ -282,9 +380,18 @@ def index_pdf(
     page_quality = {item.page_number: item for item in analyses}
     chunks: list[dict[str, Any]] = []
     redacted_rows = 0
+    repeated = _repeated_lines(pages)
+    cleaning = {"page_number_lines": 0, "repeated_header_footer_lines": 0, "characters_before": 0, "characters_after": 0}
+    roles: dict[str, int] = {}
+    version = source_case.get("related_notice_order") or document_sha[:8]
 
     for page in pages:
-        safe_text, removed = _privacy_filter(page.text)
+        cleaned_text, removed_lines = clean_page_text(page.text, repeated)
+        for key, value in removed_lines.items():
+            cleaning[key] += value
+        cleaning["characters_before"] += len(page.text)
+        cleaning["characters_after"] += len(cleaned_text)
+        safe_text, removed = _privacy_filter(cleaned_text)
         redacted_rows += removed
         safe_tables: list[str] = []
         for row in page.table_rows:
@@ -293,11 +400,15 @@ def index_pdf(
             if safe_row.strip():
                 safe_tables.append(safe_row.strip())
 
-        for section, body, content_kind in _page_sections(safe_text, safe_tables):
+        page_ordinal = 0
+        for section, body, content_kind, section_path in _merge_small_sections(_page_sections(safe_text, safe_tables)):
             for ordinal, chunk_text in enumerate(_split_text(body), start=1):
                 if not chunk_text:
                     continue
+                page_ordinal += 1
                 quality = page_quality.get(page.number)
+                role = retrieval_role(chunk_text, page.page_type)
+                roles[role] = roles.get(role, 0) + 1
                 chunks.append({
                     "chunk_id": _chunk_id(document_id, page.number, section, ordinal, chunk_text),
                     "text": chunk_text,
@@ -307,11 +418,18 @@ def index_pdf(
                         "document_title": title or path.stem,
                         "document_type": document_type,
                         "source_path": str(path.relative_to(PROJECT_ROOT)),
+                        "source_file": path.name,
+                        "document_version": version,
                         "page": page.number,
                         "section": section,
+                        "section_path": section_path,
+                        "chunk_index": page_ordinal,
                         "content_kind": content_kind,
                         "page_type": page.page_type,
+                        "retrieval_role": role,
+                        "chunk_schema_version": CHUNK_SCHEMA_VERSION,
                         "ocr_required": bool(quality.ocr_required) if quality else False,
+                        "ocr_applied": bool(getattr(quality, "ocr_applied", False)) if quality else False,
                         "extraction_issue": quality.ocr_reason if quality else page.extraction_issue,
                         "related_notice_no": source_case.get("related_notice_no"),
                         "related_notice_order": source_case.get("related_notice_order"),
@@ -330,6 +448,9 @@ def index_pdf(
         "page_count": len(pages),
         "chunk_count": len(chunks),
         "privacy_rows_removed": redacted_rows,
+        "cleaning": {**cleaning, "repeated_lines": sorted(repeated)[:20]},
+        "retrieval_roles": roles,
+        "document_version": version,
         "extraction_issues": [issue.model_dump() for issue in issues],
         "related_notice_no": source_case.get("related_notice_no"),
         "related_notice_order": source_case.get("related_notice_order"),
@@ -407,7 +528,7 @@ def build_local_corpus(
         notice_sources.append(source)
 
     manifest = {
-        "schema_version": 1,
+        "schema_version": CHUNK_SCHEMA_VERSION,
         "generated_at": datetime.now(ZoneInfo("Asia/Seoul")).isoformat(timespec="seconds"),
         "input_directory": str(input_dir.relative_to(PROJECT_ROOT)),
         "notice_index": str(notice_index_path.relative_to(PROJECT_ROOT)) if notice_index_path.exists() else None,
@@ -417,6 +538,10 @@ def build_local_corpus(
         "notice_metadata_source_count": len(notice_sources),
         "chunk_count": len(all_chunks),
         "privacy_rows_removed": sum(item["privacy_rows_removed"] for item in sources),
+        "cleaning": {key: sum(item["cleaning"][key] for item in sources)
+                     for key in ("page_number_lines", "repeated_header_footer_lines", "characters_before", "characters_after")},
+        "retrieval_roles": {role: sum(item["retrieval_roles"].get(role, 0) for item in sources)
+                            for role in ("body", "toc", "form_template", "cover")},
         "sources": sources,
         "notice_metadata_sources": notice_sources,
         "errors": errors,

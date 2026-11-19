@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import time
 from difflib import SequenceMatcher
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -32,11 +33,55 @@ GENERIC_ENTITY_HEADERS = set(_RFP_KEYWORDS["generic_entity_headers"])
 REQ_ID = re.compile(r"\b([A-Za-z]{1,5}(?:FR|SR|PR|IR)?[-_]\d{2,4})\b")
 # 공동도급(공동수급) 금지 조항. "공동수급을 허용하며, 하도급은 불허"처럼 다른 대상의 금지를 잡지 않도록
 # 공동도급 단어와 금지 표현 사이에 하도급·허용 표현이 끼면 매칭하지 않는다.
-JOINT_FORBID_RE = re.compile(
-    r"공동\s*(?:도급|수급|계약|이행)(?!\s*(?:체|협정|표준|대표|구성))"
-    r"(?:(?!하도급\s*(?:은|는|계약)|허용하며|허용함|허용한다|허용됨|가능하며|가능함|공동\s*수급\s*체|구성원)[^.。\n]){0,30}?"
-    r"(?:허용하지\s*않|불허|불가|금지|할\s*수\s*없|인정하지\s*않)"
+_JOINT_FORBID_PATTERN = re.compile(
+    r"공동\s*(?:도급|수급|계약|이행)(?!\s*(?:체|협정|표준|대표|구성|자))"
+    r"(?:(?!하도급|허용(?!\s*(?:여부|하지|되지|않|아니))|가능하며|가능함|공동\s*수급\s*체|구성원|중복)[^.。\n]){0,30}?"
+    r"(?:허용하지\s*(?:않|아니)|허용되지\s*(?:않|아니)|불허|불가|금지|할\s*수\s*없|인정하지\s*(?:않|아니))"
 )
+_PARENTHESES = re.compile(r"\([^()]{0,40}\)")
+JOINT_ALLOWED_RE = re.compile(r"공동\s*(?:수급|도급|계약)(?!\s*(?:체|협정|자))[^.。\n]{0,20}?"
+                              r"(?:허용(?!\s*(?:여부|하지|되지|않|아니))|(?<!불)가능(?!\s*(?:하지|여부)))|공동이행\s*방식")
+JOINT_DUPLICATE_RE = re.compile(r"공동\s*수급\s*(?:체|자|업체)?[^.。\n]{0,40}중복[^.。\n]{0,20}(?:참여|참가|입찰)")
+JOINT_MEMBER_RE = re.compile(r"공동\s*수급\s*체?\s*(?:의\s*)?구성원[^.。\n]{0,80}(?:제한|이상|이하|불가|할\s*수\s*없|자격|지분)")
+SUBCONTRACT_FORBID_RE = re.compile(r"하도급[^.。\n]{0,15}(?:불허|허용하지\s*(?:않|아니)|불가|금지|할\s*수\s*없)")
+
+
+class _JointForbid:
+    """공동도급 '자체' 금지 판정. 괄호 안 보충 설명("공동수급(도급 및 하도급)")은 지우고 본다."""
+
+    @staticmethod
+    def search(text: str):
+        return _JOINT_FORBID_PATTERN.search(_PARENTHESES.sub(" ", text or ""))
+
+
+JOINT_FORBID_RE = _JointForbid()
+JOINT_FORBIDDEN_POLICY = "공동도급(공동수급) 불허 — 단독 입찰만 가능"
+
+
+def classify_joint_clause(text: str) -> set[str]:
+    """공동도급 관련 조항 분류(M33). 서로 다른 제한을 '공동도급 금지'로 뭉뚱그리지 않는다.
+
+    - joint_forbidden: 공동도급(공동수급) 자체 금지   예) 공동도급 불허 / 공동수급의 허용 여부: 허용하지 아니함
+    - joint_allowed: 공동도급 허용(공동이행방식 등)   예) 공동수급 허용, 하도급 불허
+    - duplicate_participation: 공동수급체 중복 참여 제한  예) 공동수급자는 중복으로 참여할 수 없음
+    - member_restriction: 공동수급체 구성원 제한(수·지분·자격)
+    - subcontract_forbidden: 하도급 금지
+    """
+    plain = _PARENTHESES.sub(" ", text or "")
+    labels: set[str] = set()
+    if _JOINT_FORBID_PATTERN.search(plain):
+        labels.add("joint_forbidden")
+    if JOINT_ALLOWED_RE.search(plain):
+        labels.add("joint_allowed")
+    if JOINT_DUPLICATE_RE.search(plain):
+        labels.add("duplicate_participation")
+    if JOINT_MEMBER_RE.search(plain):
+        labels.add("member_restriction")
+    if SUBCONTRACT_FORBID_RE.search(plain):
+        labels.add("subcontract_forbidden")
+    return labels
+
+
 JOINT_TERMS = ("공동수급", "공동이행", "공동도급", "공동계약")
 DATE_PATTERN = re.compile(r"(?:20\d{2}[./년\- ]+\d{1,2}[./월\- ]+\d{1,2}(?:일)?)(?:\s*(?:오전|오후)?\s*\d{1,2}:?\d{0,2})?")
 
@@ -78,6 +123,23 @@ def _is_repeated(value: str) -> bool:
     return False
 
 
+TOC_HEADING = re.compile(r"^[-<\[(【]?\s*(?:목\s*차|차\s*례|contents|table\s*of\s*contents)\s*[-<>\])】]?$", re.I)
+TOC_ENTRY = re.compile(r"(?:[·.…‥ㆍ]{4,}|\s{6,})\s*\d{1,3}\s*$")
+
+
+def _is_toc_page(text: str) -> bool:
+    """목차 쪽 판정. '목차'라는 단어가 본문에 나오는 것만으로는 목차로 보지 않는다
+    (예: "제안서는 목차에 따라 작성" 같은 작성 요령 본문). 단독 표제 줄('- 목 차 -')이 앞부분에 있거나,
+    점선·쪽 번호로 끝나는 줄이 30% 이상(5줄 이상)일 때만 목차로 본다."""
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    if not lines:
+        return False
+    if any(TOC_HEADING.match(line) for line in lines[:6]):
+        return True
+    entries = sum(bool(TOC_ENTRY.search(line)) for line in lines)
+    return entries >= 5 and entries / len(lines) >= 0.3
+
+
 class RFPExtractor:
     """PDF를 분석하되 원본 근거가 없는 값은 임의로 만들지 않습니다."""
 
@@ -88,25 +150,37 @@ class RFPExtractor:
     def _ocr_available() -> bool:
         return ocr.engine_available()
 
-    def _try_ocr(self, layout_page, best_text: str, reason: str | None, used: int) -> str | None:
-        """설정에 따라 페이지를 OCR하고, 기존 텍스트보다 나을 때만 OCR 텍스트를 돌려준다."""
+    def _try_ocr(self, layout_page, best_text: str, reason: str | None, attempts: int) -> tuple[str | None, dict]:
+        """설정에 따라 페이지를 OCR한다. 반환: (채택한 OCR 텍스트 또는 None, 실행 기록).
+
+        max_pages는 '채택한 쪽 수'가 아니라 'OCR을 실제로 실행한 쪽 수' 상한이다.
+        """
         options = ocr.config(self.settings)
+        record = {"attempted": False, "succeeded": False, "decision": None, "seconds": 0.0}
         mode = options["mode"]
-        if mode == "off" or used >= int(options["max_pages"]) or not self._ocr_available():
-            return None
-        if mode == "fallback" and reason is None:
-            return None
+        if mode == "off" or (mode == "fallback" and reason is None):
+            return None, record
+        if not self._ocr_available():
+            record["decision"] = "OCR 엔진 없음(pytesseract·tesseract 미설치) — 기존 추출 유지" if reason else None
+            return None, record
+        if attempts >= int(options["max_pages"]):
+            record["decision"] = f"문서당 OCR 시도 상한 {options['max_pages']}쪽 도달 — 기존 추출 유지"
+            return None, record
+        started = time.perf_counter()
         text = ocr.ocr_page(layout_page, options["lang"], int(options["resolution"]))
+        record.update(attempted=True, seconds=round(time.perf_counter() - started, 3), succeeded=bool(text and text.strip()))
         cleaned = "\n".join(_clean(line) for line in (text or "").splitlines() if _clean(line))
-        return cleaned if ocr.is_better(best_text, cleaned) else None
+        adopted, why = ocr.choose(best_text, cleaned)
+        record["decision"] = ("채택: " if adopted else "미채택: ") + why
+        return (cleaned if adopted else None), record
 
     @staticmethod
     def _classify_page(number: int, text: str, table_rows: list[str]) -> tuple[str, str]:
         compact = re.sub(r"\s+", "", text)
         if number == 1:
             return "cover_page", "첫 페이지로 표지 우선 처리"
-        if "목차" in text and ("··" in text or len(re.findall(r"\d+", text)) >= 5):
-            return "table_of_contents", "목차 표제와 점선/페이지 번호 패턴 확인"
+        if _is_toc_page(text):
+            return "table_of_contents", "목차 표제 줄 또는 점선·쪽 번호로 끝나는 줄 비율로 목차 확인"
         if any(marker in text for marker in ("별지", "서식", "붙임", "첨부")):
             return "appendix_page", "별지·서식·붙임 표식 확인"
         if len(table_rows) >= 3 or ("|" in text and len(re.findall(r"\s{3,}", text)) >= 5):
@@ -151,7 +225,7 @@ class RFPExtractor:
         issues: list[ExtractionIssue] = []
         analyses: list[PageAnalysis] = []
         needs_ocr = False
-        ocr_used = 0
+        ocr_attempts = 0
 
         with pdfplumber.open(str(pdf_path)) as layout_pdf:
             for number, page in enumerate(reader.pages, start=1):
@@ -167,10 +241,10 @@ class RFPExtractor:
                 page_type, rationale = self._classify_page(number, best_text, table_rows)
                 reason = self._ocr_reason(best_text, page_type, table_rows)
                 # OCR 보완: 텍스트가 짧거나 깨진 페이지는 페이지 이미지를 OCR로 다시 읽어, 더 나으면 그 텍스트를 쓴다.
-                ocr_text = self._try_ocr(layout_page, best_text, reason, ocr_used)
+                ocr_text, ocr_record = self._try_ocr(layout_page, best_text, reason, ocr_attempts)
+                ocr_attempts += int(ocr_record["attempted"])
                 ocr_applied = ocr_text is not None
                 if ocr_applied:
-                    ocr_used += 1
                     best_text = ocr_text
                     page_type, rationale = self._classify_page(number, best_text, table_rows)
                     rationale += " (OCR 텍스트 기준)"
@@ -192,6 +266,8 @@ class RFPExtractor:
                     extraction_methods=["pypdf_text", "pdfplumber_layout"] + (["pdfplumber_table"] if table_rows else [])
                     + (["tesseract_ocr"] if ocr_applied else []),
                     table_count=len(table_rows), ocr_required=ocr_required, ocr_reason=reason, ocr_applied=ocr_applied,
+                    ocr_attempted=ocr_record["attempted"], ocr_succeeded=ocr_record["succeeded"],
+                    ocr_decision=ocr_record["decision"], ocr_seconds=ocr_record["seconds"],
                 ))
                 pages.append(PageText(
                     number, best_text, layout_text, table_rows,
@@ -366,15 +442,20 @@ class RFPExtractor:
         if not any(term in compact for term in JOINT_TERMS):
             return None
         if JOINT_FORBID_RE.search(compact):
-            policy = "공동도급(공동수급) 불허 — 단독 입찰만 가능"
-            if re.search(r"공동\s*(?:도급|수급)(?:(?!불허|허용하지|불가|금지|하도급)[^.。\n]){0,20}?(?:허용(?:하며|함|한다|됨|합니다)|가능(?:함|하며|합니다))", compact):
+            policy = JOINT_FORBIDDEN_POLICY
+            line_labels = [(line, classify_joint_clause(line)) for line in text.splitlines() if line.strip()]
+            labels = set().union(*(found for _, found in line_labels)) if line_labels else set()
+            # 공동수급협정서 서식 안내 줄의 '공동이행방식'은 허용 근거로 세지 않는다.
+            if any("joint_allowed" in found and not re.search(r"협정서|서식", line) for line, found in line_labels):
                 policy += " (허용 문구도 함께 있어 원문 확인 필요)"
-            if "하도급" in compact and re.search(r"하도급.{0,12}불허|하도급계약은? 허용하지 않", compact):
+            if "subcontract_forbidden" in labels:
                 policy += "; 하도급 불허"
             return policy
         items: list[str] = []
         if "공동이행" in compact:
             items.append("공동이행방식 허용")
+        elif JOINT_ALLOWED_RE.search(_PARENTHESES.sub(" ", compact)):
+            items.append("공동도급(공동수급) 허용")
         members = re.search(r"대표사를? 포함하여?\s*(\d+)개사\s*이하", compact)
         if members:
             items.append(f"대표사 포함 최대 {members.group(1)}개사")
@@ -383,8 +464,10 @@ class RFPExtractor:
             items.append(f"구성원별 최소 지분율 {share.group(1)}")
         if re.search(r"구성원은? 각각.*?입찰참가자격을? 모두", compact):
             items.append("모든 구성원이 입찰참가자격 충족")
-        if "하도급" in compact and re.search(r"하도급.{0,12}불허|하도급계약은? 허용하지 않", compact):
+        if SUBCONTRACT_FORBID_RE.search(compact):
             items.append("하도급 불허")
+        if JOINT_DUPLICATE_RE.search(compact):
+            items.append("공동수급체 중복 참여 제한")
         return "; ".join(items) or None
 
     def _add_field(
@@ -495,7 +578,7 @@ class RFPExtractor:
 
         if joint_forbid:
             forbid_page, forbid_line = joint_forbid
-            policy = self._joint_venture_summary("\n".join(joint_text_parts) or forbid_line) or "공동도급(공동수급) 불허 — 단독 입찰만 가능"
+            policy = self._joint_venture_summary("\n".join(joint_text_parts) or forbid_line) or JOINT_FORBIDDEN_POLICY
             self._add_field(bucket, "joint_venture_policy", policy, forbid_page, forbid_line, source_document)
         elif joint_source:
             policy = self._joint_venture_summary("\n".join(joint_text_parts))
@@ -1082,7 +1165,8 @@ def merge_document_results(rfp: RFPAnalysisResult, notice: RFPAnalysisResult | N
         if compared is None:
             continue
         state, detail = compared
-        if state == "same_after_vat":
+        if state in {"same_after_vat", "same_basis_unknown"}:
+            # same_basis_unknown: 숫자는 같으나 VAT 기준 미확인 — 충돌은 아니지만 '확인됨'으로 기록하지 않는다.
             vat_notes.append(FieldSelectionReason(field=f"{field}_vat", reason=detail))
         elif state in {"vat_unknown", "basis_mismatch"}:
             vat_issues.append(RFPQualityIssue(field=field, reason=f"VAT 기준 확인 필요: {detail}", source_page=notice_value.source_page))
@@ -1105,8 +1189,8 @@ def merge_document_results(rfp: RFPAnalysisResult, notice: RFPAnalysisResult | N
 
     # 공동도급: 한쪽이라도 금지하면 금지를 우선하고, 다른 쪽이 허용이면 충돌로 남긴다.
     rfp_jv, notice_jv = rfp.basic_info.joint_venture_policy, notice.basic_info.joint_venture_policy
-    rfp_forbids = isinstance(rfp_jv.value, str) and "불허" in rfp_jv.value
-    notice_forbids = isinstance(notice_jv.value, str) and "불허" in notice_jv.value
+    rfp_forbids = isinstance(rfp_jv.value, str) and rfp_jv.value.startswith(JOINT_FORBIDDEN_POLICY)
+    notice_forbids = isinstance(notice_jv.value, str) and notice_jv.value.startswith(JOINT_FORBIDDEN_POLICY)
     if rfp_jv.value and notice_jv.value and rfp_forbids != notice_forbids:
         conflicts.append(DocumentConflict(
             field="joint_venture_policy", rfp_value=rfp_jv, notice_value=notice_jv,

@@ -11,7 +11,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from ..agent01_rfp import RFPAnalysisResult
+from ..agent01_rfp import RFPAnalysisResult, classify_joint_clause
 from ..models import RFPFieldCandidate
 from ..money import parse_krw
 from .. import vat
@@ -145,9 +145,10 @@ def api_eligibility_claims(notice_record: dict[str, Any] | None, rfp_claims: lis
     method = str(notice_record.get("cmmnSpldmdMethdNm") or "").strip()
     if method:
         joint = {field: text for field, text in texts.items() if re.search(r"공동\s*(?:도급|수급|계약)", text)}
-        forbid = re.compile(r"허용하지\s*않|불허|불가|금지|할\s*수\s*없")
-        rfp_forbids = [field for field, text in joint.items() if forbid.search(text)]
-        rfp_allows = [field for field, text in joint.items() if not forbid.search(text) and re.search(r"허용|가능", text)]
+        # 공동수급 중복참여·구성원 제한·하도급 금지는 공동도급 자체 금지가 아니다(M33 classify_joint_clause).
+        labels = {field: classify_joint_clause(text) for field, text in joint.items()}
+        rfp_forbids = [field for field, found in labels.items() if "joint_forbidden" in found]
+        rfp_allows = [field for field, found in labels.items() if "joint_allowed" in found and "joint_forbidden" not in found]
         api_forbids = "불허" in method
         if not joint:
             status, detail = VerificationStatus.HUMAN_REVIEW, f"API 공동수급 방식은 '{method}'이나 RFP 참가자격·공고문에서 공동수급 조항을 찾지 못했습니다."
@@ -586,7 +587,8 @@ class T15Verifier:
                 ]
                 exact = next((row for row in compared if row[1] == "same"), None)
                 after_vat = next((row for row in compared if row[1] == "same_after_vat"), None)
-                unknown = next((row for row in compared if row[1] in {"vat_unknown", "basis_mismatch"}), None)
+                unknown = next((row for row in compared
+                                if row[1] in {"vat_unknown", "basis_mismatch", "same_basis_unknown"}), None)
                 if exact:
                     claims.append(VerifiedClaim(
                         category="amount", field=f"g2b_crosscheck_{field}", claim=api_amount,

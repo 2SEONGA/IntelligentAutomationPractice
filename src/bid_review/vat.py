@@ -63,9 +63,11 @@ def compare(left: int, left_basis: VatBasis, right: int, right_basis: VatBasis) 
     """두 금액을 VAT 기준을 맞춘 뒤 비교한다.
 
     반환 상태:
-      - "same": 숫자가 같다(기준이 같거나 둘 다 모를 때 포함).
+      - "same": 숫자와 VAT 기준이 모두 같다(양쪽 기준이 문서에 명시됨) → 일치.
+      - "same_basis_unknown": 숫자는 같지만 양쪽 모두 VAT 기준이 명시되지 않았다 → 숫자 일치, VAT 기준은 미확인.
       - "same_after_vat": 숫자는 다르지만 VAT 포함/별도 기준을 맞추면 같다 → 충돌 아님.
-      - "vat_unknown": 약 10% 차이지만 한쪽 이상의 VAT 기준을 확인하지 못했다 → 확인 필요.
+      - "vat_unknown": 한쪽만 VAT 기준이 명시돼 숫자가 같아도 같은 금액인지 알 수 없거나,
+        약 10% 차이지만 VAT 기준을 확인하지 못했다 → 확인 필요. 명시되지 않은 기준은 추정하지 않는다.
       - "basis_mismatch": 숫자는 같지만 VAT 포함/별도 표기가 서로 반대다 → 확인 필요.
       - "different": 기준을 맞춰도 다르다 → 실제 금액 불일치.
     """
@@ -73,7 +75,13 @@ def compare(left: int, left_basis: VatBasis, right: int, right_basis: VatBasis) 
         if left_basis != right_basis and "unknown" not in (left_basis, right_basis):
             return "basis_mismatch", (f"같은 숫자 {left:,}원이 한쪽은 {BASIS_LABELS[left_basis]}, "
                                       f"다른 쪽은 {BASIS_LABELS[right_basis]} 표기라 VAT 기준을 확인해야 합니다.")
-        return "same", f"두 금액이 {left:,}원으로 같습니다."
+        if left_basis == right_basis == "unknown":
+            return "same_basis_unknown", (f"두 금액이 {left:,}원으로 같지만 양쪽 모두 VAT 포함/별도가 명시되지 않아 "
+                                          "VAT 기준은 확인되지 않았습니다.")
+        if "unknown" in (left_basis, right_basis):
+            return "vat_unknown", (f"두 금액이 {left:,}원으로 같지만 한쪽({BASIS_LABELS[left_basis]} / "
+                                   f"{BASIS_LABELS[right_basis]})의 VAT 기준이 명시되지 않아 같은 금액인지 확인이 필요합니다.")
+        return "same", f"두 금액이 {left:,}원({BASIS_LABELS[left_basis]})으로 같습니다."
     if "unknown" not in (left_basis, right_basis):
         if left_basis != right_basis:
             converted = convert(right, right_basis, left_basis)

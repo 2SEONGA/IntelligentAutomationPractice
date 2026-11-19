@@ -245,7 +245,9 @@ def create_app(job_manager: JobManager | None = None, allowed_hosts: tuple[str, 
         counts["started"] = sum(bool(i["case_folder"]) for i in items)
         if verdict:
             items = [i for i in items if i["verdict"] == verdict]
-        items.sort(key=lambda i: (i["judged"].get("deadline") or "9999", -(i["judged"].get("amount_krw") or 0)))
+        # 같은 마감이면 선별 기준(VAT 환산) 금액이 큰 순. 예전에 판정된 공고는 환산 금액이 없어 원금액을 쓴다.
+        items.sort(key=lambda i: (i["judged"].get("deadline") or "9999",
+                                  -(i["judged"].get("amount_basis_krw") or i["judged"].get("amount_krw") or 0)))
         return {"notices": items, "counts": counts, "runs": store["runs"], "notice_available": _availability()[2]}
 
     @app.post("/api/notices/collect")

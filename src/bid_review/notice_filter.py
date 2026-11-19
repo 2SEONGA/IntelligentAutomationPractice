@@ -122,7 +122,11 @@ def judge(notice: dict, rules: dict, now: datetime) -> dict:
     }
     verdict = max((v for v, _ in results.values()), key=VERDICTS.index)
     reasons = [reason for v, reason in results.values() if v != "검토 대상"] or ["모든 규칙 통과"]
+    basis_amount, field_basis, field = normalized_amount(notice, rules)
     return {"verdict": verdict, "reasons": reasons,
             "rules": {name: {"verdict": v, "reason": r} for name, (v, r) in results.items()},
-            "amount_krw": amount_of(notice), "amount_vat_basis": normalized_amount(notice, rules)[1],
+            # amount_krw: 공고 API 원금액(기존 필드, 호환 유지) · amount_basis_krw: 40억 기준과 같은 VAT 기준으로 환산한 금액
+            # (선별·정렬·화면 표시는 이 값을 쓴다). VAT 기준을 모르면 None — 임의로 환산하지 않는다.
+            "amount_krw": amount_of(notice), "amount_source_field": field or None, "amount_vat_basis": field_basis,
+            "amount_basis_krw": basis_amount, "amount_criterion_basis": criterion_basis(rules),
             "amount_criterion": amount_label(rules), "deadline": (notice.get("bidClseDt") or "").strip() or None}

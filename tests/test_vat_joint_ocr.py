@@ -38,7 +38,11 @@ def test_vat_basis_and_compare() -> None:
     assert vat.compare(107_000_000, "unknown", 117_700_000, "unknown")[0] == "vat_unknown"
     assert vat.compare(107_000_000, "excluded", 130_000_000, "included")[0] == "different"
     assert vat.compare(107_000_000, "excluded", 107_000_000, "included")[0] == "basis_mismatch"
-    assert vat.compare(107_000_000, "unknown", 107_000_000, "excluded")[0] == "same"
+    # 필수 사례(M33): VAT 기준을 모르면 숫자가 같아도 검증 완료로 보지 않는다.
+    assert vat.compare(107_000_000, "unknown", 107_000_000, "included")[0] == "vat_unknown"
+    assert vat.compare(107_000_000, "included", 107_000_000, "excluded")[0] == "basis_mismatch"
+    assert vat.compare(107_000_000, "unknown", 107_000_000, "unknown")[0] == "same_basis_unknown"
+    assert vat.compare(107_000_000, "excluded", 107_000_000, "excluded")[0] == "same"
     assert vat.convert(107_000_000, "unknown", "included") is None, "VAT 기준을 모르면 환산하지 않음"
 
 
@@ -47,10 +51,37 @@ def test_joint_venture_forbid_pattern() -> None:
                  "본 사업은 공동계약을 허용하지 않습니다.", "공동수급(도급 및 하도급), 분합 납품은 허용하지 않음"):
         assert JOINT_FORBID_RE.search(text), text
     for text in ("공동수급을 허용하며, 하도급은 불허", "공동수급체 구성원은 다른 공동수급체에 중복 참여할 수 없다",
+                 "공동수급자는 중복으로 참여할 수 없음", "공동수급 허용, 하도급 불허",
                  "공동수급협정서는 제출할 수 없음", "공동이행방식 공동수급 허용"):
         assert not JOINT_FORBID_RE.search(text), text
     assert RFPExtractor._joint_venture_summary("공동수급 허용 여부 : 불허\n공동이행방식 서식 첨부") == "공동도급(공동수급) 불허 — 단독 입찰만 가능"
     assert RFPExtractor._joint_venture_summary("공동이행방식에 의한 공동수급 허용, 대표사를 포함하여 3개사 이하").startswith("공동이행방식 허용")
+
+
+def test_classify_joint_clause() -> None:
+    """M33 필수 사례: 공동도급 자체 금지와 구성원·중복참여·하도급 제한을 구분한다."""
+    from bid_review.agent01_rfp import classify_joint_clause as classify
+    assert classify("공동도급 불허") == {"joint_forbidden"}
+    assert classify("공동수급의 허용 여부: 허용하지 아니함") == {"joint_forbidden"}
+    assert classify("공동수급자는 중복으로 참여할 수 없음") == {"duplicate_participation"}
+    assert classify("공동수급 허용, 하도급 불허") == {"joint_allowed", "subcontract_forbidden"}
+    assert "member_restriction" in classify("공동수급체 구성원은 대표사를 포함하여 3개사 이하로 한다")
+    assert classify("공동수급(도급 및 하도급), 분합 납품은 허용하지 않음") == {"joint_forbidden"}
+    assert classify("공동수급 불가능") == {"joint_forbidden"}
+    assert RFPExtractor._joint_venture_summary("공동수급 허용, 하도급 불허") == "공동도급(공동수급) 허용; 하도급 불허"
+    assert RFPExtractor._joint_venture_summary("공동수급자는 중복으로 참여할 수 없음") == "공동수급체 중복 참여 제한"
+
+
+def test_merge_joint_conflict_keeps_both_sources() -> None:
+    """RFP 허용(하도급 불허) ↔ 공고문 금지: '불허' 글자만으로 금지로 보지 않고, 충돌 근거를 양쪽 다 남긴다."""
+    rfp, notice = analyze(WATER_RFP), analyze(WATER_NOTICE, "notice_pdf")
+    rfp.basic_info.joint_venture_policy = RFPFieldCandidate(value="공동도급(공동수급) 허용; 하도급 불허", source_page=4,
+                                                           source_excerpt="공동수급 허용, 하도급 불허")
+    notice.basic_info.joint_venture_policy = RFPFieldCandidate(value="공동도급(공동수급) 불허 — 단독 입찰만 가능", source_page=1,
+                                                              source_excerpt="공동도급 불허", source_document="notice_pdf")
+    merged = merge_document_results(rfp, notice)
+    conflict = next(c for c in merged.conflicts if c.field == "joint_venture_policy")
+    assert conflict.rfp_value.source_excerpt == "공동수급 허용, 하도급 불허" and conflict.notice_value.source_excerpt == "공동도급 불허"
 
 
 def test_basic_info_checks_joint_forbid_first() -> None:
@@ -145,10 +176,66 @@ def test_ocr_fallback_replaces_broken_page() -> None:
     assert document_quality_context(analyze(UNIV_RFP))["ocr_applied_pages"] == []
 
 
-def test_ocr_is_better() -> None:
-    assert not ocr.is_better("정상적인 본문 텍스트가 충분히 길게 추출된 페이지입니다", "정상적인 본문")
-    assert ocr.is_better("···· ---- ||||", "제안요청서 사업 개요 및 추진 배경에 대한 설명입니다")
-    assert not ocr.is_better("abc", None)
+def test_ocr_text_reaches_extraction_and_agent_context() -> None:
+    """OCR로 읽은 사업금액·VAT·기간이 T1 기본정보 후보와 LLM 전달 문맥(document_context)까지 전달되는지."""
+    original = (ocr.engine_available, ocr.ocr_page)
+    ocr.engine_available = lambda: True
+    # 실제 OCR처럼 기존 글자를 보존하면서(금액·날짜 누락 없이) 표 이미지 속 내용을 더 읽어 낸 경우를 흉내 낸다.
+    ocr.ocr_page = lambda page, lang="kor+eng", resolution=300: (page.extract_text() or "") + "\n" + (
+        "가. 사업금액 : 금 123,000,000원 (부가가치세 포함)\n"
+        "나. 사업기간 : 계약일로부터 2027년 3월 31일까지\n"
+        "다. 입찰참가자격 : 소프트웨어사업자로 등록한 업체로서 중소기업확인서를 소지한 자")
+    try:
+        result = RFPExtractor(EXTRACTOR.settings).analyze(UNIV_RFP)
+    finally:
+        ocr.engine_available, ocr.ocr_page = original
+    applied = {a.page_number for a in result.page_analysis if a.ocr_applied}
+    assert applied
+    budget = [c for c in result.basic_info_candidates.budget_krw if c.value == 123_000_000]
+    assert budget and budget[0].source_page in applied and "부가가치세 포함" in budget[0].source_excerpt
+    assert any("2027년 3월 31일" in str(c.value) and c.source_page in applied for c in result.basic_info_candidates.contract_period)
+    context = document_quality_context(result)
+    assert set(context["ocr_applied_pages"]) == applied and "OCR" in context["document_quality_summary"]
+
+
+def test_ocr_choose_checks_quality_not_length() -> None:
+    """M33: 길이가 아니라 깨짐·문장 구조·금액/날짜 보존으로 OCR 채택을 판단한다."""
+    good = "가. 사업금액 : 금 107,000,000원 (부가가치세 별도)\n다. 과업기간 : 계약일로부터 2027년 12월 30일 까지"
+    assert ocr.choose("···· ---- ||||", "제안요청서 사업 개요 및 추진 배경에 대한 설명입니다 사업 범위와 목적")[0]
+    # 더 길어도 기존 금액·날짜가 빠지면 채택하지 않는다.
+    adopted, why = ocr.choose(good, good.replace("107,000,000", "1O7,OOO,OOO") + " 추가 설명 문장이 길게 이어집니다" * 5)
+    assert not adopted and "금액" in why
+    # 글자는 많아도 깨진 OCR은 채택하지 않는다.
+    adopted, why = ocr.choose("짧음", "가 나 다 라 마 바 사 아 자 차 카 타 파 하 ※ ※ ◆ ◆ ■ ■ ▲ ▲ ● ● ○ ○ ◎ ◎ ")
+    assert not adopted
+    # 기존과 거의 같은 OCR(점수 개선 10% 미만)은 기존 유지
+    assert not ocr.choose(good, good)[0]
+    assert not ocr.choose("abc", None)[0] and not ocr.is_better("abc", None)
+
+
+def test_ocr_attempt_limit_counts_attempts_and_logs_decisions() -> None:
+    """max_pages는 채택 수가 아니라 실제 OCR 시도 수를 제한하고, 시도·성공·사유를 페이지별로 남긴다."""
+    original = (ocr.engine_available, ocr.ocr_page)
+    calls: list[int] = []
+    ocr.engine_available = lambda: True
+
+    def fake(page, lang="kor+eng", resolution=300):
+        calls.append(1)
+        return "※ ◆ ■"  # 매번 미채택될 깨진 결과
+    ocr.ocr_page = fake
+    try:
+        limited = RFPExtractor({**EXTRACTOR.settings, "rfp": {**EXTRACTOR.settings["rfp"], "ocr": {"mode": "fallback", "max_pages": 2}}})
+        analyses = limited._extract_pages(UNIV_RFP)[2]
+        attempted = [a for a in analyses if a.ocr_attempted]
+        assert len(calls) == 2 and len(attempted) == 2, "채택이 0건이어도 시도 2번에서 멈춘다"
+        assert all(a.ocr_succeeded and a.ocr_decision.startswith("미채택") and not a.ocr_applied for a in attempted)
+        skipped = [a for a in analyses if a.ocr_required and not a.ocr_attempted]
+        assert skipped and all("상한" in (a.ocr_decision or "") for a in skipped)
+    finally:
+        ocr.engine_available, ocr.ocr_page = original
+    no_engine = analyze(UNIV_RFP).page_analysis
+    assert all(not a.ocr_attempted for a in no_engine)
+    assert all("엔진 없음" in a.ocr_decision for a in no_engine if a.ocr_required)
 
 
 if __name__ == "__main__":

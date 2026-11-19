@@ -43,6 +43,10 @@ def page_analysis_summary(result: RFPAnalysisResult) -> dict[str, Any]:
         "page_type_counts": {page_type: counts.get(page_type, 0) for page_type in PAGE_TYPE_LABELS},
         "ocr_required_pages": _pages([page.page_number for page in result.page_analysis if page.ocr_required]),
         "ocr_applied_pages": _pages([page.page_number for page in result.page_analysis if page.ocr_applied]),
+        "ocr_attempted_pages": _pages([page.page_number for page in result.page_analysis if page.ocr_attempted]),
+        "ocr_failed_pages": _pages([page.page_number for page in result.page_analysis
+                                    if page.ocr_attempted and not page.ocr_succeeded]),
+        "ocr_seconds": round(sum(page.ocr_seconds for page in result.page_analysis), 3),
         "relevant_pages": {
             "basic_information": basic_pages,
             "eligibility_requirements": eligibility_pages,

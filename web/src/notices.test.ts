@@ -1,6 +1,22 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { amountRule, findNotices, noticeAction, startNotes, vatBasisLabel } from "./notices.ts";
+import { amountRule, basisAmount, findNotices, noticeAction, rawAmountNote, startNotes, vatBasisLabel } from "./notices.ts";
+
+test("filter, sort and display use the VAT-normalised amount the 40억 rule compared", () => {
+  const eokText = (n: number) => `${(n / 1e8).toFixed(1)}억`;
+  const estimated = { amount_krw: 37e8, amount_basis_krw: 40.7e8, amount_vat_basis: "excluded", amount_source_field: "presmptPrce", deadline: null };
+  assert.equal(basisAmount(estimated), 40.7e8);
+  assert.equal(rawAmountNote(estimated, eokText), "추정가격 37.0억 VAT 별도 환산");
+  const budget = { amount_krw: 50e8, amount_basis_krw: 50e8, amount_vat_basis: "included", amount_source_field: "asignBdgtAmt", deadline: null };
+  assert.equal(rawAmountNote(budget, eokText), null);
+  const unknown = { amount_krw: 50e8, amount_basis_krw: null, amount_vat_basis: "unknown", amount_source_field: "asignBdgtAmt", deadline: null };
+  assert.equal(rawAmountNote(unknown, eokText), "배정예산 50.0억 · VAT 기준 확인 필요");
+  assert.equal(basisAmount({ amount_krw: 12, deadline: null }), 12, "older verdicts without amount_basis_krw keep working");
+  // 원금액 순(40억 > 37억)이 아니라 비교에 쓴 환산 금액 순(40.7억 > 40억)으로 정렬한다.
+  const rows = [{ bidNtceNm: "a", dminsttNm: "", ntceInsttNm: "", judged: { amount_krw: 40e8, amount_basis_krw: 40e8, deadline: null } },
+                { bidNtceNm: "b", dminsttNm: "", ntceInsttNm: "", judged: estimated }];
+  assert.deepEqual(findNotices(rows, "", "amount").map((n) => n.bidNtceNm), ["b", "a"]);
+});
 
 test("the amount threshold always names its VAT basis", () => {
   assert.equal(amountRule("40억", "included"), "40억 이상 (VAT 포함)");
