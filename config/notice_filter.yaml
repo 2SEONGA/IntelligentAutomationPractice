@@ -3,6 +3,14 @@
 
 # 금액: 배정예산(asignBdgtAmt), 없으면 추정가격(presmptPrce). 3년 낙찰 데이터상 아이티센엔텍 낙찰 64/67건이 40억 이상.
 min_amount_krw: 4000000000
+# 40억 기준의 VAT 기준: included(VAT 포함) | excluded(VAT 별도). 공고 금액은 이 기준으로 환산한 뒤 비교한다.
+# 팀 결정(2026-11): VAT 포함. 기존 필터가 배정예산(VAT 포함)을 그대로 40억과 비교해 왔으므로 선별 결과가 바뀌지 않는다.
+min_amount_vat_basis: included
+# 공고 API 금액 필드별 VAT 기준. 추정가격은 국가계약법 시행령 제2조상 VAT 제외 금액, 배정예산은 VAT 포함 예산액.
+# (수집 데이터 예: 배정예산 770,000,000 = 추정가격 700,000,000 × 1.1) 기준을 모르는 필드는 unknown → "확인 필요".
+amount_field_vat_basis:
+  asignBdgtAmt: included
+  presmptPrce: excluded
 
 # 마감(bidClseDt)까지 이 일수 이내면 담당자 확인 필요
 deadline_warn_days: 3

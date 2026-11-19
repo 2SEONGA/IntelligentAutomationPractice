@@ -62,7 +62,7 @@ export default function Dashboard({ role, onNavigate }: Props) {
       )}
       <div className="kpis">
         <Card label="수집한 공고" value={cards.collected_total} note={`최근 수집 ${cards.collected_recent.toLocaleString("ko-KR")}건 · 누적`} />
-        <Card label="규칙 필터 통과" value={cards.passed} note="40억 이상 · ICT · 마감 전" />
+        <Card label="규칙 필터 통과" value={cards.passed} note="40억 이상(VAT 포함) · ICT · 마감 전" />
         <Card label="담당자 확인 필요" value={cards.confirm} note="금액·마감 없음, 참가 조건 제한" tone="var(--semantic-foreground-cautionary-primary)" />
         <Card label="결재 대기" value={cards.approvals_pending} note="본부장 결정 필요" tone={cards.approvals_pending ? "var(--semantic-foreground-negative-primary)" : undefined} />
       </div>
@@ -126,7 +126,7 @@ export default function Dashboard({ role, onNavigate }: Props) {
                 {deadlines.map((d) => (
                   <tr key={`${d.name}-${d.deadline}`} className="clickable" onClick={() => onNavigate({ view: "notices" })}>
                     <td><button type="button" className="row-link">{d.name}</button>
-                      <Typography variant="caption1" color="semantic.foreground.neutral.secondary">{d.agency} · {d.amount_krw ? eok(d.amount_krw) : "금액 없음"}</Typography></td>
+                      <Typography variant="caption1" color="semantic.foreground.neutral.secondary">{d.agency} · {(d.amount_basis_krw ?? d.amount_krw) ? eok((d.amount_basis_krw ?? d.amount_krw) as number) : "금액 없음"}</Typography></td>
                     <td style={{ width: 80 }}><StatusBadge label={d.d_day <= 0 ? "D-Day" : `D-${d.d_day}`} tone={d.d_day <= 7 ? "No-Go" : "보류"} /></td>
                   </tr>
                 ))}

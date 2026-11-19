@@ -11,9 +11,10 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from ..agent01_rfp import RFPAnalysisResult
+from ..agent01_rfp import RFPAnalysisResult, classify_joint_clause
 from ..models import RFPFieldCandidate
 from ..money import parse_krw
+from .. import vat
 from ..settings import PROJECT_ROOT
 from .retriever import notice_pdf_chunks, RetrievedEvidence, related_notice_number, search_keyword
 
@@ -144,9 +145,10 @@ def api_eligibility_claims(notice_record: dict[str, Any] | None, rfp_claims: lis
     method = str(notice_record.get("cmmnSpldmdMethdNm") or "").strip()
     if method:
         joint = {field: text for field, text in texts.items() if re.search(r"공동\s*(?:도급|수급|계약)", text)}
-        forbid = re.compile(r"허용하지\s*않|불허|불가|금지|할\s*수\s*없")
-        rfp_forbids = [field for field, text in joint.items() if forbid.search(text)]
-        rfp_allows = [field for field, text in joint.items() if not forbid.search(text) and re.search(r"허용|가능", text)]
+        # 공동수급 중복참여·구성원 제한·하도급 금지는 공동도급 자체 금지가 아니다(M33 classify_joint_clause).
+        labels = {field: classify_joint_clause(text) for field, text in joint.items()}
+        rfp_forbids = [field for field, found in labels.items() if "joint_forbidden" in found]
+        rfp_allows = [field for field, found in labels.items() if "joint_allowed" in found and "joint_forbidden" not in found]
         api_forbids = "불허" in method
         if not joint:
             status, detail = VerificationStatus.HUMAN_REVIEW, f"API 공동수급 방식은 '{method}'이나 RFP 참가자격·공고문에서 공동수급 조항을 찾지 못했습니다."
@@ -481,11 +483,12 @@ class T15Verifier:
                     ))
                     claim.unresolved_questions.append("원문 금액·단위와 추출 숫자를 담당자가 대조해 주세요.")
                 raw = candidate.source_excerpt
-                if re.search(r"부가가치세\s*(?:포함|포함액)|부가세\s*포함|VAT\s*포함", raw, re.I):
+                basis = vat.vat_basis(raw)
+                if basis == "included":
                     vat_state, vat_note = VerificationStatus.CONFIRMED, "원문 발췌에 부가세 포함이 명시되어 있습니다."
-                elif re.search(r"부가가치세\s*(?:별도|제외)|부가세\s*별도|VAT\s*별도", raw, re.I):
+                elif basis == "excluded":
                     vat_state, vat_note = VerificationStatus.CONFIRMED, "원문 발췌에 부가세 별도가 명시되어 있습니다."
-                elif re.search(r"부가가치세|부가세|VAT", raw, re.I):
+                elif vat.mentions_tax(raw):
                     vat_state, vat_note = VerificationStatus.HUMAN_REVIEW, "세금 언급은 있지만 포함/별도 관계가 명확하지 않습니다."
                 else:
                     vat_state, vat_note = VerificationStatus.RETRIEVE_MORE, "현재 금액 발췌에서 VAT 조건을 확인하지 못했습니다."
@@ -510,7 +513,7 @@ class T15Verifier:
                 claim.normalized_value = {
                     "amount_krw": candidate.value,
                     "kind": field,
-                    "vat_status": "included" if "포함" in vat_note else "excluded" if "별도" in vat_note else "unknown",
+                    "vat_status": basis,
                     "scope": scope,
                 }
                 claim.status = _state_for_checks(claim.checks)
@@ -571,10 +574,25 @@ class T15Verifier:
                 except (TypeError, ValueError):
                     continue
                 citations = [_citation(api)]
-                if api_amount in rfp_values:
+                # VAT 포함 표기 금액은 예외처리: 나라장터 필드의 VAT 기준(배정예산=포함, 추정가격=별도)과
+                # RFP 원문 발췌의 VAT 표기를 맞춘 뒤 비교해, 표기 차이만으로 충돌 판정하지 않는다.
+                api_basis = vat.G2B_FIELD_BASIS.get(api_field, "unknown")
+                rfp_items = [
+                    item for item in getattr(rfp.basic_info_candidates, field)
+                    if isinstance(item.value, int) and item.value > 0 and item.invalid_reason is None
+                ]
+                compared = [
+                    (item, *vat.compare(item.value, vat.vat_basis(item.source_excerpt), api_amount, api_basis))
+                    for item in rfp_items
+                ]
+                exact = next((row for row in compared if row[1] == "same"), None)
+                after_vat = next((row for row in compared if row[1] == "same_after_vat"), None)
+                unknown = next((row for row in compared
+                                if row[1] in {"vat_unknown", "basis_mismatch", "same_basis_unknown"}), None)
+                if exact:
                     claims.append(VerifiedClaim(
                         category="amount", field=f"g2b_crosscheck_{field}", claim=api_amount,
-                        normalized_value={"amount_krw": api_amount, "field": api_field},
+                        normalized_value={"amount_krw": api_amount, "field": api_field, "vat_status": api_basis},
                         status=VerificationStatus.CONFIRMED,
                         checks=[VerificationCheck(
                             check_id="notice_crosscheck", label="공고 API 금액 교차 확인",
@@ -583,33 +601,35 @@ class T15Verifier:
                         )], citations=citations,
                         retrieval_queries=[label],
                     ))
-                elif any(
-                    re.search(r"부가가치세\s*(?:별도|제외)|부가세\s*별도|VAT\s*별도", item.source_excerpt, re.I)
-                    and api_amount > item.value
-                    and abs((api_amount - item.value) / item.value - 0.10) < 0.001
-                    for item in getattr(rfp.basic_info_candidates, field)
-                    if isinstance(item.value, int) and item.value > 0 and item.invalid_reason is None
-                ):
-                    base_amount = next(
-                        item.value for item in getattr(rfp.basic_info_candidates, field)
-                        if isinstance(item.value, int) and item.value > 0 and item.invalid_reason is None
-                        and re.search(r"부가가치세\s*(?:별도|제외)|부가세\s*별도|VAT\s*별도", item.source_excerpt, re.I)
-                        and api_amount > item.value
-                        and abs((api_amount - item.value) / item.value - 0.10) < 0.001
-                    )
+                elif after_vat:
+                    base_item, _, detail = after_vat
+                    claims.append(VerifiedClaim(
+                        category="amount", field=f"g2b_crosscheck_{field}", claim=api_amount,
+                        normalized_value={"amount_krw": api_amount, "field": api_field, "vat_status": api_basis,
+                                          "rfp_amount_krw": base_item.value,
+                                          "rfp_vat_status": vat.vat_basis(base_item.source_excerpt)},
+                        status=VerificationStatus.CONFIRMED,
+                        checks=[VerificationCheck(
+                            check_id="notice_crosscheck_vat_basis", label="공고/RFP VAT 기준 교차 확인",
+                            status=VerificationStatus.CONFIRMED,
+                            detail=f"나라장터 {label}({vat.BASIS_LABELS[api_basis]}) 대조: {detail}",
+                        )], citations=citations,
+                        retrieval_queries=[label],
+                    ))
+                elif unknown:
+                    base_item, _, detail = unknown
                     claims.append(VerifiedClaim(
                         category="amount", field=f"g2b_crosscheck_{field}", claim=api_amount,
                         normalized_value={"amount_krw": api_amount, "field": api_field,
-                                          "possible_vat_exclusive_base_krw": base_amount},
+                                          "possible_vat_exclusive_base_krw": min(base_item.value, api_amount)},
                         status=VerificationStatus.HUMAN_REVIEW,
                         checks=[VerificationCheck(
                             check_id="notice_crosscheck_vat_basis", label="공고/RFP VAT 기준 교차 확인",
                             status=VerificationStatus.HUMAN_REVIEW,
-                            detail=(f"RFP의 VAT 별도 금액 {base_amount:,}원과 나라장터 {label} "
-                                    f"{api_amount:,}원의 차이는 약 10%입니다. 두 필드의 VAT 산정 기준과 적용 세율을 원문으로 확인해야 합니다."),
+                            detail=f"나라장터 {label}({vat.BASIS_LABELS[api_basis]}) 대조: {detail}",
                         )], citations=citations,
-                        unresolved_questions=["공고 배정예산이 VAT 포함 기준인지, RFP 금액에 어떤 세율이 적용되는지 확인해 주세요."],
-                        retrieval_queries=[label, "부가가치세 별도"],
+                        unresolved_questions=["RFP 금액과 공고 금액의 VAT 포함/별도 기준을 원문에서 확인해 주세요."],
+                        retrieval_queries=[label, "부가가치세 별도", "부가가치세 포함"],
                     ))
                 else:
                     claims.append(VerifiedClaim(
@@ -619,7 +639,8 @@ class T15Verifier:
                         checks=[VerificationCheck(
                             check_id="notice_crosscheck", label="공고 API 금액 교차 확인",
                             status=VerificationStatus.CONFLICT,
-                            detail=f"RFP 후보 {sorted(rfp_values)}와 나라장터 {label} {api_amount:,}원이 다릅니다.",
+                            detail=(f"RFP 후보 {sorted(rfp_values)}와 나라장터 {label} {api_amount:,}원"
+                                    f"({vat.BASIS_LABELS[api_basis]})이 VAT 기준을 맞춰도 다릅니다."),
                         )], citations=citations,
                         unresolved_questions=["공고와 RFP의 금액 종류, 정정 여부, VAT 조건을 담당자가 비교해 주세요."],
                         retrieval_queries=[label],

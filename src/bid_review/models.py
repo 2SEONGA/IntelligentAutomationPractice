@@ -117,6 +117,13 @@ class PageAnalysis(BaseModel):
     table_count: int = Field(default=0, ge=0)
     ocr_required: bool = False
     ocr_reason: str | None = None
+    # OCR 텍스트를 이 페이지의 추출 텍스트로 채택했는지(기존 텍스트보다 나을 때만).
+    ocr_applied: bool = False
+    # OCR 실행 기록(M33): 시도 여부, 엔진이 텍스트를 돌려줬는지, 채택/미채택 사유, 실행 시간.
+    ocr_attempted: bool = False
+    ocr_succeeded: bool = False
+    ocr_decision: str | None = None
+    ocr_seconds: float = 0.0
 
 
 class RFPQualityIssue(BaseModel):

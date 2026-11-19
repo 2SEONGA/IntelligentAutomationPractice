@@ -114,7 +114,12 @@ export type NoticeVerdict = "검토 대상" | "확인 필요" | "제외";
 export type Notice = {
   id: string; bidNtceNm: string; dminsttNm: string; ntceInsttNm: string; cntrctCnclsMthdNm: string; bidClseDt: string;
   bidNtceDtlUrl: string; verdict: NoticeVerdict;
-  judged: { verdict: NoticeVerdict; reasons: string[]; amount_krw: number | null; deadline: string | null; criteria_set?: string };
+  judged: {
+    verdict: NoticeVerdict; reasons: string[]; amount_krw: number | null; deadline: string | null; criteria_set?: string;
+    // M33: 40억 선별 기준과 같은 VAT 기준으로 환산한 금액(없으면 예전 판정 → amount_krw 사용)과 원금액의 출처·VAT 기준
+    amount_basis_krw?: number | null; amount_vat_basis?: string; amount_source_field?: string | null;
+    amount_criterion_basis?: string;
+  };
   attachments: { name: string; url: string; kind: "notice" | "rfp" | "pdf" | "other" }[];
   review: { include: boolean; reason: string; role: string; at: string } | null;
   case_folder: string | null; run_id: string | null;
@@ -143,7 +148,7 @@ export type Dashboard = {
   distribution: Record<"Go" | "조건부 Go" | "보류" | "No-Go", number>;
   agreement: { matched: number; total: number };
   pending: Case[];
-  deadlines: { name: string; agency: string; amount_krw: number | null; deadline: string; d_day: number; case_folder: string | null }[];
+  deadlines: { name: string; agency: string; amount_krw: number | null; amount_basis_krw?: number | null; deadline: string; d_day: number; case_folder: string | null }[];
 };
 export type Approvals = { pending: Case[]; supplement: Case[]; all: Case[] };
 export type Decisions = { counts: Record<"Go" | "보류" | "No-Go", number>; items: Case[] };

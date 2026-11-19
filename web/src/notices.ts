@@ -22,6 +22,16 @@ export function startNotes(info: StartInfo): string[] {
   return notes;
 }
 
+/** VAT basis of the amount threshold (config/notice_filter.yaml min_amount_vat_basis), shown next to "40억". */
+export function vatBasisLabel(basis: unknown): string {
+  return basis === "included" ? "VAT 포함" : basis === "excluded" ? "VAT 별도" : "VAT 기준 확인 필요";
+}
+
+/** "40억 이상 (VAT 포함)": the threshold always names its VAT basis so 포함/별도 amounts are not mixed. */
+export function amountRule(eokText: string, basis: unknown, side: "이상" | "미만" = "이상"): string {
+  return `${eokText} ${side} (${vatBasisLabel(basis)})`;
+}
+
 /** "마감 임박(2026-10-28)" → ["마감 임박", "(2026-10-28)"], "제한경쟁 — 공고문 원문 확인" → ["제한경쟁", "— 공고문 원문 확인"]. */
 export function splitReason(reason: string): [string] | [string, string] {
   const dash = reason.indexOf(" — ");
@@ -32,11 +42,27 @@ export function splitReason(reason: string): [string] | [string, string] {
 }
 
 export type NoticeSort = "deadline" | "amount";
-type Findable = { bidNtceNm: string; dminsttNm: string; ntceInsttNm: string; judged: { amount_krw: number | null; deadline: string | null } };
+type Judged = { amount_krw: number | null; amount_basis_krw?: number | null; amount_vat_basis?: string;
+  amount_source_field?: string | null; amount_criterion_basis?: string; deadline: string | null };
+type Findable = { bidNtceNm: string; dminsttNm: string; ntceInsttNm: string; judged: Judged };
+
+/** The amount the 40억 rule actually compared (VAT-normalised); older verdicts without it fall back to the raw amount. */
+export function basisAmount(judged: Judged): number | null {
+  return judged.amount_basis_krw ?? judged.amount_krw ?? null;
+}
+
+/** Caption under the amount when the raw API amount differs from the compared one, e.g. "추정가격 37억 VAT 별도". */
+export function rawAmountNote(judged: Judged, eokText: (n: number) => string): string | null {
+  if (judged.amount_krw == null) return null;
+  const label = judged.amount_source_field === "presmptPrce" ? "추정가격" : "배정예산";
+  if (judged.amount_basis_krw == null && judged.amount_vat_basis === "unknown") return `${label} ${eokText(judged.amount_krw)} · VAT 기준 확인 필요`;
+  if (judged.amount_basis_krw == null || judged.amount_basis_krw === judged.amount_krw) return null;
+  return `${label} ${eokText(judged.amount_krw)} ${vatBasisLabel(judged.amount_vat_basis)} 환산`;
+}
 
 /** Search by title or agency (case/space-insensitive), then sort; notices missing the sort value go last. */
 export function findNotices<T extends Findable>(rows: T[], query: string, sort: NoticeSort): T[] {
   const hits = rows.filter((n) => textMatch(query, n.bidNtceNm, n.dminsttNm, n.ntceInsttNm));
-  const key = (n: T) => (sort === "amount" ? -(n.judged.amount_krw ?? -Infinity) : n.judged.deadline ?? "9999");
+  const key = (n: T) => (sort === "amount" ? -(basisAmount(n.judged) ?? -Infinity) : n.judged.deadline ?? "9999");
   return [...hits].sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));
 }
