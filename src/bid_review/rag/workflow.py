@@ -19,6 +19,7 @@ from ..web.notices import NoticeError, compare_notice_pdf_bytes, fetch_notice_by
 from .company_retriever import (
     administrative_clause, clean_requirement_query, company_record_metadata, company_semantic_scores, search_company_evidence,
 )
+from .evidence_selection import evidence_queries, select_evidence_candidates
 from .past_projects import project_profile, search_similar_projects
 from .semantic import MIN_SCORE, SemanticUnavailable, search_semantic
 
@@ -146,7 +147,7 @@ def create_bid_review_graph():
         for category in verification.categories.values():
             for claim in category.claims:
                 if claim.status == VerificationStatus.RETRIEVE_MORE:
-                    queries.extend(claim.retrieval_queries)
+                    queries.extend(evidence_queries(claim))
         seen: set[str] = set()
         semantic_status, semantic_note = "not_needed", ""
         results: list[RetrievedEvidence] = []
@@ -201,32 +202,45 @@ def create_bid_review_graph():
                 if claim.status != VerificationStatus.RETRIEVE_MORE:
                     continue
                 matches: list[dict[str, Any]] = []
-                for query in claim.retrieval_queries:
+                for query in evidence_queries(claim):
                     matches.extend(by_query.get(query.strip().casefold(), []))
                 if not matches:
                     continue
-                evidence = matches[0]
-                meta = evidence["metadata"]
-                claim.citations.append(EvidenceCitation(
-                    chunk_id=evidence["chunk_id"],
-                    document_title=meta.get("document_title", ""),
-                    document_type=meta.get("document_type", "unknown"),
-                    page=meta.get("page"), section=meta.get("section", ""),
-                    quote=evidence["text"], source_path=meta.get("source_path"),
-                    source_url=(meta.get("notice_url") or
-                                (meta.get("source_url") if meta.get("document_type") != "g2b_notice_metadata" else None)),
-                    api_source_url=(meta.get("source_url")
-                                    if meta.get("document_type") == "g2b_notice_metadata" else None),
-                    notice_no=meta.get("related_notice_no"),
-                    notice_order=meta.get("related_notice_order"),
-                    field_name=meta.get("field_name"),
-                ))
+                selected = select_evidence_candidates(claim, matches)
+                if not selected:
+                    continue
+                selection_notes: list[str] = []
+                existing_ids = {citation.chunk_id for citation in claim.citations}
+                for candidate in selected:
+                    evidence = candidate.evidence
+                    meta = evidence["metadata"]
+                    selection_notes.append(f"{evidence['chunk_id']}: {candidate.reason}" +
+                                           (f"; 의미 검색 유사도 {meta['semantic_score']:.2f}"
+                                            if "semantic_score" in meta else ""))
+                    if evidence["chunk_id"] in existing_ids:
+                        continue
+                    existing_ids.add(evidence["chunk_id"])
+                    claim.citations.append(EvidenceCitation(
+                        chunk_id=evidence["chunk_id"],
+                        document_title=meta.get("document_title", ""),
+                        document_type=meta.get("document_type", "unknown"),
+                        page=meta.get("page"), section=meta.get("section", ""),
+                        quote=evidence["text"], source_path=meta.get("source_path"),
+                        source_url=(meta.get("notice_url") or
+                                    (meta.get("source_url") if meta.get("document_type") != "g2b_notice_metadata" else None)),
+                        api_source_url=(meta.get("source_url")
+                                        if meta.get("document_type") == "g2b_notice_metadata" else None),
+                        notice_no=meta.get("related_notice_no"),
+                        notice_order=meta.get("related_notice_order"),
+                        field_name=meta.get("field_name"),
+                    ))
                 claim.checks.append(VerificationCheck(
-                    check_id="targeted_retrieval_hit", label="추가 검색 근거 발견",
+                    check_id="targeted_retrieval_hit", label="추가 검색 근거 후보 비교",
                     status=VerificationStatus.HUMAN_REVIEW,
-                    detail=(f"의미 검색(유사도 {meta['semantic_score']:.2f})으로 찾은 후보입니다. 원문 표현이 달라 키워드로는 찾지 못했으므로 "
-                            "관련 여부와 T1 값 반영을 사람이 확인해야 합니다." if "semantic_score" in meta else
-                            "추가 검색에서 관련 근거 후보를 찾았으나 이 문구를 T1 값으로 구조화할지 사람이 확인해야 합니다."),
+                    detail=(f"추가 검색 후보를 중복 제거하고 항목·값·조건을 비교해 {len(selected)}건을 선택했습니다. "
+                            + " | ".join(selection_notes) +
+                            " 선택은 관련성에 대한 규칙 기반 보조 결과이며 사실 확정이 아닙니다. "
+                            "원문 문맥·상충하는 값·예외 및 T1 반영 여부를 사람이 확인해야 합니다."),
                 ))
                 claim.unresolved_questions.append("검색된 원문 후보에서 항목명·값·예외를 확인하고 T1 후보로 반영할지 검토해 주세요.")
                 claim.status = VerificationStatus.HUMAN_REVIEW
