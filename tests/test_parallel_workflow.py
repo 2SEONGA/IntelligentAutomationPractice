@@ -64,6 +64,31 @@ class HistoryMergeTests(unittest.TestCase):
             self.assertTrue(summary["decision_ready"])
             self.assertIsNone(summary["averages_for_valid_pairs"]["parallel"]["embedding_total_tokens"])
             self.assertTrue((Path(temp) / "comparison" / "summary.json").is_file())
+            # 고정 승인: 두 모드 모두 같은 승인 인자를 받고, 결과에 벤치마크 승인임을 남긴다
+            calls = []
+
+            def recording_run(*args, **kwargs):
+                calls.append(kwargs)
+                return fake_run()
+            with patch.dict(sys.modules, {"bid_review.rag.workflow": SimpleNamespace(run_bid_review=recording_run)}):
+                approved = module.compare(cases, Path(temp) / "approved", repeats=1, approve_note="벤치마크용 승인")
+            self.assertTrue(all(c["review_decision"] == "approved" and c["review_note"] == "벤치마크용 승인"
+                                and c["reviewer"] == "benchmark" for c in calls))
+            self.assertEqual({c["workflow_mode"] for c in calls}, {"sequential", "parallel"})
+            self.assertEqual(approved["metadata"]["benchmark_approval"], "벤치마크용 승인")
+            self.assertIn("post_t15_median_seconds", approved["averages_for_valid_pairs"]["parallel"])
+            # 실행 시각·미세한 임베딩 점수 차는 같은 결과, 판정이나 큰 점수 차는 다른 결과
+            base = {"capability": {"m": [{"semantic_score": 0.4391, "id": "r1"}]},
+                    "market": {"similar_projects": [{"checked_at": "t1", "similarity": 0.78}]}}
+            near = {"capability": {"m": [{"semantic_score": 0.4390, "id": "r1"}]},
+                    "market": {"similar_projects": [{"checked_at": "t2", "similarity": 0.7801}]}}
+            self.assertEqual(module.result_difference(base, near)[0], [])
+            far = {**near, "capability": {"m": [{"semantic_score": 0.45, "id": "r1"}]}}
+            self.assertEqual(module.result_difference(base, far)[0], ["capability"])
+            other = {**near, "capability": {"m": [{"semantic_score": 0.4391, "id": "r2"}]}}
+            self.assertEqual(module.result_difference(base, other)[0], ["capability"])
+            with self.assertRaisesRegex(ValueError, "비어"):
+                module.compare(cases, Path(temp) / "blank", approve_note=" ")
 
 
 @unittest.skipUnless(importlib.util.find_spec("langgraph") is not None, "프로젝트 .venv에서 그래프 테스트 실행")

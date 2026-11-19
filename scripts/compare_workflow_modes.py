@@ -6,13 +6,47 @@ from hashlib import sha256
 import json
 import os
 from pathlib import Path
-from statistics import mean
+from statistics import mean, median
 from time import perf_counter
 
 from bid_review.rag.usage_tracking import collect_embedding_usage
 
+# T1.5 이후 분기 전 Node. 두 모드에서 똑같이 순차 실행되므로, 전체 시간에서 빼면 T2·T3 이후 구간 시간이 된다.
+PRE_FORK_NODES = {"t1_extract", "g2b_notice_lookup", "t15_verify", "t15_route", "targeted_retrieval",
+                  "t15_reverify", "t1_reanalyze", "human_review"}
 RESULT_KEYS = ("capability", "similar_projects", "similar_projects_status",
                "agent23_evaluation", "market", "report", "report_details", "report_validation")
+
+
+# 실행 시각은 비교에서 뺀다. 임베딩 점수는 OpenAI API가 같은 입력에도 소수 넷째 자리에서 흔들려
+# (같은 모드끼리 반복해도 다름, 2026-11-20 실측) 이 허용치 안이면 같은 결과로 본다. 그 밖의 값은 정확히 같아야 한다.
+VOLATILE_KEYS = {"checked_at"}
+SCORE_TOLERANCE = 0.002
+
+
+def _normalize(value, scores: list, key: str = ""):
+    """비교용 사본: 실행 시각 제거, 점수는 따로 모으고 자리표시자로 바꾼다."""
+    if isinstance(value, dict):
+        return {k: _normalize(v, scores, k) for k, v in value.items() if k not in VOLATILE_KEYS}
+    if isinstance(value, list):
+        return [_normalize(v, scores, key) for v in value]
+    if isinstance(value, float) and ("score" in key or "similarity" in key):
+        scores.append(value)
+        return "<score>"
+    return value
+
+
+def result_difference(left: dict, right: dict) -> tuple[list[str], float]:
+    """(다른 결과 키, 최대 점수 차). 점수 차가 허용치를 넘으면 그 키도 다른 것으로 본다."""
+    different, worst = [], 0.0
+    for key in RESULT_KEYS:
+        ls, rs = [], []
+        a, b = _normalize(left.get(key), ls), _normalize(right.get(key), rs)
+        delta = max((abs(x - y) for x, y in zip(ls, rs)), default=0.0)
+        worst = max(worst, delta)
+        if a != b or len(ls) != len(rs) or delta > SCORE_TOLERANCE:
+            different.append(key)
+    return different, round(worst, 6)
 
 
 def _write(path: Path, value) -> None:
@@ -29,7 +63,8 @@ def _fingerprint(path: str | None) -> dict | None:
     return {"path": str(resolved), "sha256": sha256(resolved.read_bytes()).hexdigest()}
 
 
-def _round(case: dict, mode: str, case_dir: Path, repeat: int, fingerprints: dict) -> dict:
+def _round(case: dict, mode: str, case_dir: Path, repeat: int, fingerprints: dict,
+           approve_note: str | None = None) -> dict:
     from bid_review.rag.workflow import run_bid_review
     folder = case_dir / f"repeat_{repeat:02d}" / mode
     with collect_embedding_usage() as usage:
@@ -37,7 +72,10 @@ def _round(case: dict, mode: str, case_dir: Path, repeat: int, fingerprints: dic
         try:
             state = run_bid_review(case["rfp"], case.get("company"), case.get("notice_no"),
                                    case.get("retrieval_limit", 2), notice_order=case.get("notice_order"),
-                                   notice_pdf_path=case.get("notice_pdf"), workflow_mode=mode)
+                                   notice_pdf_path=case.get("notice_pdf"), workflow_mode=mode,
+                                   # 담당자 검토에서 멈추는 실제 공고도 T2·T3까지 가도록 두 모드에 같은 고정 승인을 넣는다.
+                                   **({"review_decision": "approved", "review_note": approve_note,
+                                       "reviewer": "benchmark"} if approve_note else {}))
             error = None
         except Exception as exc:
             state = {}
@@ -52,6 +90,9 @@ def _round(case: dict, mode: str, case_dir: Path, repeat: int, fingerprints: dic
                    "token_scope": "OpenAI 임베딩 API 응답에 포함된 사용량만 측정; 미측정 요청은 별도 표시",
                    "node_seconds": [{"node": event["node"], "duration_seconds": event.get("duration_seconds")}
                                     for event in events],
+                   "post_t15_seconds": round(elapsed - sum(event.get("duration_seconds") or 0 for event in events
+                                                           if event["node"] in PRE_FORK_NODES), 6),
+                   "benchmark_approval": approve_note,
                    "t23_reached": any(event["node"] == "t23_evaluate" for event in events),
                    "t4_validated": any(event["node"] == "t4_validate" for event in events),
                    "validation_status": (state.get("report_validation") or {}).get("status"),
@@ -60,7 +101,7 @@ def _round(case: dict, mode: str, case_dir: Path, repeat: int, fingerprints: dic
     return {"measurement": measurement, "state": state}
 
 
-def compare(cases: list[dict], output: Path, repeats: int = 2) -> dict:
+def compare(cases: list[dict], output: Path, repeats: int = 2, approve_note: str | None = None) -> dict:
     if len(cases) < 5 or len({case.get("id") for case in cases}) != len(cases):
         raise ValueError("서로 다른 id를 가진 사례가 최소 5건 필요합니다.")
     if repeats < 1:
@@ -69,7 +110,10 @@ def compare(cases: list[dict], output: Path, repeats: int = 2) -> dict:
     if output.exists() and any(output.iterdir()):
         raise FileExistsError(f"빈 출력 폴더를 지정하세요: {output}")
     pairs = []
-    metadata = {"model": os.getenv("MODEL", "openai/gpt-4.1-mini"), "repeats": repeats, "cases": []}
+    if approve_note is not None and not approve_note.strip():
+        raise ValueError("고정 승인 사유가 비어 있습니다.")
+    metadata = {"model": os.getenv("MODEL", "openai/gpt-4.1-mini"), "repeats": repeats, "cases": [],
+                "benchmark_approval": approve_note}
     for index, case in enumerate(cases):
         if not isinstance(case.get("id"), str) or not case["id"].strip() or "rfp" not in case:
             raise ValueError("각 사례에 id와 rfp가 필요합니다.")
@@ -79,7 +123,7 @@ def compare(cases: list[dict], output: Path, repeats: int = 2) -> dict:
         for repeat in range(1, repeats + 1):
             # Alternate order to reduce warm-cache and temporal order bias.
             order = ("sequential", "parallel") if (index + repeat) % 2 else ("parallel", "sequential")
-            runs = {mode: _round(case, mode, output / f"case_{index + 1:02d}", repeat, fingerprints)
+            runs = {mode: _round(case, mode, output / f"case_{index + 1:02d}", repeat, fingerprints, approve_note)
                     for mode in order}
             left, right = runs["sequential"], runs["parallel"]
             lm, rm = left["measurement"], right["measurement"]
@@ -88,13 +132,15 @@ def compare(cases: list[dict], output: Path, repeats: int = 2) -> dict:
                      and lm["validation_status"] in {"passed", "needs_review"}
                      and rm["validation_status"] in {"passed", "needs_review"}
                      and not any(lm["input_changed"].values()) and not any(rm["input_changed"].values()))
-            differences = [key for key in RESULT_KEYS if left["state"].get(key) != right["state"].get(key)] if valid else []
+            differences, score_delta = result_difference(left["state"], right["state"]) if valid else ([], 0.0)
             pairs.append({"case_id": case["id"], "repeat": repeat, "comparison_valid": valid,
                           "result_equivalent": valid and not differences and lm["decision"] == rm["decision"],
-                          "different_fields": differences, "sequential": lm, "parallel": rm})
+                          "different_fields": differences, "max_score_delta": score_delta,
+                          "sequential": lm, "parallel": rm})
             _write(output / "pairs.json", pairs)
     valid_pairs = [pair for pair in pairs if pair["comparison_valid"]]
     averages = {mode: {"elapsed_seconds": mean(pair[mode]["elapsed_seconds"] for pair in valid_pairs),
+                       "post_t15_median_seconds": median(pair[mode]["post_t15_seconds"] for pair in valid_pairs),
                         "embedding_total_tokens": (mean(pair[mode]["embedding_usage"]["total_tokens"]
                                                        for pair in valid_pairs)
                                                    if all(pair[mode]["embedding_usage"]["requests_with_usage"] > 0
@@ -116,8 +162,9 @@ def main() -> None:
     parser.add_argument("--cases", required=True, type=Path, help="최소 5개 사례를 담은 JSON 배열")
     parser.add_argument("--output", required=True, type=Path, help="비어 있는 새 결과 폴더")
     parser.add_argument("--repeats", type=int, default=2)
+    parser.add_argument("--approve-note", help="담당자 검토에서 멈추는 사례를 이 사유로 고정 승인해 T2·T3까지 진행(벤치마크 전용, 결과에 기록)")
     args = parser.parse_args()
-    summary = compare(json.loads(args.cases.read_text(encoding="utf-8")), args.output, args.repeats)
+    summary = compare(json.loads(args.cases.read_text(encoding="utf-8")), args.output, args.repeats, args.approve_note)
     print(f"유효 비교: {summary['valid_case_count']}건 / {summary['valid_pair_count']}쌍")
     print(f"결과 동일: {summary['all_valid_results_equivalent']}, 선택 판단 준비: {summary['decision_ready']}")
     print(f"비교 결과: {args.output.resolve() / 'summary.json'}")
