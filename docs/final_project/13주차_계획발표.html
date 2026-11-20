@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>13주차 계획 발표</title>
+<style>
+@page { size: 1280px 720px; margin: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root { --ink:#111111; --sub:#555b66; --line:#e3e5e9; --band:#f1f2f4; --blue:#2f5be0; --tint:#eef2fd; --pg:#c4c7cc; }
+body { font-family:"Pretendard","Pretendard Variable","Apple SD Gothic Neo",sans-serif; color:var(--ink); background:#fff; -webkit-print-color-adjust:exact; print-color-adjust:exact; letter-spacing:-0.01em; }
+.slide { width:1280px; height:720px; padding:36px 66px 0; position:relative; page-break-after:always; overflow:hidden; display:flex; flex-direction:column; }
+.slide:last-child { page-break-after:auto; }
+.slide::after { content:""; position:absolute; left:66px; right:66px; bottom:52px; border-top:1px solid var(--line); }
+.no { position:absolute; right:66px; bottom:22px; font-size:12px; color:var(--pg); }
+.kicker { font-size:15px; color:var(--blue); margin-bottom:24px; }
+h2 { font-size:38px; font-weight:800; letter-spacing:-0.02em; margin-bottom:26px; }
+p, li { font-size:16px; line-height:1.6; }
+ul { padding-left:18px; }
+li { margin-bottom:6px; }
+b { font-weight:700; }
+.blue { color:var(--blue); }
+.sub { color:var(--sub); }
+.lead { font-size:17px; font-weight:700; margin-bottom:6px; }
+.grid2 { display:grid; grid-template-columns:1fr 1fr; gap:40px; }
+.grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+.card { border:1px solid var(--line); border-radius:14px; padding:20px 22px; box-shadow:0 2px 8px rgba(0,0,0,.05); }
+.card h3 { font-size:18px; font-weight:700; margin-bottom:8px; }
+.card p, .card li { font-size:15px; }
+.card.hl { border-color:var(--blue); background:var(--tint); box-shadow:none; }
+.tag { display:inline-block; font-size:12px; font-weight:700; padding:3px 10px; border-radius:99px; background:var(--blue); color:#fff; margin-bottom:10px; }
+.tag.gray { background:#8a909a; }
+table { border-collapse:collapse; width:100%; font-size:15px; }
+th { background:var(--band); font-weight:700; text-align:left; padding:8px 12px; font-size:14px; }
+td { border-bottom:1px solid var(--line); padding:9px 12px; vertical-align:top; line-height:1.45; }
+.flow { display:flex; align-items:stretch; gap:8px; margin-bottom:24px; }
+.node { flex:1; border:1px solid var(--line); border-radius:12px; padding:13px 10px; text-align:center; font-size:14px; line-height:1.45; display:flex; flex-direction:column; justify-content:center; color:var(--sub); }
+.node b { font-size:16px; color:var(--ink); display:block; margin-bottom:2px; }
+.node.rag { border:2px solid var(--blue); background:var(--tint); }
+.node.rag b { color:var(--blue); }
+.arrow { align-self:center; color:#9aa0a8; font-size:18px; }
+.bar { height:26px; background:var(--blue); border-radius:5px; display:flex; align-items:center; padding-left:10px; color:#fff; font-weight:700; font-size:14px; }
+.barrow { display:grid; grid-template-columns:150px 1fr; align-items:center; gap:10px; margin-bottom:10px; font-size:14px; }
+.quote { border-left:3px solid var(--blue); padding:8px 14px; background:var(--band); font-size:15px; line-height:1.55; margin-top:12px; }
+/* cover */
+.cover { padding-top:60px; }
+.cover h1 { font-size:40px; font-weight:800; letter-spacing:-0.02em; line-height:1.2; }
+.cover .s1 { font-size:19px; margin-top:6px; }
+.cover .meta { font-size:15px; line-height:1.7; margin-top:22px; }
+.cover .circle { position:absolute; right:66px; top:140px; width:52px; height:52px; border:1.5px solid #d4d7dc; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#9aa0a8; font-size:22px; }
+.cover .panel { margin-top:22px; flex:0 0 330px; background:var(--blue); border-radius:14px; display:flex; align-items:center; justify-content:center; }
+.cover::after { display:none; }
+/* overview */
+.ov { display:grid; grid-template-columns:1fr 1fr; column-gap:40px; margin-top:20px; }
+.ov div { display:flex; gap:26px; align-items:center; border-bottom:1px solid var(--line); padding:30px 0; font-size:21px; font-weight:700; }
+.ov span { color:var(--blue); font-size:24px; font-weight:800; width:34px; }
+.ms { display:grid; grid-template-columns:repeat(3,1fr); gap:22px; }
+.ms .card { padding:22px 22px 26px; }
+.ms .card h3 { font-size:19px; margin-bottom:10px; }
+.ms .card p { font-size:15.5px; line-height:1.65; }
+</style>
+</head>
+<body>
+
+<!-- 1 cover -->
+<section class="slide cover">
+  <h1>RAG + LangGraph 기반<br>공공 SI 입찰 핵심정보 검증 Agent</h1>
+  <p class="s1">근거가 확인된 정보만 입찰 분석으로 전달하는 T1.5 검증 흐름</p>
+  <p class="meta">2026-2 지능형자동화실습 기말 프로젝트 · 13주차 계획 발표<br>융경즈 : 송하연, 이성아, 이주안, 인진은, 전다현 · 구현 기준 2026-11-20 (M1–M39)</p>
+  <div class="circle">→</div>
+  <div class="panel">
+    <svg width="230" height="230" viewBox="0 0 230 230" fill="none" stroke="#dfe6fb" stroke-width="7" stroke-linecap="round">
+      <rect x="65" y="65" width="100" height="100" rx="14"/>
+      <rect x="80" y="80" width="70" height="70" rx="8" fill="#dfe6fb" stroke="none"/>
+      <text x="115" y="131" text-anchor="middle" font-family="Pretendard,sans-serif" font-weight="800" font-size="40" fill="#2f5be0" stroke="none">AI</text>
+      <path d="M115 65V30M95 65V45L80 30M135 65V45L150 30M115 165v35M95 165v20l-15 15M135 165v20l15 15M65 115H30M65 95H45L30 80M65 135H45l-15 15M165 115h35M165 95h20l15-15M165 135h20l15 15"/>
+      <g fill="#2f5be0"><circle cx="115" cy="22" r="8"/><circle cx="74" cy="24" r="8"/><circle cx="156" cy="24" r="8"/><circle cx="115" cy="208" r="8"/><circle cx="74" cy="206" r="8"/><circle cx="156" cy="206" r="8"/><circle cx="22" cy="115" r="8"/><circle cx="24" cy="74" r="8"/><circle cx="24" cy="156" r="8"/><circle cx="208" cy="115" r="8"/><circle cx="206" cy="74" r="8"/><circle cx="206" cy="156" r="8"/></g>
+    </svg>
+  </div>
+</section>
+
+<!-- 2 overview -->
+<section class="slide">
+  <div class="kicker">Overview</div>
+  <div class="ov">
+    <div><span>01</span>해결할 업무 문제</div>
+    <div><span>05</span>실제 공고로 끝까지 실행한 결과</div>
+    <div><span>02</span>제안: T1.5 핵심정보 검증</div>
+    <div><span>06</span>회의 보완사항과 팀 개선 결과</div>
+    <div><span>03</span>데이터와 RAG 검색</div>
+    <div><span>07</span>측정으로 내린 결정</div>
+    <div><span>04</span>LangGraph Workflow와 웹 일원화</div>
+    <div><span>08</span>진행 현황과 남은 계획</div>
+  </div>
+  <div class="no">02</div>
+</section>
+
+<!-- 3 problem -->
+<section class="slide">
+  <div class="kicker">Problem</div>
+  <h2>핵심정보가 틀리면 입찰 판단까지 틀린다</h2>
+  <div class="grid2">
+    <div>
+      <p class="lead">업무 범위</p>
+      <table>
+        <tr><th style="width:110px">시작</th><td>나라장터 공고 + RFP·공고문 확보</td></tr>
+        <tr><th>주요 작업</th><td>핵심정보 추출 → <b class="blue">근거 검증</b> → 회사 역량·유사 사업 분석 → 보고서</td></tr>
+        <tr><th>종료</th><td>근거가 확인된 보고서, 또는 담당자 확인 요청<br><span class="sub">최종 Go/No-Go는 사업본부장</span></td></tr>
+      </table>
+      <p class="lead" style="margin-top:20px">검증 대상 3개 범주</p>
+      <ul>
+        <li><b>사업금액</b> — 예산/추정가격, VAT 포함·별도, 총액/연차</li>
+        <li><b>참가자격</b> — 주체·요건·제한·공동수급·예외</li>
+        <li><b>기간·기한</b> — 수행기간, 제안서/입찰 마감, 일정 종류</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="tag gray">기존 시스템 (3~5주차)에서 확인한 오류</span>
+      <table style="margin-top:4px">
+        <tr><th>사업</th><th>원문 금액</th><th>개선 전</th></tr>
+        <tr><td>통합정보시스템</td><td>3억 원</td><td>10억 원 이상으로 오인</td></tr>
+        <tr><td>AI 영상 상수도관</td><td>1억 700만 원</td><td>금액 누락</td></tr>
+        <tr><td>의료 CDW</td><td>10억 7,050만 원</td><td>금액 누락</td></tr>
+      </table>
+      <div class="quote">추출 오류가 그대로 다음 단계로 전파 → 규모 기준·권고가 왜곡됨.<br>정답 문구를 프롬프트에 넣는 방식은 새 RFP에 쓸 수 없음.</div>
+    </div>
+  </div>
+  <div class="no">03</div>
+</section>
+
+<!-- 4 proposal -->
+<section class="slide">
+  <div class="kicker">Proposal</div>
+  <h2>T1과 후속 분석 사이에 T1.5 검증을 둔다</h2>
+  <div class="flow">
+    <div class="node"><b>T1</b>RFP·공고문 추출<br>(규칙 기반)</div>
+    <div class="arrow">→</div>
+    <div class="node rag"><b>T1.5 검증</b>원문 RAG 근거 + 나라장터 API 대조</div>
+    <div class="arrow">→</div>
+    <div class="node"><b>confirmed</b>후속 분석 진행</div>
+    <div class="arrow">→</div>
+    <div class="node"><b>부족 · 충돌</b>추가 검색 또는<br>담당자 검토 (중단·재개)</div>
+  </div>
+  <div class="grid3">
+    <div class="card"><span class="tag">금액</span><h3>원문 인용 + 단위 재계산</h3><p>VAT 조건, 총액/연차 범위, 나라장터 배정예산·추정가격과 VAT 환산 비교. 표기 차이(별도↔포함)는 충돌로 보지 않음</p></div>
+    <div class="card"><span class="tag">참가자격</span><h3>조건별 구조화 + API 대조</h3><p>업종(면허) 제한·공동수급 방식을 RFP·공고문 근거와 나라장터 값으로 교차 확인. 공동도급 금지 우선 확인</p></div>
+    <div class="card"><span class="tag">기간·기한</span><h3>날짜 정규화 + 일정 종류 구분</h3><p>제안서 마감과 입찰 마감(bidClseDt)을 같은 일정으로 보지 않음. 문서 간 계약기간 충돌 표시</p></div>
+  </div>
+  <div class="quote" style="margin-top:18px">원칙 — <b>근거(문서·페이지·인용문) 없는 값은 T2·T3·T4로 넘기지 않는다.</b> 승인은 "후속 분석 진행"이지 자격 충족·Go 확정이 아니다.</div>
+  <div class="no">04</div>
+</section>
+
+<!-- 5 data & rag -->
+<section class="slide">
+  <div class="kicker">Data &amp; RAG</div>
+  <h2>실제 데이터(Level A)와 3곳의 RAG</h2>
+  <div class="grid2">
+    <div>
+      <table>
+        <tr><th>데이터</th><th style="width:170px">규모</th></tr>
+        <tr><td>RFP 3건 + 공고문 PDF (원본, 나라장터 첨부와 SHA-256 일치)</td><td>청크 <b>399</b> (스키마 v2)</td></tr>
+        <tr><td>나라장터 공고·첨부·변경이력 API</td><td>공고별 실시간 조회</td></tr>
+        <tr><td>㈜아이티센엔텍 공개 근거 자료</td><td>11건 / 8개 출처</td></tr>
+        <tr><td>과거 공공사업 RFP (PDF·HWP·HWPX)</td><td>공고 119 · 사업 <b>102</b><br>낙찰 연결 22</td></tr>
+      </table>
+      <p class="sub" style="margin-top:12px;font-size:14px">담당자 연락처 행은 색인 전 제거 · 키는 .env에만 보관</p>
+    </div>
+    <div>
+      <p class="lead">검색 방식</p>
+      <ul>
+        <li><b>① T1.5 근거:</b> 한국어 부분일치(trigram) 키워드 검색 우선, 0건이면 OpenAI 임베딩 의미 검색 · 후보 최대 3개 비교</li>
+        <li><b>② T2 회사 자료:</b> 요구사항별 후보(유사도 ≥ 0.36), 행정 조항 제외</li>
+        <li><b>③ T3 과거 사업:</b> 사업 개요 임베딩 비교, 낙찰은 같은 공고번호일 때만 연결</li>
+      </ul>
+      <p class="lead" style="margin-top:14px">T1.5 재검색 정확도 (회의 보완 후)</p>
+      <div class="barrow"><span>Recall@3</span><div class="bar" style="width:92.7%">0.327 → 0.927</div></div>
+      <div class="barrow"><span>Precision@3</span><div class="bar" style="width:37%">0.139 → 0.370</div></div>
+      <div class="barrow"><span>인용 정확도</span><div class="bar" style="width:100%">1.0</div></div>
+    </div>
+  </div>
+  <div class="no">05</div>
+</section>
+
+<!-- 6 workflow -->
+<section class="slide">
+  <div class="kicker">LangGraph Workflow</div>
+  <h2>상황에 따라 검색·검토로 분기하는 실행 흐름</h2>
+  <div class="flow" style="margin-bottom:14px">
+    <div class="node"><b>T1</b>추출</div>
+    <div class="arrow">→</div>
+    <div class="node"><b>나라장터</b>조회·첨부 대조</div>
+    <div class="arrow">→</div>
+    <div class="node rag"><b>T1.5</b>검증 · 원인별 분기</div>
+    <div class="arrow">→</div>
+    <div class="node"><b>담당자 검토</b>interrupt()<br>SQLite 저장·재개</div>
+    <div class="arrow">→</div>
+    <div class="node rag"><b>T2 ‖ T3</b>회사 역량 · 유사 사업</div>
+    <div class="arrow">→</div>
+    <div class="node"><b>T2·T3 평가</b>출처·법인·낙찰 연결</div>
+    <div class="arrow">→</div>
+    <div class="node"><b>T4</b>보고서 + 검증</div>
+  </div>
+  <div class="grid3">
+    <div class="card"><h3>원인별 분기</h3><p>근거 부족 → 해당 항목만 추가 검색(최대 횟수 제한) · 출처 충돌 → 바로 담당자 · 공고 식별 충돌 → 승인으로도 통과 불가</p></div>
+    <div class="card"><h3>중단·재개 (HITL)</h3><p>담당자 검토에서 실행을 저장하고, 승인·수정·반려 응답으로 <b>같은 실행</b>을 이어 감. 입력 파일 해시가 바뀌면 거부</p></div>
+    <div class="card"><h3>State·실행 이력</h3><p>공고·문서·실행 ID 분리, Node별 순번·시간 기록, 검토 이력 append-only. T2‖T3 병렬 모드는 선택 기능</p></div>
+  </div>
+  <p class="sub" style="margin-top:16px;font-size:14px">LangGraph 경로는 규칙 기반 + 임베딩만 사용(LLM 호출 없음). live 모드에서만 T4 뒤에 CrewAI Agent 4개가 검증된 결과의 요약만 받아 브리핑을 붙임</p>
+  <div class="no">06</div>
+</section>
+
+<!-- 7 web unification -->
+<section class="slide">
+  <div class="kicker">Verify First</div>
+  <h2>웹 실행을 "검증 먼저" 구조로 일원화</h2>
+  <div class="grid2">
+    <div class="card">
+      <span class="tag gray">전</span>
+      <h3>업로드 → CrewAI가 검증 없이 보고서</h3>
+      <ul>
+        <li>T1.5는 담당자가 버튼을 눌러야 실행</li>
+        <li>승인 후 결과와 목록·결재 보고서가 따로 놂 (보고서 2개)</li>
+        <li>T1 추출 2번 · 웹 첫 검증은 나라장터 조회 생략(버그)</li>
+      </ul>
+    </div>
+    <div class="card hl">
+      <span class="tag">후 (M36–M39)</span>
+      <h3>업로드 → LangGraph: T1 → 나라장터 → T1.5</h3>
+      <ul>
+        <li>확인 필요면 <b>"검토 대기" 보류 보고서</b>, 승인하면 같은 실행 재개 → T4 보고서</li>
+        <li>체크리스트 K2·K3를 T1.5 결과로 <b>업로드 직후 자동 판정</b></li>
+        <li>직접 업로드도 나라장터 공고번호 입력 → 교차검증</li>
+        <li>live: T4 검증 뒤 CrewAI 브리핑(판정은 규칙 기반 유지)</li>
+      </ul>
+    </div>
+  </div>
+  <table style="margin-top:20px">
+    <tr><th>상수도관 실경로</th><th>업로드</th><th>승인</th><th>T1 실행</th><th>체크리스트</th></tr>
+    <tr><td>offline</td><td>8.9초 · 담당자 검토에서 중단</td><td>11.7초 · T4 보고서</td><td><b>1회</b></td><td>K2 미충족 · K3 충족 → <b class="blue">No-Go 권고</b></td></tr>
+    <tr><td>live</td><td>15.9초</td><td>50.4초 · T4 + CrewAI 브리핑</td><td>1회</td><td>브리핑: "보류 — 사업금액 내부 기준 미달"</td></tr>
+  </table>
+  <div class="no">07</div>
+</section>
+
+<!-- 8 real run -->
+<section class="slide">
+  <div class="kicker">Real Case</div>
+  <h2>실제 공고로 T1 → T4를 끝까지 실행했다</h2>
+  <div class="grid2">
+    <div>
+      <p class="lead">AI 영상 기반 상수도관 노후도 분석 (R26BK01762350)</p>
+      <table>
+        <tr><th style="width:120px">단계</th><th>결과</th></tr>
+        <tr><td>나라장터</td><td>조회 성공 · 공고문 SHA-256 원본과 일치 · 정정 0건</td></tr>
+        <tr><td>금액</td><td>RFP 1억 700만 원(VAT 별도) = 배정예산 1억 1,770만 원(VAT 포함) <b class="blue">일치</b></td></tr>
+        <tr><td>담당자 검토</td><td>총액/연차 미표기, 추정가격 없음, 중소기업·대기업 제한 조항 → 승인(사유 기록)</td></tr>
+        <tr><td>T2 · T3</td><td>적합도 50% · 유사 사업 5건(모두 분야 다름 → 임계값 재평가)</td></tr>
+        <tr><td>T4</td><td>AI 사전 권고 <b>보류</b> · 최종 결정 미결정</td></tr>
+      </table>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <span class="tag">체크리스트 자동 판정</span>
+        <p><b>K2 대기업 참여제한:</b> 나라장터 금액 1.18억(VAT 포함, RFP와 일치) &lt; 하한 40억 → <b>미충족</b></p>
+        <p><b>K3 공동수급·지역:</b> 공동수급 불허(나라장터·RFP 일치), 지역 제한 없음 → <b>충족</b></p>
+      </div>
+      <div class="card">
+        <span class="tag gray">실행하며 찾은 버그</span>
+        <ul>
+          <li>법인명 검사가 실제 회사 자료에서 <b>항상 보류</b> — 기준명 비교 방향 오류</li>
+          <li>웹 첫 검증이 공고번호를 넘기지 않아 <b>나라장터 조회 상시 생략</b></li>
+          <li>기관 번호 "2026-013"을 나라장터 번호와 비교해 <b>공고 식별 오탐</b></li>
+        </ul>
+        <p class="sub" style="font-size:14px;margin-top:4px">테스트는 기준값을 그대로 넣어 못 잡음 → 실제 자료 실행이 필요한 이유</p>
+      </div>
+    </div>
+  </div>
+  <div class="no">08</div>
+</section>
+
+<!-- 9 team -->
+<section class="slide">
+  <div class="kicker">Team Improvements</div>
+  <h2>회의 보완사항 (11-18) → 구현 · 병합 · 점검</h2>
+  <div class="ms">
+    <div class="card"><span class="tag">송하연</span><h3>공동도급 · VAT · OCR · 검색</h3><p>공동도급 금지 우선 확인, VAT 포함/별도 비교, 40억 기준 VAT 포함, trigram 검색으로 Recall@3 <b>0.327 → 0.927</b>. OCR은 깨진 쪽만, 글자 일치 <b>0.314 → 0.914</b></p></div>
+    <div class="card"><span class="tag">인진은</span><h3>T1.5 후보 · T3 본문</h3><p>추가 검색 후보 최대 3개 비교·선택, 과거 RFP 본문에서 목차·계약 조항 제외 후 재색인. T3 임계값 재평가 판정표 준비</p></div>
+    <div class="card"><span class="tag">이주안</span><h3>LangGraph 보완 1~7</h3><p>T4 보고서·검증 Node, HITL 중단·재개, T2·T3 평가, 원인별 분기, 공고·실행 ID, 5개 상황 테스트, 순차·병렬 모드</p></div>
+    <div class="card hl"><span class="tag">병합 후 점검 M34</span><h3>"늘 보류" 문제 수정</h3><p>T2·T3 평가가 구조적으로 항상 보류 → 유사도 주의는 참고(info), 낙찰은 같은 공고번호만 연결(22건 모두 통과)</p></div>
+    <div class="card"><span class="tag">표 처리 M35</span><h3>병합 셀 복원</h3><p>표 127/176쪽. 셀 좌표로 세로 병합만 채워 "기술 능력 평가 > 정량 평가 > 신용평가 2점" 행 단위 보존</p></div>
+    <div class="card"><span class="tag">QA 피드백</span><h3>11-18 QA 5건 재검토</h3><p><b>해결:</b> T1.5↔체크리스트 단절, CrewAI/LangGraph 이원화<br><b>남음:</b> 공고문 HWP, Re-ranker, 다중 사용자</p></div>
+  </div>
+  <div class="no">09</div>
+</section>
+
+<!-- 10 measured decisions -->
+<section class="slide">
+  <div class="kicker">Measure Before Deciding</div>
+  <h2>측정해 보고 결정했다</h2>
+  <div class="grid3">
+    <div class="card">
+      <span class="tag">T2 ‖ T3 병렬화</span>
+      <h3>결과 동일, 2.7% 단축 → 순차 유지</h3>
+      <p class="sub" style="font-size:14px">5건 × 2모드 × 5회, T1.5 이후 구간 중앙값</p>
+      <div class="barrow" style="grid-template-columns:60px 1fr"><span>순차</span><div class="bar" style="width:100%">9.37초</div></div>
+      <div class="barrow" style="grid-template-columns:60px 1fr"><span>병렬</span><div class="bar" style="width:97%">9.12초</div></div>
+      <p style="font-size:14px">줄어든 만큼 = 짧은 쪽(T2 0.35~0.64초). 기준 20% 미달</p>
+    </div>
+    <div class="card hl">
+      <span class="tag">진짜 병목: T2·T3 평가</span>
+      <h3>원문 해시 캐시 7.47 → 0.01초</h3>
+      <p class="sub" style="font-size:14px">평가가 T1.5 이후 구간의 27~83%</p>
+      <div class="barrow" style="grid-template-columns:60px 1fr"><span>전</span><div class="bar" style="width:100%">전체 14.4초</div></div>
+      <div class="barrow" style="grid-template-columns:60px 1fr"><span>후</span><div class="bar" style="width:52%">약 7.5초</div></div>
+      <p style="font-size:14px">원문이 바뀌면 재계산, 발췌 변조 검출 유지</p>
+    </div>
+    <div class="card">
+      <span class="tag">OCR · LLM 위임 범위</span>
+      <h3>깨진 쪽만 OCR, LLM 요약 미채택</h3>
+      <p class="sub" style="font-size:14px">시연 RFP 176쪽 진단</p>
+      <ul>
+        <li>다단 <b>1쪽</b>(조직도) · 스캔본 <b>0쪽</b> · 표 <b>127쪽</b></li>
+        <li>tesseract psm 3 → 4: 일치 0.31 → <b>0.91</b></li>
+        <li>LLM 요약은 쪽·인용을 지워 T1.5 대조가 끊김</li>
+      </ul>
+    </div>
+  </div>
+  <div class="quote" style="margin-top:18px">같은 방식으로 공고 수집도 — 키워드 5개가 규칙 통과 공고의 <b>59%</b>를 놓침을 측정 → RAG 대신 <b>전체 수집 + 규칙 필터</b>(30일 76초)</div>
+  <div class="no">10</div>
+</section>
+
+<!-- 11 milestones -->
+<section class="slide">
+  <div class="kicker">Milestones M1–M39</div>
+  <h2>전체 진행 현황</h2>
+  <div class="ms">
+    <div class="card"><span class="tag">M1–M8 · M16 · M18</span><h3>검증 기반 · 사람 검토</h3><p>RFP·공고문 색인, T1.5 검증기, LangGraph 분기, 의미 검색, 담당자 승인·T2 재개, 판정서, 체크리스트 화면</p></div>
+    <div class="card"><span class="tag">M11–M15 · M17 · M19</span><h3>나라장터 교차검증</h3><p>공고번호 API, 공식 첨부 바이트 대조(RFP 3건 동일), 변경이력, 업종·공동수급 대조</p></div>
+    <div class="card"><span class="tag">M9–M10 · M20–M31</span><h3>Agent 2 · 3 · 공고 수집</h3><p>회사 자료 RAG(후보 46→32), 과거 RFP 수집·HWP 처리, 임계값 평가, 키워드 누락 59% → 전체 수집</p></div>
+    <div class="card"><span class="tag">M32–M34</span><h3>회의 보완 · 병합 · 점검</h3><p>팀원 3명 브랜치 병합, 색인 재생성, 평가 상시 보류 수정, 시나리오 로그, 계약기간 원문 확인</p></div>
+    <div class="card"><span class="tag">M35–M36</span><h3>실제 실행 · 연결</h3><p>상수도관 T1→T4 실행, OCR·표 처리, 체크리스트 K2·K3 연동, 보고서 나라장터 값, 웹 중단·재개</p></div>
+    <div class="card hl"><span class="tag">M37–M39</span><h3>측정 · 일원화 · 성능</h3><p>병렬 실측(2.7%), 웹 LangGraph 일원화(offline·live), 공고 식별 오탐 수정, 평가 캐시(7.47→0.01초)</p></div>
+  </div>
+  <p class="sub" style="margin-top:22px;font-size:15px">기간 2026-11-11 ~ 11-20 · 마일스톤마다 구현 기록(M*.md)과 실제 데이터 확인 결과 · 백엔드 테스트 29개 파일 · 프론트 28개 통과 · 키는 .env에만(커밋 전 노출 검사)</p>
+  <div class="no">11</div>
+</section>
+
+<!-- 12 plan -->
+<section class="slide">
+  <div class="kicker">Next Steps</div>
+  <h2>최종 발표까지 남은 계획</h2>
+  <table>
+    <tr><th style="width:250px">작업</th><th style="width:130px">담당</th><th>내용 · 완료 기준</th></tr>
+    <tr><td><b>T3 임계값 재평가</b></td><td>인진은</td><td>본문 추출 변경으로 0.70이 너무 낮아짐(상수도관 0.70 이상 10건 모두 분야 다름) → 판정표 표시로 새 기준, Re-ranker 검토</td></tr>
+    <tr><td>과거 RFP 품질</td><td>인진은</td><td>새마을금고 올바른 RFP 재수집, 확인 필요 12건 정리</td></tr>
+    <tr><td>문서 처리 보완</td><td>송하연</td><td>겹친 글자 PDF("요요구구", 2건 76쪽), 별첨·양식 서식 분류, <b>공고문 HWP·HWPX</b> 허용(QA #3)</td></tr>
+    <tr><td>live 시장조사 통합</td><td>이주안 · 이성아</td><td>나라장터 낙찰 실시간 조회를 켠 live만 기존 경로 → T3 낙찰 연결과 합칠지 결정</td></tr>
+    <tr><td>성능 · 재현성</td><td>팀</td><td>T1 추출(4~20초) 중복 제거, 임베딩 점수 흔들림 → 경계 후보가 실행마다 바뀌지 않게 질의 임베딩 캐시</td></tr>
+    <tr><td>시연 · 평가 정리</td><td>팀</td><td>시연 3건 웹 실경로 시나리오, 범주별 품질 지표(근거 적중·인용·누락·충돌·잘못된 자동 통과)</td></tr>
+  </table>
+  <p class="sub" style="margin-top:12px;font-size:14px">실습 범위 밖(향후): 다중 사용자 락·직원 인증(SSO), 파일 저장소 → DB</p>
+  <div class="no">12</div>
+</section>
+
+<!-- 13 principles -->
+<section class="slide">
+  <div class="kicker">Principles</div>
+  <h2>지킨 원칙과 정리</h2>
+  <div class="grid2">
+    <div>
+      <p class="lead">지킨 원칙</p>
+      <ul>
+        <li>유사도·브리핑은 <b>판정이 아니라 단서</b> — 자격·실적·참여를 자동 확정하지 않음</li>
+        <li>모든 근거에 <b>문서·페이지·인용문</b>, 나라장터 값에는 API 필드·출처</li>
+        <li>담당자 승인은 원 판정을 덮어쓰지 않고 <b>감사 기록</b>으로 별도 저장</li>
+        <li>기능을 늘리기 전에 <b>먼저 측정</b> (병렬화·OCR·RAG 수집)</li>
+        <li>실제 자료로 끝까지 돌려 테스트가 못 잡는 문제를 찾음</li>
+      </ul>
+    </div>
+    <div>
+      <p class="lead">남은 한계</p>
+      <ul>
+        <li>T3 유사 사업 점수가 분야 차이를 잘 못 가름 (임계값·Re-ranker)</li>
+        <li>회사 자료가 공개 근거 11건뿐 → 원본 증빙 필요</li>
+        <li>OpenAI 임베딩 점수의 미세한 흔들림 (임계값 경계)</li>
+        <li>공고문 HWP 미지원, live 시장조사 옵션만 기존 경로</li>
+      </ul>
+    </div>
+  </div>
+  <div class="quote" style="margin-top:28px;font-size:17px"><b>정리</b> — T1.5가 금액·자격·기간을 원문과 나라장터로 확인한 뒤에만 분석이 진행되고, 불확실하면 실행을 멈추고 담당자에게 넘깁니다.<br>실제 공고로 업로드 → 검증 → 승인 → 보고서 → 체크리스트(No-Go 권고)까지 이어지는 것을 확인했습니다.<br>AI는 근거를 찾아 정리하고, 최종 참여 결정은 담당자·사업본부장이 합니다.</div>
+  <div class="no">13</div>
+</section>
+
+</body>
+</html>
