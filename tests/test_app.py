@@ -201,6 +201,48 @@ def test_core_review_pauses_and_resumes_saved_run() -> None:
         assert stale.status_code == 409 and "변경" in stale.text
 
 
+def test_upload_accepts_g2b_notice_number_only() -> None:
+    """직접 업로드도 나라장터 공고번호를 받아 조회에 쓴다. 기관 자체 번호(제2026-013호)는 거부한다."""
+    from bid_review.web import langgraph_job
+    c = client()
+    assert upload(c, notice_no="제2026-013호").status_code == 400
+    assert upload(c, notice_no="R26BK0176").status_code == 400
+    run_id = events(c, upload(c, notice_no="r26bk01762350-001").json()["job_id"])[-1]["run_id"]
+    case = runs.decode_run_id(run_id).parent
+    assert langgraph_job.notice_key(case) == {"notice_no": "R26BK01762350", "notice_order": "001"}
+    run2 = events(c, upload(c).json()["job_id"])[-1]["run_id"]
+    assert langgraph_job.notice_key(runs.decode_run_id(run2).parent) == {}
+
+
+def test_live_briefing_is_attached_after_t4() -> None:
+    """live: T4까지 끝난 결과에만 CrewAI 브리핑을 붙이고, 판정 상태는 규칙 기반 T4 결과를 유지한다."""
+    from unittest.mock import patch
+    from bid_review.crew import BidReviewCrew
+    from bid_review.models import ExecutiveDecisionSummary
+    from bid_review.web import langgraph_job
+    saved = ROOT / "outputs/hitl/real-sangsudo-261119b/status.json"
+    if not saved.is_file():
+        return  # 실제 실행 결과가 있는 PC에서만
+    state = json.loads(saved.read_text(encoding="utf-8"))["state"]
+    snapshot = {"thread_id": "web-live", "status": "completed", "interrupts": [], "task_errors": [], "state": state}
+    briefing = ExecutiveDecisionSummary(recommendation="보류", one_line_reason="사업 규모가 대기업 참여 하한 미만")
+    runs.OUTPUTS = Path(tempfile.mkdtemp())
+    case = runs.OUTPUTS / "web" / "20261120_130000_live01"
+    case.mkdir(parents=True)
+    with patch.object(BidReviewCrew, "brief", return_value=(briefing, {"report_writing": {}}, {}, ["04_executive_decision.json"])) as brief:
+        report = langgraph_job.write_artifacts(case, snapshot, action="analyze", reason="t", role="system", live=True)
+    assert brief.call_count == 1
+    data = json.loads(report.read_text(encoding="utf-8"))
+    assert data["agent_executive_summary"]["recommendation"] == "보류"
+    assert data["decision_status"] == state["report"]["decision_status"], "판정은 규칙 기반 T4 결과 유지"
+    assert "CrewAI 의사결정 요약" in report.with_suffix(".md").read_text(encoding="utf-8")
+    assert json.loads((case / "crew_execution_manifest.json").read_text(encoding="utf-8"))["mode"] == "live"
+    paused = {**snapshot, "status": "paused", "interrupts": [{"id": "i", "value": {}}]}
+    with patch.object(BidReviewCrew, "brief") as brief:
+        langgraph_job.write_artifacts(case, paused, action="analyze", reason="t", role="system", live=True)
+    assert brief.call_count == 0, "담당자 검토 대기에서는 브리핑하지 않는다(승인 후 T4 뒤에)"
+
+
 if __name__ == "__main__":
     for name, fn in list(globals().items()):
         if name.startswith("test_"):

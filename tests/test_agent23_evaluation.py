@@ -109,6 +109,30 @@ class Agent23EvaluationTests(unittest.TestCase):
             candidate["award_notice_id"] = "R27-000"  # 재공고 그룹의 다른 공고번호 낙찰
             self.assertEqual(status(evaluate_agent23(self.state), "t3_candidate:1:award"), "needs_review")
 
+    def test_source_profile_cache_keyed_by_file_bytes(self):
+        """평가 캐시: 같은 원문이면 재계산하지 않고, 원문이 바뀌면 다시 계산한다. 변조된 발췌는 여전히 걸린다."""
+        import bid_review.rag.agent23_evaluation as module
+        source = self.root / "rfp.pdf"
+        source.write_bytes(b"%PDF- one")
+        calls = []
+
+        def fake_profile(path, title, buyer):
+            calls.append(Path(path).read_bytes())
+            return f"사업명: {title}\n본문 {len(calls)}"
+        with patch.object(module, "PROFILE_CACHE", self.root / "cache.json"), \
+             patch("bid_review.rag.past_projects.project_profile", side_effect=fake_profile):
+            first = module._source_profile(source, "유사 사업", "기관")
+            self.assertEqual(module._source_profile(source, "유사 사업", "기관"), first)
+            self.assertEqual(len(calls), 1, "같은 파일 바이트면 다시 읽지 않는다")
+            source.write_bytes(b"%PDF- two")
+            self.assertNotEqual(module._source_profile(source, "유사 사업", "기관"), first)
+            self.assertEqual(len(calls), 2, "원문이 바뀌면 다시 계산한다")
+            self.state.update(similar_projects_status="found 1", similar_projects=[{
+                "notice_id": "R26-000", "title": "유사 사업", "buyer": "기관", "notice_url": "https://example.org/n",
+                "rfp_path": "rfp.pdf", "profile_excerpt": "사업명: 유사 사업\n꾸며낸 본문", "similarity": 0.8}])
+            with patch("bid_review.rag.agent23_evaluation.PROJECT_ROOT", self.root):
+                self.assertEqual(status(evaluate_agent23(self.state), "t3_candidate:1:source"), "needs_review")
+
     def test_t3_missing_original_excerpt(self):
         self.state.update(similar_projects_status="found 1", similar_projects=[{
             "notice_id": "R26-000", "title": "유사 사업", "notice_url": "https://example.org/notice",

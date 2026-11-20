@@ -63,6 +63,16 @@ def _stage_gate_hold() -> None:
         _stage(node, "skip")
 
 
+def _redacted(exc: Exception) -> str:
+    """오류 진단 문자열에서 API 키 값을 가린다(요청 URL에 서비스 키가 들어갈 수 있음)."""
+    message = f"{type(exc).__name__}: {exc}"
+    for name in ("OPENAI_API_KEY", "G2B_SERVICE_KEY"):
+        secret = os.getenv(name) or ""
+        if len(secret) >= 8:
+            message = message.replace(secret, "[REDACTED]")
+    return message
+
+
 def _report_artifact_stem() -> str:
     """Return the user-facing final-report name in Korea Standard Time."""
     report_timestamp = datetime.now(ZoneInfo("Asia/Seoul")).strftime("%Y-%m-%d_%H%M%S")
@@ -397,6 +407,50 @@ class BidReviewCrew:
             return schema.model_validate(task.output.pydantic)
         return schema.model_validate_json(task.output.raw)
 
+    def brief(self, rfp: RFPAnalysisResult, capability, market, output: Path):
+        """live 브리핑: 검증된 결정적 산출물의 compact 요약만 CrewAI Agent 4개에 넘겨 요약문을 받는다.
+
+        반환: (ExecutiveDecisionSummary, Agent별 요약 dict, 입력 요약, debug 요약 파일명). LangGraph 웹 실행(T4 뒤)과
+        기존 `run --mode live`가 함께 쓴다. 판정 상태는 결정적 규칙이 정하고, 이 요약은 출처를 밝힌 참고 브리핑이다.
+        """
+        if not os.getenv("OPENAI_API_KEY"):
+            raise RuntimeError("--mode live requires a non-empty OPENAI_API_KEY in the project .env file or terminal environment.")
+        output = Path(output)
+        input_summaries = build_agent_input_summaries(rfp, capability, market, self.settings["minimum_project_amount_krw"])
+        if self.verbose or self.trace:
+            print(f"[규칙 기반] 상세 산출물은 메모리 검증 / Agent 입력 최대 {max(self._agent_context_sizes(input_summaries).values()):,} bytes")
+            if not self.trace:
+                print("[1/4] RFP Analysis Agent 시작")
+        try:
+            self._live_log_enabled = self.verbose or self.trace
+            self._parallel_done = set()
+            if self.trace:
+                self._trace_start(1, "RFP Analysis Agent")
+            self.crew.kickoff(inputs={key: json.dumps(value, ensure_ascii=False) for key, value in input_summaries.items()})
+        except Exception as exc:
+            # Keep a concise diagnostic artifact without serializing request URLs, environment variables, or API keys.
+            (output / "crew_live_error.txt").write_text(_redacted(exc), encoding="utf-8")
+            raise RuntimeError("CrewAI live 실행이 중단되었습니다. outputs의 crew_live_error.txt를 확인하세요.") from exc
+        finally:
+            self._live_log_enabled = False
+        try:
+            rfp_review = self._validated_task_output(self.rfp_task, RFPReviewSummary)
+            capability_review = self._validated_task_output(self.capability_task, CapabilityReviewSummary)
+            market_review = self._validated_task_output(self.market_task, MarketReviewSummary)
+            executive_review = self._validated_task_output(self.report_task, ExecutiveDecisionSummary)
+        except Exception as exc:
+            raise RuntimeError("CrewAI live output did not pass the compact Pydantic schema validation.") from exc
+        (output / "debug").mkdir(parents=True, exist_ok=True)
+        summary_files = [
+            self._write_agent_summary(output / "debug", "01_rfp_review", rfp_review),
+            self._write_agent_summary(output / "debug", "02_capability_review", capability_review),
+            self._write_agent_summary(output / "debug", "03_market_review", market_review),
+            self._write_agent_summary(output / "debug", "04_executive_decision", executive_review),
+        ]
+        summaries = {"rfp_analysis": rfp_review.model_dump(), "capability_matching": capability_review.model_dump(),
+                     "market_research": market_review.model_dump(), "report_writing": executive_review.model_dump()}
+        return executive_review, summaries, input_summaries, summary_files
+
     def run(self, pdf_path: str | Path, company_path: str | Path | None, output_dir: str | Path, market_path: str | Path | None = None, notice: dict | None = None, mode: Literal["offline", "live"] = "offline", notice_pdf: str | Path | None = None, save_intermediate: bool = False, allow_market_api: bool = False) -> dict:
         if mode not in {"offline", "live"}:
             raise ValueError("mode는 offline 또는 live여야 합니다.")
@@ -484,54 +538,19 @@ class BidReviewCrew:
                     "source_linked_observations": len(market.market_observations),
                     "similar_projects": len(market.similar_projects),
                 }
-                input_summaries = build_agent_input_summaries(rfp, capability, market, self.settings["minimum_project_amount_krw"])
                 if self.verbose or self.trace:
-                    print(f"[규칙 기반] 상세 산출물은 메모리 검증 / Agent 입력 최대 {max(self._agent_context_sizes(input_summaries).values()):,} bytes")
                     print(
                         "[규칙 기반] 나라장터 API: "
                         f"{market_tool_result['status']} / 관찰 {market_tool_result['source_linked_observations']}건"
                     )
-                    if not self.trace:
-                        print("[1/4] RFP Analysis Agent 시작")
-                self._live_log_enabled = self.verbose or self.trace
-                self._parallel_done = set()
-                if self.trace:
-                    self._trace_start(1, "RFP Analysis Agent")
-                self.crew.kickoff(inputs={
-                    key: json.dumps(value, ensure_ascii=False) for key, value in input_summaries.items()
-                })
             except Exception as exc:
-                # Keep a concise diagnostic artifact without serializing request
-                # URLs, environment variables, or API keys.
-                message = f"{type(exc).__name__}: {str(exc).replace(os.getenv('OPENAI_API_KEY', ''), '[REDACTED]') if os.getenv('OPENAI_API_KEY') else str(exc)}"
-                (output / "crew_live_error.txt").write_text(message, encoding="utf-8")
+                (output / "crew_live_error.txt").write_text(_redacted(exc), encoding="utf-8")
                 raise RuntimeError("CrewAI live 실행이 중단되었습니다. outputs의 crew_live_error.txt를 확인하세요.") from exc
-            finally:
-                self._live_log_enabled = False
-            try:
-                rfp_review = self._validated_task_output(self.rfp_task, RFPReviewSummary)
-                capability_review = self._validated_task_output(self.capability_task, CapabilityReviewSummary)
-                market_review = self._validated_task_output(self.market_task, MarketReviewSummary)
-                executive_review = self._validated_task_output(self.report_task, ExecutiveDecisionSummary)
-            except Exception as exc:
-                raise RuntimeError("CrewAI live output did not pass the compact Pydantic schema validation.") from exc
-            summary_files = []
-            summary_files = [
-                self._write_agent_summary(output / "debug", "01_rfp_review", rfp_review),
-                self._write_agent_summary(output / "debug", "02_capability_review", capability_review),
-                self._write_agent_summary(output / "debug", "03_market_review", market_review),
-                self._write_agent_summary(output / "debug", "04_executive_decision", executive_review),
-            ]
+            executive_review, summaries, input_summaries, summary_files = self.brief(rfp, capability, market, output)
             # A live Agent recommendation is an attributed briefing.  Deterministic
             # legal/quality safeguards remain authoritative for the report status.
             report = ReportWriter(self.settings).write(rfp, capability, market, executive_summary=executive_review)
             self._write(output / report_stem, report, report_markdown(report, rfp, capability, market))
-            summaries = {
-                "rfp_analysis": rfp_review.model_dump(),
-                "capability_matching": capability_review.model_dump(),
-                "market_research": market_review.model_dump(),
-                "report_writing": executive_review.model_dump(),
-            }
             manifest = {
                 "crew_framework": "CrewAI", "mode": "live", "tasks": [task.name for task in self.crew.tasks],
                 "context_policy": "compact_summary_only", "tool_policy": "LLM tool calls disabled; deterministic services created canonical artifacts first",

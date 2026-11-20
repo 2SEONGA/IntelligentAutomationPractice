@@ -3,9 +3,10 @@
 - T1.5가 confirmed면 같은 실행에서 T2 → T3 → T2·T3 평가 → T4까지 가고 T4 보고서를 쓴다.
 - 담당자 확인이 필요하면 중단 지점을 저장(SQLite)하고 "검토 대기" 보류 보고서를 쓴다. 승인하면
   `POST /api/runs/{id}/core-review`가 같은 실행을 이어 가고 T4 보고서를 새 보고서로 쓴다.
-- live 모드(CrewAI LLM 브리핑·나라장터 낙찰 조회)는 아직 기존 `run.py` 경로를 쓴다.
+- live 모드: T4까지 끝난 뒤 CrewAI Agent 4개가 검증된 결과의 compact 요약만 받아 브리핑을 붙인다(판정은 규칙 기반 유지).
+  나라장터 낙찰 실시간 조회(시장조사 옵션)를 켠 live 실행만 아직 기존 `run.py` 경로를 쓴다.
 
-    python -m bid_review.web.langgraph_job --rfp <pdf> --output <case 폴더> [--notice-pdf <pdf>]
+    python -m bid_review.web.langgraph_job --rfp <pdf> --output <case 폴더> [--notice-pdf <pdf>] [--mode live]
 """
 from __future__ import annotations
 
@@ -16,7 +17,7 @@ import sys
 from uuid import uuid4
 
 from ..agent04_render import capability_markdown, market_markdown, rfp_markdown
-from ..agent04_report import report_markdown
+from ..agent04_report import briefing_lines, report_markdown
 from ..crew import BidReviewCrew, _report_artifact_stem
 from ..models import (BidReviewReport, CapabilityMatchingResult, DecisionStatus, MarketResearchResult,
                       ReportFinding, RFPAnalysisResult)
@@ -32,10 +33,11 @@ STAGE_NODES = {"agent1": {"t1_extract", "g2b_notice_lookup", "t15_verify"},
 
 
 def notice_key(case: Path, prior: dict | None = None) -> dict:
-    """나라장터 조회용 공고번호·차수. 공고함에서 시작한 건은 notice_attachment.json에 있다."""
-    saved = runs._read_json(case / "notice_attachment.json") or {}
-    if saved.get("notice_no"):
-        return {"notice_no": saved["notice_no"], "notice_order": saved.get("notice_order") or "000"}
+    """나라장터 조회용 공고번호·차수. 공고함에서 시작한 건은 notice_attachment.json, 직접 업로드는 upload.json(입력값)."""
+    for name in ("notice_attachment.json", "upload.json"):
+        saved = runs._read_json(case / name) or {}
+        if saved.get("notice_no"):
+            return {"notice_no": saved["notice_no"], "notice_order": saved.get("notice_order") or "000"}
     if (prior or {}).get("notice_no"):
         return {"notice_no": prior["notice_no"], "notice_order": prior.get("notice_order") or "000"}
     return {}
@@ -68,7 +70,7 @@ def _hold_report(state: dict) -> BidReviewReport:
     )
 
 
-def write_artifacts(case: Path, snapshot: dict, *, action: str, reason: str, role: str) -> Path:
+def write_artifacts(case: Path, snapshot: dict, *, action: str, reason: str, role: str, live: bool = False) -> Path:
     """웹 화면이 읽는 파일(보고서 JSON·MD, debug/01~03)과 langgraph_review.json을 쓴다. 새 보고서 경로를 돌려준다."""
     state = snapshot["state"]
     rfp = RFPAnalysisResult.model_validate(state["rfp"])
@@ -84,6 +86,16 @@ def write_artifacts(case: Path, snapshot: dict, *, action: str, reason: str, rol
         BidReviewCrew._write(debug / "03_market_research", market, market_markdown(market))
         report = BidReviewReport.model_validate(state["report"])
         markdown = _report_markdown(state)
+        if live:  # T4 검증이 끝난 결과만 CrewAI 브리핑에 넘긴다
+            executive, summaries, _, files = BidReviewCrew().brief(rfp, capability, market, case)
+            report = report.model_copy(update={"agent_executive_summary": executive})
+            markdown += "\n" + "\n".join(briefing_lines(executive)) + "\n"
+            (case / "crew_execution_manifest.json").write_text(json.dumps({
+                "crew_framework": "CrewAI", "mode": "live", "pipeline": "LangGraph T1→T1.5→(승인)→T2→T3→T4 → CrewAI 브리핑",
+                "context_policy": "compact_summary_only", "llm_tasks_executed": True,
+                "briefing_scope": "T4 보고서 검증 이후 참고 브리핑. 판정 상태는 규칙 기반 결과를 따름",
+                "agent_summaries": summaries, "artifacts": [f"debug/{name}" for name in files]},
+                ensure_ascii=False, indent=2), encoding="utf-8")
     else:  # 담당자 검토 대기(또는 반려 등 T4 미도달): 분석 없는 보류 보고서
         report = _hold_report(state)
         markdown = report_markdown(report, rfp=rfp)
@@ -105,6 +117,7 @@ def main() -> None:
     parser.add_argument("--rfp", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--notice-pdf")
+    parser.add_argument("--mode", choices=("offline", "live"), default="offline")
     args = parser.parse_args()
     from ..rag import hitl_runtime  # noqa: PLC0415 - LangGraph 의존성은 실행 시에만
     case = Path(args.output).resolve()
@@ -116,7 +129,10 @@ def main() -> None:
         print("[실패] LangGraph 실행 오류: " + "; ".join(snapshot["task_errors"]), flush=True)
         sys.exit(1)
     print("[STAGE] agent1 done", flush=True)
-    path = write_artifacts(case, snapshot, action="analyze", reason="웹 첫 실행(LangGraph)", role="system")
+    if args.mode == "live" and snapshot["status"] == "completed":
+        print("[CrewAI] T4 검증 결과로 브리핑 생성", flush=True)
+    path = write_artifacts(case, snapshot, action="analyze", reason="웹 첫 실행(LangGraph)", role="system",
+                           live=args.mode == "live")
     _stages(snapshot)
     print(f"[LangGraph] {snapshot['status']} · {snapshot['state'].get('decision') or '담당자 검토 대기'} · {path.name}",
           flush=True)

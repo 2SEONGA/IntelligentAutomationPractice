@@ -367,7 +367,7 @@ def create_app(job_manager: JobManager | None = None, allowed_hosts: tuple[str, 
     @app.post("/api/runs", status_code=201)
     async def start_run(rfp: UploadFile = File(...), notice: UploadFile | None = File(None),
                         mode: str = Form("offline"), market_api: bool = Form(False), folder_id: str | None = Form(None),
-                        _: str = Depends(require("staff"))) -> dict:
+                        notice_no: str = Form(""), _: str = Depends(require("staff"))) -> dict:
         existing = None
         if folder_id is not None:
             existing = runs.OUTPUTS / "web" / folder_id
@@ -376,6 +376,13 @@ def create_app(job_manager: JobManager | None = None, allowed_hosts: tuple[str, 
             if any(runs._is_report(p) for p in existing.glob("*.json")):
                 # a report exists: changing it now would bypass the approval flow; use 다시 실행 instead
                 raise runs.Conflict("이미 보고서가 있는 검토 건이에요. 결재 흐름의 '다시 실행'을 쓰세요.", runs.workflow(existing)["status"])
+        key = {}
+        if notice_no.strip():  # 직접 업로드 건도 나라장터 조회·교차검증을 하도록 공고번호를 받는다
+            from ..rag.state_history import parse_g2b_notice  # noqa: PLC0415
+            parsed = parse_g2b_notice(notice_no)
+            if not parsed or parsed[0] != notice_no.strip().upper().split("-")[0].strip():
+                raise HTTPException(400, "나라장터 공고번호 형식이 아니에요. 예: R26BK01762350 또는 R26BK01762350-000")
+            key = {"notice_no": parsed[0], "notice_order": parsed[1] or "000"}
         has_notice = bool(notice) or bool(existing and (existing / "notice.pdf").is_file())
         _check_options(mode, market_api, has_notice)
         if manager.current():
@@ -387,7 +394,7 @@ def create_app(job_manager: JobManager | None = None, allowed_hosts: tuple[str, 
         if notice_bytes:
             (folder / "notice.pdf").write_bytes(notice_bytes)
         _write_upload(folder, rfp_name=rfp.filename, mode=mode, market_api=market_api,
-                      **({"notice_name": notice.filename} if notice else {}))
+                      **({"notice_name": notice.filename} if notice else {}), **key)
         try:
             return start_job(folder, {"mode": mode, "notice": has_notice, "market_api": market_api})
         except HTTPException:
@@ -474,8 +481,10 @@ def create_app(job_manager: JobManager | None = None, allowed_hosts: tuple[str, 
         with runs._workflow_lock:
             if path != runs.current_report(path.parent):
                 raise runs.Conflict("옛 보고서는 핵심정보 검토를 진행할 수 없어요.", status)
-            report = langgraph_job.write_artifacts(path.parent, snapshot, action=body.action, reason=body.reason, role=role)
-            runs.record_run(report, runs._mode(path) or "offline")  # 이전 보고서의 실행 방식(웹 실행 표시)을 이어받는다
+            mode = runs._mode(path) or "offline"  # 이전 보고서의 실행 방식을 이어받는다(live면 T4 뒤 CrewAI 브리핑)
+            report = langgraph_job.write_artifacts(path.parent, snapshot, action=body.action, reason=body.reason,
+                                                   role=role, live=mode == "live")
+            runs.record_run(report, mode)
         saved = runs.load_core_review(path.parent, report)
         return {"result": saved, "audit": runs._read_json(path.parent / "core_review_audit.json"),
                 "run_id": runs.encode_run_id(report)}

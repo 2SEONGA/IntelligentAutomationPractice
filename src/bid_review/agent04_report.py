@@ -404,6 +404,17 @@ class ReportWriter:
         )
 
 
+def briefing_lines(agent) -> list[str]:
+    """CrewAI 의사결정 요약(ExecutiveDecisionSummary)을 보고서 MD 줄로. LangGraph T4 보고서도 같은 표기를 쓴다."""
+    lines = ["", "### CrewAI 의사결정 요약", "", f"- Agent 권고: {agent.recommendation}", f"- 사유: {_compact(agent.one_line_reason, 260)}"]
+    for item in agent.top_positive_factors:
+        lines.append(f"- Agent 긍정 요인: {_compact(item.statement, 180)} ({'; '.join(ref.reference for ref in item.evidence_references)})")
+    for item in agent.top_blockers_or_risks:
+        lines.append(f"- Agent 리스크: {_compact(item.statement, 180)} ({'; '.join(ref.reference for ref in item.evidence_references)})")
+    lines.append("- 위 Agent 권고는 보조 의견이며, 보고서 권고와 최종 결정은 규칙 기반 검증 및 사업 담당자 확인을 따릅니다.")
+    return lines
+
+
 def _overview_rows(rfp: RFPAnalysisResult) -> list[tuple[str, str]]:
     basic = rfp.basic_info
     return [
@@ -484,13 +495,7 @@ def report_markdown(report: BidReviewReport, rfp: RFPAnalysisResult | None = Non
         lines.append("- 보완 필요: 최종 참여 전 법적 참가자격과 제출증빙을 원문으로 확인해야 합니다.")
 
     if report.agent_executive_summary:
-        agent = report.agent_executive_summary
-        lines += ["", "### CrewAI 의사결정 요약", "", f"- Agent 권고: {agent.recommendation}", f"- 사유: {_compact(agent.one_line_reason, 260)}"]
-        for item in agent.top_positive_factors:
-            lines.append(f"- Agent 긍정 요인: {_compact(item.statement, 180)} ({'; '.join(ref.reference for ref in item.evidence_references)})")
-        for item in agent.top_blockers_or_risks:
-            lines.append(f"- Agent 리스크: {_compact(item.statement, 180)} ({'; '.join(ref.reference for ref in item.evidence_references)})")
-        lines.append("- 위 Agent 권고는 보조 의견이며, 보고서 권고와 최종 결정은 규칙 기반 검증 및 사업 담당자 확인을 따릅니다.")
+        lines += briefing_lines(report.agent_executive_summary)
 
     lines += ["", "## 1. 사업 개요", "", "| 항목 | 내용 |", "|---|---|"]
     

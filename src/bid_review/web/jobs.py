@@ -34,9 +34,11 @@ class Job:
 
 def build_command(output_dir: Path, options: dict) -> list[str]:
     rfp = options.get("rfp_path") or str(output_dir / "rfp.pdf")
-    if options.get("mode", "offline") == "offline":
-        # 일원화: offline 웹 실행은 LangGraph(T1.5 검증 먼저). live(CrewAI LLM 브리핑)는 아직 run.py.
-        command = [sys.executable, "-m", "bid_review.web.langgraph_job", "--rfp", rfp, "--output", str(output_dir)]
+    if not options.get("market_api"):
+        # 일원화: 웹 실행은 LangGraph(T1.5 검증 먼저). live는 T4 뒤에 CrewAI 브리핑을 붙인다.
+        # 나라장터 낙찰 실시간 조회(market_api)를 켠 live만 아직 run.py(CrewAI 시장 Agent) 경로.
+        command = [sys.executable, "-m", "bid_review.web.langgraph_job", "--rfp", rfp, "--output", str(output_dir),
+                   "--mode", options.get("mode", "offline")]
         return command + (["--notice-pdf", str(output_dir / "notice.pdf")] if options.get("notice") else [])
     command = [sys.executable, "run.py", "--mode", options.get("mode", "offline"), "--rfp", rfp]
     if options.get("notice"):

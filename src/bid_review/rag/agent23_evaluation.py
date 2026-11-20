@@ -4,7 +4,10 @@
 """
 from __future__ import annotations
 
+from functools import lru_cache
+import hashlib
 import json
+import os
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
@@ -16,9 +19,51 @@ from ..policy import TARGET_LEGAL_ENTITY, VISIBLE_COMPANY_NAME
 from ..settings import PROJECT_ROOT
 
 
+PROFILE_CACHE = PROJECT_ROOT / "outputs/rag/profile_cache.json"
+
+
+@lru_cache(maxsize=1)
+def _profile_code_version() -> str:
+    """개요 추출 코드가 바뀌면 캐시를 버리도록, 추출에 쓰는 모듈 파일 내용의 해시를 키에 넣는다."""
+    from . import past_projects, project_profile  # noqa: PLC0415
+    digest = hashlib.sha256()
+    for module in (past_projects, project_profile):
+        digest.update(Path(module.__file__).read_bytes())
+    return digest.hexdigest()[:16]
+
+
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
 def _source_profile(path: Path, title: str, buyer: str) -> str:
-    from .past_projects import project_profile
-    return project_profile(path, title, buyer)
+    """후보 RFP 원문에서 개요를 다시 만든다. 같은 파일 바이트·사업명·기관·추출 코드면 저장해 둔 결과를 쓴다.
+
+    M37 실측에서 이 재계산이 T2·T3 평가 시간의 대부분(T1.5 이후 구간의 27~83%)이었다. 키에 파일 SHA-256이
+    들어가므로 원문이 바뀌면 다시 계산하고, 발췌 대조(변조 검출)는 그대로 실제 원문 기준이다.
+    """
+    from .past_projects import project_profile  # noqa: PLC0415
+    key = "|".join((_file_sha256(path), title, buyer, _profile_code_version()))
+    try:
+        cache = json.loads(PROFILE_CACHE.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        cache = {}
+    if key in cache:
+        return cache[key]
+    profile = project_profile(path, title, buyer)
+    cache[key] = profile
+    try:  # 캐시 저장 실패는 평가를 막지 않는다. 임시 파일 후 교체로 반쯤 쓴 파일을 남기지 않는다.
+        PROFILE_CACHE.parent.mkdir(parents=True, exist_ok=True)
+        temp = PROFILE_CACHE.with_suffix(f".{os.getpid()}.tmp")
+        temp.write_text(json.dumps(cache, ensure_ascii=False), encoding="utf-8")
+        temp.replace(PROFILE_CACHE)
+    except OSError:
+        pass
+    return profile
 
 
 def evaluate_agent23(state: dict[str, Any]) -> dict[str, Any]:

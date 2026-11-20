@@ -1,11 +1,13 @@
 import { useId, useRef, useState, type DragEvent } from "react";
-import { Button, SectionMessage, SegmentedControl, SegmentedControlItem, Switch, TextButton, Typography } from "@montage-ui/core";
+import { Button, SectionMessage, SegmentedControl, SegmentedControlItem, Switch, TextArea, TextButton, Typography } from "@montage-ui/core";
 import { startRun } from "../api";
 import type { Status } from "../types";
 import StatusBadge from "../components/StatusBadge";
 
-export type Draft = { rfp: File | null; notice: File | null; mode: "offline" | "live"; marketApi: boolean };
-export const emptyDraft: Draft = { rfp: null, notice: null, mode: "offline", marketApi: false };
+export type Draft = { rfp: File | null; notice: File | null; mode: "offline" | "live"; marketApi: boolean; noticeNo: string };
+export const emptyDraft: Draft = { rfp: null, notice: null, mode: "offline", marketApi: false, noticeNo: "" };
+// 나라장터 공고번호(차세대 R26BK01762350 / 구 20240112345, 차수 -000 선택). 서버도 같은 형식만 받는다.
+const NOTICE_NO = /^\s*(R\d{2}[A-Z]{2}\d{8}|20\d{9})(\s*-\s*\d{3})?\s*$/i;
 
 const isPdf = (file: File) => file.name.toLowerCase().endsWith(".pdf");
 const sizeLabel = (bytes: number) => (bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)}MB` : `${Math.ceil(bytes / 1024)}KB`);
@@ -67,6 +69,7 @@ type Props = {
 
 export default function NewReview({ status, draft, setDraft, onStarted, folderId, noticePdf, noticeName, notes = [] }: Props) {
   const hasNotice = !!draft.notice || !!noticePdf;
+  const noticeNoInvalid = !folderId && draft.noticeNo.trim() !== "" && !NOTICE_NO.test(draft.noticeNo);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const liveAvailable = status?.live_available ?? false;
@@ -84,6 +87,7 @@ export default function NewReview({ status, draft, setDraft, onStarted, folderId
     const form = new FormData();
     form.append("rfp", draft.rfp);
     if (draft.notice) form.append("notice", draft.notice);
+    if (!folderId && draft.noticeNo.trim()) form.append("notice_no", draft.noticeNo.trim());
     form.append("mode", draft.mode);
     form.append("market_api", String(draft.marketApi));
     if (folderId) form.append("folder_id", folderId);
@@ -103,7 +107,7 @@ export default function NewReview({ status, draft, setDraft, onStarted, folderId
       <div>
         <Typography display="block" variant="title3" weight="bold">새 공고 검토</Typography>
         <Typography display="block" variant="body2" color="semantic.foreground.neutral.secondary">
-          제안요청서를 올리면 Agent 4개가 분석해 Go/No-Go 권고를 만듭니다. 최종 결정은 사업본부장이 합니다.
+          제안요청서를 올리면 핵심정보(금액·자격·일정)를 먼저 검증하고, 확인이 끝나면 회사 역량·유사 사업·Go/No-Go 권고를 만듭니다. 최종 결정은 사업본부장이 합니다.
         </Typography>
       </div>
       <div className="panel stack" style={{ gap: 20 }}>
@@ -115,8 +119,19 @@ export default function NewReview({ status, draft, setDraft, onStarted, folderId
             {noticeName ?? "공고"} · 제안요청서 PDF를 올려 주세요
           </SectionMessage>
         ) : (
-          <FilePicker label="입찰공고문 PDF" file={draft.notice}
-            hint="없으면 참가자격·공고번호가 '확인 필요'로 남아 보류가 나올 수 있어요" onChange={(notice) => update({ notice })} />
+          <>
+            <FilePicker label="입찰공고문 PDF" file={draft.notice}
+              hint="없으면 참가자격·공고번호가 '확인 필요'로 남아 보류가 나올 수 있어요" onChange={(notice) => update({ notice })} />
+            <label className="stack" style={{ gap: 6 }}>
+              <Typography variant="label1" weight="bold">나라장터 공고번호 (선택)</Typography>
+              <TextArea minRows={1} maxLength={20} value={draft.noticeNo} placeholder="예: R26BK01762350-000"
+                onChange={(e) => update({ noticeNo: e.target.value.replace(/\n/g, "") })} aria-invalid={noticeNoInvalid} />
+              <Typography variant="caption1" color={noticeNoInvalid ? "semantic.foreground.negative.primary" : "semantic.foreground.neutral.secondary"}>
+                {noticeNoInvalid ? "나라장터 공고번호 형식이 아니에요 (기관 자체 번호 말고 R26BK… 번호)"
+                  : "넣으면 나라장터 조회로 금액·자격·마감을 교차검증해요. 없으면 조회를 건너뜁니다."}
+              </Typography>
+            </label>
+          </>
         )}
         <div className="row" style={{ alignItems: "flex-start", gap: 32 }}>
           <div className="stack" style={{ gap: 8 }}>
@@ -141,7 +156,7 @@ export default function NewReview({ status, draft, setDraft, onStarted, folderId
           <Typography className="grow" variant="caption1" color="semantic.foreground.neutral.secondary">
             회사 역량 자료: ㈜아이티센엔텍 공개 근거 (data/company) · 체크리스트: {status?.checklist_version ?? "-"}판
           </Typography>
-          <Button size="large" disabled={!draft.rfp || submitting} loading={submitting} onClick={submit}>검토 시작</Button>
+          <Button size="large" disabled={!draft.rfp || submitting || noticeNoInvalid} loading={submitting} onClick={submit}>검토 시작</Button>
         </div>
       </div>
     </>

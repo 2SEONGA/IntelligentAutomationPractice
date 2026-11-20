@@ -4,8 +4,19 @@ from __future__ import annotations
 from datetime import datetime, timezone
 import hashlib
 from pathlib import Path
+import re
 from typing import Any
 from uuid import uuid4
+
+# 나라장터 공고번호: 차세대(R26BK01762350) 또는 구 형식(20240112345). 뒤에 차수(-000)가 붙을 수 있다.
+# 기관 자체 공고번호(예: 제2026-013호)는 이 형식이 아니다.
+G2B_NOTICE_RE = re.compile(r"(R\d{2}[A-Z]{2}\d{8}|20\d{9})(?:\s*-\s*(\d{3}))?")
+
+
+def parse_g2b_notice(value: Any) -> tuple[str, str | None] | None:
+    """문자열에서 나라장터 공고번호와 차수를 찾는다. 없으면 None."""
+    match = G2B_NOTICE_RE.search(str(value or "").upper())
+    return (match.group(1), match.group(2)) if match else None
 
 
 def file_identity(path: str | Path) -> dict[str, str]:
@@ -26,14 +37,22 @@ def case_identity(state: dict[str, Any], extracted_notice_no: Any,
                   if state.get("notice_pdf_path") and Path(state["notice_pdf_path"]).is_file() else None)
     company = (file_identity(state["company_path"])
                if state.get("company_path") and Path(state["company_path"]).is_file() else None)
-    input_no = str(state.get("notice_no") or "").strip()
-    extracted_no = str(extracted_notice_no or "").strip()
-    notice_pdf_no = str(notice_pdf_number or "").strip()
+    def g2b(value: Any) -> str:
+        parsed = parse_g2b_notice(value)
+        return parsed[0] if parsed else ""
+
+    raw_input = str(state.get("notice_no") or "").strip()
+    input_no = g2b(raw_input) or raw_input
+    # 문서에서 읽은 번호는 나라장터 형식일 때만 비교·조회에 쓴다. 기관 자체 공고번호(예: 제2026-013호)를
+    # 나라장터 번호와 비교하면 같은 공고도 늘 "충돌"이 된다(통합정보시스템 오탐, M37).
+    extracted_no, notice_pdf_no = g2b(extracted_notice_no), g2b(notice_pdf_number)
+    agency_numbers = [str(raw).strip() for raw in (extracted_notice_no, notice_pdf_number)
+                      if str(raw or "").strip() and not g2b(raw)]
     order = str(state.get("notice_order") or "000").zfill(3)
     conflicts = []
     if input_no and extracted_no and input_no != extracted_no:
         conflicts.append(f"입력 공고번호 {input_no}와 RFP 추출 공고번호 {extracted_no}가 다릅니다.")
-    effective = input_no or extracted_no or None
+    effective = input_no or extracted_no or notice_pdf_no or None
     if notice_pdf_no and effective and notice_pdf_no != effective:
         conflicts.append(f"공고문 PDF 추출 공고번호 {notice_pdf_no}가 실행 공고번호 {effective}와 다릅니다.")
     run_id = str(state.get("run_id") or uuid4().hex)
@@ -42,6 +61,7 @@ def case_identity(state: dict[str, Any], extracted_notice_no: Any,
             "rfp": rfp, "notice_pdf": notice_pdf, "company": company,
             "input_notice_no": input_no or None,
             "extracted_notice_no": extracted_no or None, "notice_pdf_number": notice_pdf_no or None,
+            "agency_notice_numbers": agency_numbers,  # 참고용 기관 자체 번호(비교하지 않음)
             "conflicts": conflicts,
             "status": "conflict" if conflicts else "identified"}
 

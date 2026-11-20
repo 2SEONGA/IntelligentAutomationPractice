@@ -104,7 +104,9 @@ def test_build_command() -> None:
                        "--allow-market-api", "--output", str(out), "--save-intermediate", "--verbose"]
     offline = jobs.build_command(out, {"mode": "offline", "notice": True, "market_api": False})
     assert offline[1:] == ["-m", "bid_review.web.langgraph_job", "--rfp", str(out / "rfp.pdf"), "--output", str(out),
-                           "--notice-pdf", str(out / "notice.pdf")], "offline 웹 실행은 LangGraph(일원화)"
+                           "--mode", "offline", "--notice-pdf", str(out / "notice.pdf")], "웹 실행은 LangGraph(일원화)"
+    live = jobs.build_command(out, {"mode": "live", "notice": False, "market_api": False})
+    assert live[1:3] == ["-m", "bid_review.web.langgraph_job"] and live[live.index("--mode") + 1] == "live"
     assert "--notice-pdf" not in jobs.build_command(out, {"mode": "offline", "notice": False, "market_api": False})
 
 
