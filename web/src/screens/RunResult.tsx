@@ -77,7 +77,8 @@ export default function RunResult({ runId, role, status, onChanged, onNavigate }
           <TabListItem value="market" disabled={!run.details_available}>시장 조사</TabListItem>
           <TabListItem value="checklist">Go/No-Go 체크리스트</TabListItem>
         </TabList>
-        <TabPanel value="core" sx={{ paddingTop: 16 }}><CoreReviewTab run={run} role={role} onChanged={refreshAll} /></TabPanel>
+        <TabPanel value="core" sx={{ paddingTop: 16 }}><CoreReviewTab run={run} role={role} onChanged={refreshAll}
+          onOpenRun={(id) => { onChanged(); onNavigate({ view: "run", runId: id }); }} /></TabPanel>
         <TabPanel value="summary" sx={{ paddingTop: 16 }}>
           {!run.details_available && detailsNote}
           <SummaryTab report={run.report} />

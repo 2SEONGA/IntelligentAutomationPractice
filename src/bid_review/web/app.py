@@ -19,7 +19,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from ..settings import PROJECT_ROOT, load_config
-from . import criteria, notices, runs
+from . import criteria, langgraph_job, notices, runs
 from .dashboard import compute_dashboard
 from .jobs import JobBusy, JobManager, build_command
 
@@ -68,17 +68,6 @@ class WorkflowBody(BaseModel):
     action: str
     reason: str = ""
     request: str = ""
-
-
-def _notice_key(case, prior: dict | None) -> dict:
-    """나라장터 조회용 공고번호·차수. 공고함에서 시작한 건은 notice_attachment.json에 있다.
-    예전에는 이전 검토 결과에서만 읽어 첫 검증이 나라장터 조회를 늘 건너뛰었다."""
-    saved = runs._read_json(case / "notice_attachment.json") or {}
-    if saved.get("notice_no"):
-        return {"notice_no": saved["notice_no"], "notice_order": saved.get("notice_order") or "000"}
-    if (prior or {}).get("notice_no"):
-        return {"notice_no": prior["notice_no"], "notice_order": prior.get("notice_order") or "000"}
-    return {}
 
 
 class CoreReviewBody(BaseModel):
@@ -469,7 +458,7 @@ def create_app(job_manager: JobManager | None = None, allowed_hosts: tuple[str, 
                 snapshot = hitl_runtime.start_review(
                     pdf_path, company_path=company_file if company_file.is_file() else None,
                     notice_pdf_path=notice_pdf if notice_pdf.is_file() else None,
-                    retrieval_limit=1, thread_id=f"web-{uuid4().hex}", **_notice_key(path.parent, prior))
+                    retrieval_limit=1, thread_id=f"web-{uuid4().hex}", **langgraph_job.notice_key(path.parent, prior))
         except ValueError as exc:  # 오래된 중단 지점·입력 파일 변경 등
             raise runs.Conflict(str(exc), status) from None
         except (HTTPException, runs.Conflict):
@@ -478,12 +467,18 @@ def create_app(job_manager: JobManager | None = None, allowed_hosts: tuple[str, 
             raise HTTPException(500, f"핵심정보 검토 실행 실패: {type(exc).__name__}: {exc}") from exc
         if snapshot["status"] == "failed":
             raise HTTPException(500, "핵심정보 검토 실행 실패: " + "; ".join(snapshot["task_errors"]))
-        result = dict(snapshot["state"])
-        result["hitl"] = {"thread_id": snapshot["thread_id"], "status": snapshot["status"],
-                          "interrupt_id": snapshot["interrupts"][0]["id"] if snapshot["interrupts"] else None}
-        if snapshot["status"] == "paused":
-            result["decision"] = "human_review_required"  # 중단 시점 State에는 아직 판정이 없다.
-        return runs.save_core_review(run_id, result, action=body.action, reason=body.reason, role=role)
+        if body.action == "reject":  # 반려는 보고서를 새로 만들지 않고 현재 보고서에 기록만 남긴다
+            return {**runs.save_core_review(run_id, langgraph_job.core_result(snapshot), action=body.action,
+                                            reason=body.reason, role=role), "run_id": run_id}
+        # 검증·승인 결과는 새 보고서로 쓴다(승인 → T4 보고서). 화면은 돌려준 run_id로 이동한다.
+        with runs._workflow_lock:
+            if path != runs.current_report(path.parent):
+                raise runs.Conflict("옛 보고서는 핵심정보 검토를 진행할 수 없어요.", status)
+            report = langgraph_job.write_artifacts(path.parent, snapshot, action=body.action, reason=body.reason, role=role)
+            runs.record_run(report, runs._mode(path) or "offline")  # 이전 보고서의 실행 방식(웹 실행 표시)을 이어받는다
+        saved = runs.load_core_review(path.parent, report)
+        return {"result": saved, "audit": runs._read_json(path.parent / "core_review_audit.json"),
+                "run_id": runs.encode_run_id(report)}
 
     @app.get("/api/runs/{run_id}/files/{name}")
     def get_file(run_id: str, name: str) -> Response:

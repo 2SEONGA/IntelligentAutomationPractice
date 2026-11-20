@@ -7,7 +7,7 @@ import PageLink from "../PageLink";
 import CapabilityTab from "./CapabilityTab";
 import StatusBadge from "../StatusBadge";
 
-type Props = { run: RunDetail; role: Role; onChanged: () => void };
+type Props = { run: RunDetail; role: Role; onChanged: () => void; onOpenRun?: (runId: string) => void };
 const LABELS: Record<string, string> = { amount: "금액", eligibility: "참가자격", schedule: "기간·일정" };
 const STATUS: Record<string, string> = {
   confirmed: "확인 완료", retrieve_more: "추가 검색 필요", conflict: "충돌", human_review: "담당자 확인 필요",
@@ -16,7 +16,7 @@ const STATUS: Record<string, string> = {
 // 공고문 인용: 실행 폴더 notice.pdf에서 추출했거나 RAG 색인의 공고문 PDF chunk
 const isNotice = (citation: any) => citation.source_path === "notice.pdf" || citation.document_type === "notice_pdf";
 
-export default function CoreReviewTab({ run, role, onChanged }: Props) {
+export default function CoreReviewTab({ run, role, onChanged, onOpenRun }: Props) {
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -30,9 +30,11 @@ export default function CoreReviewTab({ run, role, onChanged }: Props) {
     setBusy(true);
     setError("");
     try {
-      await updateCoreReview(run.id, action, reason);
+      const saved = await updateCoreReview(run.id, action, reason);
       setReason("");
-      onChanged();
+      // 검증·승인은 새 보고서를 만든다(승인 → T4 보고서). 그 보고서로 이동한다.
+      if (saved.run_id && saved.run_id !== run.id && onOpenRun) onOpenRun(saved.run_id);
+      else onChanged();
     } catch (e) {
       setError((e as Error).message);
     } finally {

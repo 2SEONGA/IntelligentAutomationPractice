@@ -38,7 +38,7 @@ export const getStatus = () => call<Status>("/api/status");
 export const listRuns = () => call<RunSummary[]>("/api/runs");
 export const getRun = (id: string) => call<RunDetail>(`/api/runs/${id}`);
 export const updateCoreReview = (id: string, action: "analyze" | "approve_and_run_t2" | "reject", reason = "") =>
-  call<{ result: Artifact; audit: Artifact }>(`/api/runs/${id}/core-review`, send("POST", { action, reason }));
+  call<{ result: Artifact; audit: Artifact; run_id: string }>(`/api/runs/${id}/core-review`, send("POST", { action, reason }));
 export const startRun = (form: FormData) => call<{ job_id: string }>("/api/runs", { method: "POST", body: form });
 export const saveChecklist = (id: string, overrides: Record<string, ChecklistValue>) =>
   call<Checklist>(`/api/runs/${id}/checklist`, send("PUT", { overrides }));

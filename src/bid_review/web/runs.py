@@ -148,21 +148,27 @@ def save_core_review(run_id: str, result: dict, *, action: str, reason: str, rol
     with _workflow_lock:
         if path != current_report(case):
             raise Conflict("옛 보고서는 핵심정보 검토를 진행할 수 없어요.", workflow(case)["status"])
-        audit_path = case / "core_review_audit.json"
-        audit = _read_json(audit_path) or {"history": []}
-        result = {**result, "reviewed_report": path.name}
-        entry = {
-            "action": action, "role": role, "reason": reason.strip(), "at": _now(),
-            "report": path.name,
-            "decision": result.get("decision"),
-            "verification_status": (result.get("verification") or {}).get("status"),
-        }
-        audit["history"].append(entry)
-        audit["latest"] = entry
-        audit["status"] = result.get("decision", "unknown")
-        core_review_path(case).write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
-        audit_path.write_text(json.dumps(audit, ensure_ascii=False, indent=2), encoding="utf-8")
-        return {"result": result, "audit": audit}
+        return store_core_review(path, result, action=action, reason=reason, role=role)
+
+
+def store_core_review(path: Path, result: dict, *, action: str, reason: str, role: str) -> dict:
+    """Write langgraph_review.json for report `path` and append the audit entry. Caller checks currency/locking."""
+    case = path.parent
+    audit_path = case / "core_review_audit.json"
+    audit = _read_json(audit_path) or {"history": []}
+    result = {**result, "reviewed_report": path.name}
+    entry = {
+        "action": action, "role": role, "reason": reason.strip(), "at": _now(),
+        "report": path.name,
+        "decision": result.get("decision"),
+        "verification_status": (result.get("verification") or {}).get("status"),
+    }
+    audit["history"].append(entry)
+    audit["latest"] = entry
+    audit["status"] = result.get("decision", "unknown")
+    core_review_path(case).write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+    audit_path.write_text(json.dumps(audit, ensure_ascii=False, indent=2), encoding="utf-8")
+    return {"result": result, "audit": audit}
 
 
 def case_of(run_id: str) -> Path:
