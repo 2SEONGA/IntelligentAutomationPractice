@@ -287,10 +287,12 @@ def create_app(job_manager: JobManager | None = None, allowed_hosts: tuple[str, 
         market_api = body.market_api and fetched["notice"]
         _check_options(body.mode, market_api, fetched["notice"])
         rfp_name = next((a["name"] for a in entry["attachments"] if a["kind"] in ("rfp", "pdf")), None) if fetched["rfp"] else None
-        notice_attachment = next((a for a in entry["attachments"] if a["kind"] == "notice"), None) if fetched["notice"] else None
+        notice_attachment = fetched.get("notice_attachment") or (
+            next((a for a in entry["attachments"] if a["kind"] == "notice"), None) if fetched["notice"] else None)
         notice_name = notice_attachment["name"] if notice_attachment else None
-        if notice_attachment and (folder / "notice.pdf").is_file():
-            notice_bytes = (folder / "notice.pdf").read_bytes()
+        notice_path = runs.notice_file(folder)
+        if notice_attachment and notice_path:
+            notice_bytes = notice_path.read_bytes()
             (folder / "notice_attachment.json").write_text(json.dumps({
                 "notice_id": nid,
                 "notice_no": entry.get("bidNtceNo"),
@@ -298,7 +300,7 @@ def create_app(job_manager: JobManager | None = None, allowed_hosts: tuple[str, 
                 "attachment_name": notice_name,
                 "source_url": notice_attachment.get("url"),
                 "downloaded_at": datetime.now(runs.KST).isoformat(timespec="seconds"),
-                "local_file": "notice.pdf",
+                "local_file": notice_path.name,
                 "sha256": hashlib.sha256(notice_bytes).hexdigest(),
                 "source_note": "기존 공고 수집 저장소의 첨부 URL에서 내려받음. 이번 실행 중 API 재조회 사실을 뜻하지 않음.",
             }, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -383,7 +385,7 @@ def create_app(job_manager: JobManager | None = None, allowed_hosts: tuple[str, 
             if not parsed or parsed[0] != notice_no.strip().upper().split("-")[0].strip():
                 raise HTTPException(400, "나라장터 공고번호 형식이 아니에요. 예: R26BK01762350 또는 R26BK01762350-000")
             key = {"notice_no": parsed[0], "notice_order": parsed[1] or "000"}
-        has_notice = bool(notice) or bool(existing and (existing / "notice.pdf").is_file())
+        has_notice = bool(notice) or bool(existing and runs.notice_file(existing))
         _check_options(mode, market_api, has_notice)
         if manager.current():
             raise HTTPException(409, BUSY)
@@ -461,10 +463,9 @@ def create_app(job_manager: JobManager | None = None, allowed_hosts: tuple[str, 
                 if prior and prior.get("decision") == "human_approved_company_matching_complete":
                     raise runs.Conflict("T2 분석까지 끝난 실행입니다. 새 검토 실행을 만들어 주세요.", status)
                 company_file = PROJECT_ROOT / "data/company/company"
-                notice_pdf = path.parent / "notice.pdf"
                 snapshot = hitl_runtime.start_review(
                     pdf_path, company_path=company_file if company_file.is_file() else None,
-                    notice_pdf_path=notice_pdf if notice_pdf.is_file() else None,
+                    notice_pdf_path=runs.notice_file(path.parent),  # notice.pdf 또는 HWP·HWPX
                     retrieval_limit=1, thread_id=f"web-{uuid4().hex}", **langgraph_job.notice_key(path.parent, prior))
         except ValueError as exc:  # 오래된 중단 지점·입력 파일 변경 등
             raise runs.Conflict(str(exc), status) from None

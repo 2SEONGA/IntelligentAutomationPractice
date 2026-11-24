@@ -39,9 +39,18 @@ ATTACHMENT_DEADLINE_SECONDS = 300
 MAX_REDIRECTS = 5
 # Seen in real G2B attachment names: (입찰)공고문, (재)공고서, 입찰공고서
 NOTICE_TERMS = ("공고문", "공고서", "입찰공고")
+# 공고문은 PDF 외에 HWP 5.0·HWPX도 받는다(QA #3). 파일 앞부분(magic)으로 형식을 확인한다.
+# 검토 폴더에 저장하는 이름은 runs.NOTICE_FILES(notice.pdf/.hwpx/.hwp)와 같은 순서다.
+NOTICE_MAGIC = {".pdf": b"%PDF-", ".hwpx": b"PK\x03\x04", ".hwp": b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"}
 KEPT_FIELDS = ("bidNtceNo", "bidNtceOrd", "bidNtceNm", "ntceInsttNm", "dminsttNm", "asignBdgtAmt", "presmptPrce",
                "bidClseDt", "bidNtceDt", "cntrctCnclsMthdNm", "sucsfbidMthdNm", "pubPrcrmntLrgClsfcNm", "bidNtceDtlUrl")
 _store_lock = threading.Lock()
+
+
+def notice_suffix(name: str) -> str | None:
+    """첨부 이름의 공고문 확장자(.pdf/.hwpx/.hwp). 공고문으로 받을 수 없는 형식이면 None."""
+    suffix = Path(unicodedata.normalize("NFC", str(name or ""))).suffix.lower()
+    return suffix if suffix in NOTICE_MAGIC else None
 
 
 class NoticeError(Exception):
@@ -68,7 +77,7 @@ def classify(names: list[str]) -> dict[str, str]:
     for name in names:
         n = unicodedata.normalize("NFC", name)
         pdf = n.lower().endswith(".pdf")
-        if pdf and any(t in n for t in NOTICE_TERMS):
+        if notice_suffix(n) and any(t in n for t in NOTICE_TERMS):
             kinds[name] = "notice"
         elif pdf and any(t in n.upper() for t in ("제안요청", "과업", "RFP")):
             kinds[name] = "rfp"
@@ -216,15 +225,18 @@ def fetch_notice_license_limits(bid_ntce_no: str, bid_ntce_ord: str = "000", ses
 
 
 def compare_notice_pdf_bytes(attachments: list[dict], notice_pdf_path: Path | None, session=None) -> dict:
-    """Compare the current G2B notice attachment bytes with the saved local notice PDF."""
+    """Compare the current G2B notice attachment bytes with the saved local notice (PDF·HWP·HWPX)."""
     if not notice_pdf_path or not Path(notice_pdf_path).is_file():
         return {"status": "local_pdf_missing"}
     local_path = Path(notice_pdf_path)
     local_sha256 = hashlib.sha256(local_path.read_bytes()).hexdigest()
+    magic = NOTICE_MAGIC.get(local_path.suffix.lower(), NOTICE_MAGIC[".pdf"])
     candidates = [item for item in attachments if item.get("kind") == "notice"]
     if not candidates:
         return {"status": "g2b_notice_attachment_missing", "local_sha256": local_sha256}
-    attachment = candidates[0]
+    # 공고문이 PDF·HWP 두 형식으로 올라온 공고는 저장한 파일과 같은 형식의 첨부와 대조한다.
+    attachment = next((item for item in candidates if notice_suffix(item.get("name")) == local_path.suffix.lower()),
+                      candidates[0])
     url = str(attachment.get("url") or "")
     session = session or requests.Session()
     try:
@@ -235,7 +247,7 @@ def compare_notice_pdf_bytes(attachments: list[dict], notice_pdf_path: Path | No
     except requests.RequestException as exc:
         return {"status": "download_unavailable", "error": type(exc).__name__,
                 "local_sha256": local_sha256, "attachment_name": attachment.get("name"), "source_url": url}
-    if not content.startswith(b"%PDF-"):
+    if not content.startswith(magic):  # 상태 이름은 기존 화면·기록과 맞춰 그대로 둔다(저장 파일과 형식이 다름)
         return {"status": "download_not_pdf", "local_sha256": local_sha256,
                 "attachment_name": attachment.get("name"), "source_url": url}
     remote_sha256 = hashlib.sha256(content).hexdigest()
@@ -474,7 +486,9 @@ def fetch_attachments(nid: str, folder: Path, session=None) -> dict:
     entry = load_notices()["notices"][nid]
     pdfs = [a for a in entry["attachments"] if a["kind"] != "other"]
     rfp_candidates = [a for a in pdfs if a["kind"] == "rfp"] + [a for a in pdfs if a["kind"] == "pdf"]
-    targets = {"notice.pdf": next((a for a in pdfs if a["kind"] == "notice"), None)}
+    # 공고문: PDF가 있으면 PDF, 없으면 HWPX·HWP. 저장 이름은 notice.pdf / notice.hwpx / notice.hwp.
+    notices_found = sorted((a for a in pdfs if a["kind"] == "notice"),
+                           key=lambda a: list(NOTICE_MAGIC).index(notice_suffix(a["name"]) or ".pdf"))
     result = {"rfp": False, "notice": False, "skipped": [], "rfp_guessed": False}
     for attachment in rfp_candidates:  # first downloadable real PDF wins
         if _download(session, attachment, folder / "rfp.pdf"):
@@ -482,11 +496,13 @@ def fetch_attachments(nid: str, folder: Path, session=None) -> dict:
             result["rfp_guessed"] = attachment["kind"] == "pdf"  # no 제안요청/과업/RFP hint in the name
             break
         result["skipped"].append(attachment["name"])
-    if targets["notice.pdf"]:
-        if _download(session, targets["notice.pdf"], folder / "notice.pdf"):
+    for attachment in notices_found:
+        suffix = notice_suffix(attachment["name"]) or ".pdf"
+        if _download(session, attachment, folder / f"notice{suffix}", magic=NOTICE_MAGIC[suffix]):
             result["notice"] = True
-        else:
-            result["skipped"].append(targets["notice.pdf"]["name"])
+            result["notice_attachment"] = attachment  # 실제로 받은 첨부(PDF가 실패해 HWP를 받았을 수 있다)
+            break
+        result["skipped"].append(attachment["name"])
     return result
 
 

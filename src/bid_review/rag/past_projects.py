@@ -19,6 +19,7 @@ from typing import Any
 
 import requests
 
+from ..hwp_text import HWP_LINES_PER_PAGE  # HWP 50줄 = 한 쪽 (T1과 같은 값)
 from ..notice_filter import amount_of
 from ..settings import PROJECT_ROOT, load_config
 from .project_profile import PROFILE_VERSION, ProfileExtractionError, extract_profile_body
@@ -31,7 +32,6 @@ PROFILE_CHARS = 2500
 TOC_LEADER = re.compile(r"[·.…ㆍ‥\-]{5,}\s*\d{0,3}\s*$|[·…]{3,}|\t\s*\d{1,3}\s*$")  # 목차 점선(····· 3), HWP 목차 탭(\t 3)
 RFP_MAGIC = {".pdf": b"%PDF-", ".hwp": b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1", ".hwpx": b"PK\x03\x04"}
 RFP_FILES = ("rfp.pdf", "rfp.hwpx", "rfp.hwp")  # M31: PDF가 없으면 HWP·HWPX 제안요청서
-HWP_LINES_PER_PAGE = 50  # HWP에는 쪽이 없어 50줄을 한 쪽으로 본다
 # M25 담당자 평가(15건)로 조정: 0.60 → 0.70. 0.78 이상 5건 중 4건 관련, 0.69 이하는 대부분 무관(최적 F1 0.713: 정밀도·재현율 0.83).
 MIN_PROJECT_SCORE = 0.70
 SAME_PROJECT_SCORE = 0.95  # 이 이상이면 다른 공고번호라도 같은 사업의 재공고일 가능성이 높다
@@ -39,12 +39,13 @@ SAME_PROJECT_SCORE = 0.95  # 이 이상이면 다른 공고번호라도 같은 �
 
 def _rfp_pages(path: Path, max_pages: int) -> list[str]:
     if path.suffix.lower() in (".hwp", ".hwpx"):
-        from ..hwp_text import hwp_text
+        from ..hwp_text import hwp_pages
 
-        lines = hwp_text(path).splitlines()
-        return ["\n".join(lines[i:i + HWP_LINES_PER_PAGE]) for i in range(0, len(lines), HWP_LINES_PER_PAGE)][:max_pages]
+        return hwp_pages(path, HWP_LINES_PER_PAGE)[:max_pages]
     import pdfplumber
     from pypdf import PdfReader
+
+    from ..pdf_chars import dedupe_overprint
 
     # 쪽마다 따로 읽는다. pdfminer가 한 쪽의 글꼴 정보(DescendantFonts 등)를 못 읽어도 문서 전체를 버리지 않고
     # 그 쪽만 pypdf로 다시 시도하고, 그래도 안 되면 빈 쪽으로 둔다(예: R26BK01765343 1쪽).
@@ -53,7 +54,7 @@ def _rfp_pages(path: Path, max_pages: int) -> list[str]:
         reader = None
         for number, page in enumerate(pdf.pages[:max_pages]):
             try:
-                texts.append(page.extract_text() or "")
+                texts.append(dedupe_overprint(page)[0].extract_text() or "")  # 겹쳐 찍은 굵은 글씨("요요구구")
                 continue
             except Exception:
                 pass

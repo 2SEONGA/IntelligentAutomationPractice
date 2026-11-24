@@ -32,6 +32,11 @@ class Job:
     on_finish: Callable[[Path], None] | None = None  # called with the new report before the done event
 
 
+def _notice_path(output_dir: Path) -> str:
+    """저장된 공고문(notice.pdf, 없으면 notice.hwpx·notice.hwp). 아직 없으면 예전처럼 notice.pdf 경로."""
+    return str(runs.notice_file(output_dir) or output_dir / "notice.pdf")
+
+
 def build_command(output_dir: Path, options: dict) -> list[str]:
     rfp = options.get("rfp_path") or str(output_dir / "rfp.pdf")
     if not options.get("market_api"):
@@ -39,10 +44,10 @@ def build_command(output_dir: Path, options: dict) -> list[str]:
         # 나라장터 낙찰 실시간 조회(market_api)를 켠 live만 아직 run.py(CrewAI 시장 Agent) 경로.
         command = [sys.executable, "-m", "bid_review.web.langgraph_job", "--rfp", rfp, "--output", str(output_dir),
                    "--mode", options.get("mode", "offline")]
-        return command + (["--notice-pdf", str(output_dir / "notice.pdf")] if options.get("notice") else [])
+        return command + (["--notice-pdf", _notice_path(output_dir)] if options.get("notice") else [])
     command = [sys.executable, "run.py", "--mode", options.get("mode", "offline"), "--rfp", rfp]
     if options.get("notice"):
-        command += ["--notice-pdf", str(output_dir / "notice.pdf")]
+        command += ["--notice-pdf", _notice_path(output_dir)]
     if options.get("market_api"):
         command.append("--allow-market-api")
     return command + ["--output", str(output_dir), "--save-intermediate", "--verbose"]

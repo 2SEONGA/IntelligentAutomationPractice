@@ -17,6 +17,8 @@ from .models import (
 )
 from .money import parse_krw
 from . import ocr, vat
+from .hwp_text import HWP_LINES_PER_PAGE, hwp_pages
+from .pdf_chars import dedupe_overprint
 from .settings import load_settings
 
 
@@ -123,6 +125,12 @@ def _is_repeated(value: str) -> bool:
     return False
 
 
+APPENDIX_MARKERS = ("별지", "서식", "붙임", "첨부")
+# 별첨·별표·양식은 본문에서도 "[별첨]의 평가기준", "별첨으로 제출"처럼 자주 인용되므로, 쪽 머리(앞 3줄)에
+# "[별표 1]", "<양식 2>", "별첨 3." 같은 표제로 나올 때만 서식 쪽으로 본다(CDW 64·66·67·70쪽 <별표 n>).
+APPENDIX_LABEL = re.compile(r"^\s*[\[<【〔(（]\s*(?:별첨|별표|양식)\s*(?:제?\s*\d+\s*호?)?\s*[\]>】〕)）]"
+                            r"|^\s*(?:별첨|별표|양식)\s*제?\s*\d+\s*호?\s*(?:$|[.:：\s])")
+APPENDIX_LABEL_LINES = 3
 TOC_HEADING = re.compile(r"^[-<\[(【]?\s*(?:목\s*차|차\s*례|contents|table\s*of\s*contents)\s*[-<>\])】]?$", re.I)
 TOC_ENTRY = re.compile(r"(?:[·.…‥ㆍ]{4,}|\s{6,})\s*\d{1,3}\s*$")
 
@@ -181,10 +189,14 @@ class RFPExtractor:
             return "cover_page", "첫 페이지로 표지 우선 처리"
         if _is_toc_page(text):
             return "table_of_contents", "목차 표제 줄 또는 점선·쪽 번호로 끝나는 줄 비율로 목차 확인"
-        if any(marker in text for marker in ("별지", "서식", "붙임", "첨부")):
+        if any(marker in text for marker in APPENDIX_MARKERS):
             return "appendix_page", "별지·서식·붙임 표식 확인"
         if len(table_rows) >= 3 or ("|" in text and len(re.findall(r"\s{3,}", text)) >= 5):
+            # 표 중심 쪽은 표 행 단위로 요구사항을 읽으므로, 머리 표제(<별표 n>)가 있어도 표 쪽으로 둔다.
             return "table_heavy_page", "추출된 표 행 또는 다열 레이아웃 비중이 높음"
+        top = [line for line in text.splitlines() if line.strip()][:APPENDIX_LABEL_LINES]
+        if any(APPENDIX_LABEL.search(line) for line in top):
+            return "appendix_page", "쪽 머리의 별첨·별표·양식 표제 확인"
         return "body_page", "본문 텍스트 중심 페이지"
 
     @staticmethod
@@ -217,7 +229,9 @@ class RFPExtractor:
 
         # 표지(그림자 글자)·목차(점선)·빈 제출 서식(반복 머리글)은 반복·기호가 정상이다. 시연 RFP의 OCR 필요 10쪽이 모두 이 오탐이었다.
         structural = page_type in {"cover_page", "table_of_contents", "appendix_page"}
-        if len(compact) < minimum and page_type != "table_of_contents":
+        # 표지는 원래 글자가 적다(통합정보 표지: 겹친 그림자 글자를 거르면 38자). 글자가 하나도 없을 때(스캔본)만 OCR 대상.
+        short_limit = 1 if page_type == "cover_page" else minimum
+        if len(compact) < short_limit and page_type != "table_of_contents":
             reason = "추출 텍스트가 너무 짧음"
         elif page_type == "table_heavy_page" and not table_rows:
             reason = "표 비중이 높지만 표 구조를 추출하지 못함"
@@ -230,8 +244,40 @@ class RFPExtractor:
             reason += "; 현재 환경에 OCR 엔진이 없어 자동 OCR을 실행하지 않음"
         return reason
 
+    @staticmethod
+    def _page_text(page, layout_page) -> tuple[str, str, object, bool]:
+        """한 쪽의 (pypdf 텍스트, 레이아웃 텍스트, 표·OCR 외 분석에 쓸 pdfplumber 쪽, 겹친 글자 여부).
+
+        겹쳐 찍은 글자가 있는 쪽은 pypdf도 글자를 겹쳐 읽으므로 걸러낸 pdfplumber 텍스트로 바꾼다.
+        """
+        text_page, overprinted = dedupe_overprint(layout_page)
+        try:
+            simple = _clean((text_page.extract_text() if overprinted else page.extract_text()) or "")
+        except Exception:
+            simple = ""
+        try:
+            layout = _clean(text_page.extract_text(layout=True) or "")
+        except Exception:
+            layout = ""
+        return simple, layout, text_page, overprinted
+
+    def _extract_hwp_pages(self, path: Path) -> tuple[list[PageText], list[ExtractionIssue], list[PageAnalysis], bool]:
+        """HWP·HWPX 공고문/제안요청서. 쪽 정보가 없어 50줄을 한 쪽으로 보고, 표·OCR 판정은 하지 않는다."""
+        pages: list[PageText] = []
+        analyses: list[PageAnalysis] = []
+        for number, chunk in enumerate(hwp_pages(path), start=1):
+            text = "\n".join(_clean(line) for line in chunk.splitlines() if _clean(line))
+            page_type, rationale = self._classify_page(number, text, [])
+            rationale += f" (HWP {HWP_LINES_PER_PAGE}줄 단위 쪽)"
+            analyses.append(PageAnalysis(page_number=number, page_type=page_type, rationale=rationale,
+                                         extraction_methods=["hwp_text"], table_count=0, ocr_required=False))
+            pages.append(PageText(number, text, text, [], page_type, rationale))
+        return pages, [], analyses, False
+
     def _extract_pages(self, pdf_path: Path) -> tuple[list[PageText], list[ExtractionIssue], list[PageAnalysis], bool]:
-        """pypdf와 pdfplumber로 PDF를 읽어 페이지 목록 및 추출 이슈를 만듭니다."""
+        """pypdf와 pdfplumber로 PDF를 읽어 페이지 목록 및 추출 이슈를 만듭니다. HWP·HWPX는 hwp_text로 읽습니다."""
+        if Path(pdf_path).suffix.lower() in (".hwp", ".hwpx"):
+            return self._extract_hwp_pages(Path(pdf_path))
         reader = PdfReader(str(pdf_path))
         pages: list[PageText] = []
         issues: list[ExtractionIssue] = []
@@ -241,14 +287,10 @@ class RFPExtractor:
 
         with pdfplumber.open(str(pdf_path)) as layout_pdf:
             for number, page in enumerate(reader.pages, start=1):
-                simple_text = _clean(page.extract_text() or "")
                 layout_page = layout_pdf.pages[number - 1]
-                try:
-                    layout_text = _clean(layout_page.extract_text(layout=True) or "")
-                except Exception:
-                    layout_text = ""
+                simple_text, layout_text, text_page, overprinted = self._page_text(page, layout_page)
 
-                table_rows = self._table_rows(layout_page)
+                table_rows = self._table_rows(text_page)
                 best_text = layout_text if len(layout_text) > len(simple_text) else simple_text
                 page_type, rationale = self._classify_page(number, best_text, table_rows)
                 reason = self._ocr_reason(best_text, page_type, table_rows)
@@ -275,7 +317,8 @@ class RFPExtractor:
 
                 analyses.append(PageAnalysis(
                     page_number=number, page_type=page_type, rationale=rationale,
-                    extraction_methods=["pypdf_text", "pdfplumber_layout"] + (["pdfplumber_table"] if table_rows else [])
+                    extraction_methods=["pypdf_text", "pdfplumber_layout"] + (["pdfplumber_dedupe_chars"] if overprinted else [])
+                    + (["pdfplumber_table"] if table_rows else [])
                     + (["tesseract_ocr"] if ocr_applied else []),
                     table_count=len(table_rows), ocr_required=ocr_required, ocr_reason=reason, ocr_applied=ocr_applied,
                     ocr_attempted=ocr_record["attempted"], ocr_succeeded=ocr_record["succeeded"],
@@ -498,7 +541,8 @@ class RFPExtractor:
         project = self._label_value(line, r"사\s*업\s*명|과\s*업\s*명|공\s*고\s*명")
         if project:
             self._add_field(bucket, "project_name", project, page, line, source_document)
-        elif page.page_type == "cover_page" and "제안요청서" not in line and "목차" not in line and "··" not in line and 6 <= len(line) <= 90:
+        elif (page.page_type == "cover_page" and not re.search(r"제\s*안\s*요\s*청\s*서|목\s*차", line)  # 표지 "제 안 요 청 서"
+              and "··" not in line and 6 <= len(line) <= 90):
             self._add_field(bucket, "project_name", line, page, line, source_document, labelled=False)
 
         entity = self._label_value(line, r"발\s*주\s*기\s*관|주\s*관\s*기\s*관|발\s*주\s*처")
