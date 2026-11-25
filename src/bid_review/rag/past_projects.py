@@ -33,7 +33,8 @@ TOC_LEADER = re.compile(r"[·.…ㆍ‥\-]{5,}\s*\d{0,3}\s*$|[·…]{3,}|\t\s*\d
 RFP_MAGIC = {".pdf": b"%PDF-", ".hwp": b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1", ".hwpx": b"PK\x03\x04"}
 RFP_FILES = ("rfp.pdf", "rfp.hwpx", "rfp.hwp")  # M31: PDF가 없으면 HWP·HWPX 제안요청서
 # M25 담당자 평가(15건)로 조정: 0.60 → 0.70. 0.78 이상 5건 중 4건 관련, 0.69 이하는 대부분 무관(최적 F1 0.713: 정밀도·재현율 0.83).
-MIN_PROJECT_SCORE = 0.70
+# M42: 값은 config/settings.yaml past_projects.min_similarity에서 읽는다(없으면 0.70). 값 자체는 바꾸지 않았다.
+MIN_PROJECT_SCORE = float(load_config("settings").get("past_projects", {}).get("min_similarity", 0.70))
 SAME_PROJECT_SCORE = 0.95  # 이 이상이면 다른 공고번호라도 같은 사업의 재공고일 가능성이 높다
 
 
@@ -45,14 +46,22 @@ def _rfp_pages(path: Path, max_pages: int) -> list[str]:
     import pdfplumber
     from pypdf import PdfReader
 
-    from ..pdf_chars import dedupe_overprint
+    from ..pdf_chars import dedupe_overprint, file_sha256, recalled_plain_texts
 
+    # 같은 프로세스에서 T1이 이미 이 파일(같은 SHA-256)을 읽었으면 그때 계산한 쪽 텍스트를 쓴다(남은 업무 4번).
+    # T1은 이 함수와 같은 방식(dedupe 후 extract_text)으로 계산하므로 결과가 같다. 실패했던 쪽(None)만 아래에서 다시 읽는다.
+    recalled = recalled_plain_texts(file_sha256(path))
     # 쪽마다 따로 읽는다. pdfminer가 한 쪽의 글꼴 정보(DescendantFonts 등)를 못 읽어도 문서 전체를 버리지 않고
     # 그 쪽만 pypdf로 다시 시도하고, 그래도 안 되면 빈 쪽으로 둔다(예: R26BK01765343 1쪽).
     texts: list[str] = []
+    if recalled is not None and all(text is not None for text in recalled[:max_pages]):
+        return list(recalled[:max_pages])
     with pdfplumber.open(path) as pdf:
         reader = None
         for number, page in enumerate(pdf.pages[:max_pages]):
+            if recalled is not None and number < len(recalled) and recalled[number] is not None:
+                texts.append(recalled[number])
+                continue
             try:
                 texts.append(dedupe_overprint(page)[0].extract_text() or "")  # 겹쳐 찍은 굵은 글씨("요요구구")
                 continue
@@ -79,8 +88,18 @@ def _non_rfp_attachment(name: str) -> bool:
 
 
 def _pick_rfp(attachments: list[dict]) -> tuple[dict | None, str]:
-    """PDF 제안요청서 우선, 없으면 이름·문서구분에 제안요청/과업이 있는 HWP·HWPX (M31)."""
+    """이름이 '제안요청서'인 첨부(PDF → HWP·HWPX) 우선(M41), 그다음 PDF 제안요청서, 없으면 이름·문서구분에
+    제안요청/과업이 있는 HWP·HWPX (M31).
+
+    M41: 문서구분이 '과업지시서'라는 이유로 상생결제 매뉴얼·심의결과서 PDF가 이름이 '제안요청서'인 HWP보다
+    먼저 뽑히던 문제(R26BK01795941, R26BK01826775)를 막는다.
+    """
     attachments = [a for a in attachments if not _non_rfp_attachment(a["name"])]
+    named = [a for a in attachments if "제안요청" in unicodedata.normalize("NFC", a["name"]).replace(" ", "")]
+    for suffix in ("pdf", "hwpx", "hwp"):
+        hit = next((a for a in named if unicodedata.normalize("NFC", a["name"]).lower().endswith("." + suffix)), None)
+        if hit:
+            return hit, f"rfp.{suffix}"
     pdf = next((a for a in attachments if a["kind"] == "rfp" and a["name"].lower().endswith(".pdf")), None)
     if pdf:
         return pdf, "rfp.pdf"

@@ -100,6 +100,27 @@ def test_hwp_notice_is_analyzed() -> None:
         assert not result.needs_ocr, "HWP는 OCR 판정 대상이 아님"
 
 
+def test_hwpx_contract_notice_fields() -> None:
+    """실제 HWPX 수의계약 공고(R26BK01847617) 형식: '계 약 명'·'추정금액' 표제, 첫 50줄을 표지로 보지 않음."""
+    import io
+    import zipfile
+    lines = ["수의계약 공고", "1. 계 약 명 : 27년 ADMS 플랫폼 DB 이중화 SW 위탁 유지보수",
+             "2. 계약기간 : 2027.01.01 ~ 2027.12.31.", "3. 추정금액 : 48,305,939원(부가세 포함)"]
+    paragraphs = "".join(f"<hp:p><hp:run><hp:t>{line}</hp:t></hp:run></hp:p>" for line in lines)
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as archive:
+        archive.writestr("mimetype", "application/hwp+zip")
+        archive.writestr("Contents/section0.xml", '<?xml version="1.0"?><hs:sec xmlns:hs="x" '
+                         f'xmlns:hp="http://www.hancom.co.kr/hwpml/2011/paragraph">{paragraphs}</hs:sec>')
+    path = Path(tempfile.mkdtemp()) / "notice.hwpx"
+    path.write_bytes(buffer.getvalue())
+    result = EXTRACTOR.analyze(path, document_kind="notice_pdf")
+    assert result.page_analysis[0].page_type != "cover_page"
+    assert result.basic_info.project_name.value == "27년 ADMS 플랫폼 DB 이중화 SW 위탁 유지보수", result.basic_info.project_name
+    assert result.basic_info.budget_krw.value == 48_305_939
+    assert result.basic_info.contract_period.value == "2027.01.01 ~ 2027.12.31."
+
+
 def test_notice_download_accepts_hwp_and_prefers_pdf() -> None:
     assert notices.classify(["(공고문)A.hwp", "입찰공고서.hwpx", "제안요청서.hwp"]) == {
         "(공고문)A.hwp": "notice", "입찰공고서.hwpx": "notice", "제안요청서.hwp": "other"}

@@ -127,9 +127,11 @@ def test_pdf_resolution() -> None:
     (web / "rfp.pdf").write_bytes(b"%PDF-1.4 web")
     (web / "upload.json").write_text(json.dumps({"rfp_name": "웹 공고.pdf", "mode": "live"}), encoding="utf-8")
     assert runs.resolve_file(runs.encode_run_id(web / f"{NEW}.json"), "rfp.pdf") == web / "rfp.pdf"
-    first = runs.list_runs()[0]
-    assert first["mode"] == "live" and first["via_web"] is True, "웹 실행도 offline/live 구분이 보여야 함"
-    assert runs.list_runs()[1]["via_web"] is False
+    # CLI·웹 보고서의 시각이 같아 정렬 순서는 운영체제의 파일 나열 순서에 따라 달라진다(Windows는 CLI가 먼저).
+    listed = [run for run in runs.list_runs() if run["created_at"] == runs.list_runs()[0]["created_at"]]
+    web_run = next(run for run in listed if run["via_web"])
+    assert web_run["mode"] == "live", "웹 실행도 offline/live 구분이 보여야 함"
+    assert any(run["via_web"] is False for run in listed)
     for name in (unicodedata.normalize("NFD", ""), "../.env", "report.exe"):
         try:
             runs.resolve_file(run_id, name)

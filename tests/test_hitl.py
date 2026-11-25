@@ -5,6 +5,7 @@ from contextlib import redirect_stdout
 from copy import deepcopy
 import io
 import json
+import os
 from pathlib import Path
 import runpy
 import subprocess
@@ -224,7 +225,8 @@ class HITLTests(unittest.TestCase):
 
     def test_real_process_restart(self):
         child = subprocess.run([sys.executable, str(Path(__file__).resolve()), "--worker-start", str(self.pdf), str(self.db)],
-                               check=True, capture_output=True, text=True)
+                               check=True, capture_output=True, text=True, encoding="utf-8",
+                               env={**os.environ, "PYTHONIOENCODING": "utf-8"})  # Windows 기본(cp949) 대신 UTF-8
         first = json.loads(child.stdout)
         result = self.resume(first)
         self.assertEqual(result["status"], "completed")

@@ -70,6 +70,7 @@ class BidReviewState(TypedDict, total=False):
     semantic_retrieval_status: str
     similar_projects: list[dict[str, Any]]  # Agent 3 과거 유사 사업 후보 (M23)
     similar_projects_status: str
+    live_award_lookup: dict[str, Any] | None  # 남은 업무 5번 A안(실험, market_mode="live_awards"일 때만)
     agent23_evaluation: dict[str, Any]
     human_override: dict[str, Any] | None  # 승인 감사 기록 — State에 없으면 LangGraph가 노드 반환값을 버림
     market: dict[str, Any] | None
@@ -91,10 +92,17 @@ def _model_from_state(value: dict[str, Any], model):
     return model.model_validate(value)
 
 
-def create_bid_review_graph(checkpointer=None, *, workflow_mode: Literal["sequential", "parallel"] = "sequential"):
-    """Compile either the established sequential graph or a T2/T3 parallel comparison graph."""
+def create_bid_review_graph(checkpointer=None, *, workflow_mode: Literal["sequential", "parallel"] = "sequential",
+                            market_mode: Literal["index", "live_awards"] = "index"):
+    """Compile either the established sequential graph or a T2/T3 parallel comparison graph.
+
+    market_mode="index"(기본, B안): T3 색인의 낙찰 연결만 쓴다 — 기존 그래프 그대로.
+    market_mode="live_awards"(A안, 실험): T3 뒤에 낙찰정보 실시간 재조회 Node(t3_live_awards)를 넣는다.
+    """
     if workflow_mode not in {"sequential", "parallel"}:
         raise ValueError("workflow_mode는 sequential 또는 parallel이어야 합니다.")
+    if market_mode not in {"index", "live_awards"}:
+        raise ValueError("market_mode는 index 또는 live_awards여야 합니다.")
 
     def extract_rfp(state: BidReviewState) -> dict[str, Any]:
         path = Path(state["pdf_path"])
@@ -518,6 +526,14 @@ def create_bid_review_graph(checkpointer=None, *, workflow_mode: Literal["sequen
         return {"similar_projects": results,
                 "similar_projects_status": f"found {len(results)}" if results else "none_above_threshold"}
 
+    def live_awards(state: BidReviewState) -> dict[str, Any]:
+        """A안: T3 후보의 낙찰정보를 후보 자신의 공고번호로 다시 조회한다. T3가 실행되지 않았으면 아무것도 하지 않는다."""
+        from .live_awards import refresh_awards
+        if not state.get("similar_projects"):
+            return {"live_award_lookup": {"status": "not_run", "api_calls": 0,
+                                          "error": f"T3 후보 없음({state.get('similar_projects_status', 'not_run')})"}}
+        return refresh_awards(state["similar_projects"])
+
     def human_review(state: BidReviewState) -> dict[str, Any]:
         if checkpointer is not None:
             return pause_for_human_review(state)
@@ -545,6 +561,9 @@ def create_bid_review_graph(checkpointer=None, *, workflow_mode: Literal["sequen
         ("t4_validate", validate_t4_report), ("human_review", human_review),
     ):
         graph.add_node(name, tracked(name, node))
+    if market_mode == "live_awards":
+        graph.add_node("t3_live_awards", tracked("t3_live_awards", live_awards))
+    t3_done = "t3_live_awards" if market_mode == "live_awards" else "t3_similar_projects"
     if workflow_mode == "parallel":
         graph.add_node("analysis_fork", tracked("analysis_fork", lambda state: {}))
     graph.add_edge(START, "t1_extract")
@@ -564,10 +583,12 @@ def create_bid_review_graph(checkpointer=None, *, workflow_mode: Literal["sequen
     if workflow_mode == "parallel":
         graph.add_edge("analysis_fork", "t2_company_rag_retrieval")
         graph.add_edge("analysis_fork", "t3_similar_projects")
-        graph.add_edge(["t2_company_match", "t3_similar_projects"], "t23_evaluate")
+        graph.add_edge(["t2_company_match", t3_done], "t23_evaluate")
     else:
         graph.add_edge("t2_company_match", "t3_similar_projects")
-        graph.add_edge("t3_similar_projects", "t23_evaluate")
+        graph.add_edge(t3_done, "t23_evaluate")
+    if market_mode == "live_awards":
+        graph.add_edge("t3_similar_projects", "t3_live_awards")
     graph.add_edge("t23_evaluate", "t4_report")
     graph.add_edge("t4_report", "t4_validate")
     graph.add_edge("t4_validate", END)
@@ -584,7 +605,8 @@ def run_bid_review(pdf_path: str | Path, company_path: str | Path | None = None,
                    review_note: str = "", reviewer: str | None = None,
                    notice_order: str | None = None,
                    notice_pdf_path: str | Path | None = None,
-                   workflow_mode: Literal["sequential", "parallel"] = "sequential") -> BidReviewState:
+                   workflow_mode: Literal["sequential", "parallel"] = "sequential",
+                   market_mode: Literal["index", "live_awards"] = "index") -> BidReviewState:
     """Run a single bid document through the compiled LangGraph workflow."""
     path = Path(pdf_path).expanduser().resolve()
     if not path.is_file():
@@ -593,7 +615,7 @@ def run_bid_review(pdf_path: str | Path, company_path: str | Path | None = None,
     if company is not None and not company.is_file():
         raise FileNotFoundError(company)
     notice_pdf = Path(notice_pdf_path).expanduser().resolve() if notice_pdf_path else None
-    return create_bid_review_graph(workflow_mode=workflow_mode).invoke({
+    return create_bid_review_graph(workflow_mode=workflow_mode, market_mode=market_mode).invoke({
         "pdf_path": str(path),
         "notice_pdf_path": str(notice_pdf) if notice_pdf else None,
         "company_path": str(company) if company else None,

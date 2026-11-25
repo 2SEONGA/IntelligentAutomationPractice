@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import copy
+import hashlib
+import json
 import re
 import time
 from difflib import SequenceMatcher
@@ -18,7 +21,7 @@ from .models import (
 from .money import parse_krw
 from . import ocr, vat
 from .hwp_text import HWP_LINES_PER_PAGE, hwp_pages
-from .pdf_chars import dedupe_overprint
+from .pdf_chars import dedupe_overprint, file_sha256, remember_plain_texts
 from .settings import load_settings
 
 
@@ -125,6 +128,9 @@ def _is_repeated(value: str) -> bool:
     return False
 
 
+# T1 쪽 추출 결과(프로세스 안). 키는 파일 SHA-256·설정이라 파일이 바뀌면 다시 읽는다. 최근 문서 몇 개만 둔다.
+_PAGE_CACHE: dict[tuple, tuple] = {}
+_PAGE_CACHE_MAX = 8
 APPENDIX_MARKERS = ("별지", "서식", "붙임", "첨부")
 # 별첨·별표·양식은 본문에서도 "[별첨]의 평가기준", "별첨으로 제출"처럼 자주 인용되므로, 쪽 머리(앞 3줄)에
 # "[별표 1]", "<양식 2>", "별첨 3." 같은 표제로 나올 때만 서식 쪽으로 본다(CDW 64·66·67·70쪽 <별표 n>).
@@ -267,15 +273,41 @@ class RFPExtractor:
         analyses: list[PageAnalysis] = []
         for number, chunk in enumerate(hwp_pages(path), start=1):
             text = "\n".join(_clean(line) for line in chunk.splitlines() if _clean(line))
-            page_type, rationale = self._classify_page(number, text, [])
+            # HWP에는 표지 쪽이 따로 없다. 첫 50줄을 표지로 보면 모든 줄이 사업명 후보가 된다(실제 HWPX 공고문에서 확인).
+            page_type, rationale = self._classify_page(0 if number == 1 else number, text, [])
             rationale += f" (HWP {HWP_LINES_PER_PAGE}줄 단위 쪽)"
             analyses.append(PageAnalysis(page_number=number, page_type=page_type, rationale=rationale,
                                          extraction_methods=["hwp_text"], table_count=0, ocr_required=False))
             pages.append(PageText(number, text, text, [], page_type, rationale))
         return pages, [], analyses, False
 
+    def _page_cache_key(self, path: Path) -> tuple:
+        """같은 파일 내용(SHA-256)·같은 추출 설정·같은 OCR 상태일 때만 같은 키."""
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        rfp = self.settings.get("rfp", {})
+        options = json.dumps({"low": rfp.get("low_text_page_characters"), "ocr": rfp.get("ocr")}, sort_keys=True, default=str)
+        # 테스트·환경에 따라 OCR 함수와 엔진 유무가 바뀌면 다른 결과가 나오므로 키에 넣는다.
+        # 파일 이름도 넣는다: 추출 이슈의 근거(Evidence.document)에 이름이 들어간다.
+        return digest, path.name, options, self._ocr_available(), id(ocr.ocr_page)
+
     def _extract_pages(self, pdf_path: Path) -> tuple[list[PageText], list[ExtractionIssue], list[PageAnalysis], bool]:
-        """pypdf와 pdfplumber로 PDF를 읽어 페이지 목록 및 추출 이슈를 만듭니다. HWP·HWPX는 hwp_text로 읽습니다."""
+        """PDF·HWP 쪽 추출. 같은 프로세스에서 같은 파일을 다시 분석하면(예: T1.5 재해석 노드) 저장해 둔 결과를 쓴다.
+
+        추출은 결정적(같은 입력 → 같은 출력)이므로 결과가 바뀌지 않는다. 돌려줄 때마다 깊은 복사본을 준다.
+        """
+        path = Path(pdf_path)
+        key = self._page_cache_key(path)
+        if key not in _PAGE_CACHE:
+            if len(_PAGE_CACHE) >= _PAGE_CACHE_MAX:
+                _PAGE_CACHE.pop(next(iter(_PAGE_CACHE)))  # 가장 먼저 넣은 것부터 버린다
+            _PAGE_CACHE[key] = self._extract_pages_uncached(path)
+        return copy.deepcopy(_PAGE_CACHE[key])
+
+    def _extract_pages_uncached(self, pdf_path: Path) -> tuple[list[PageText], list[ExtractionIssue], list[PageAnalysis], bool]:
+        """pypdf와 pdfplumber로 PDF를 읽어 페이지 목록 및 추출 이슈를 만듭니다. HWP·HWPX는 hwp_text로 읽습니다.
+
+        pypdf 텍스트는 일부 쪽에서 pdfplumber 레이아웃보다 길어 채택되므로(시연 CDW 2쪽 등) 빼지 않는다.
+        """
         if Path(pdf_path).suffix.lower() in (".hwp", ".hwpx"):
             return self._extract_hwp_pages(Path(pdf_path))
         reader = PdfReader(str(pdf_path))
@@ -284,6 +316,7 @@ class RFPExtractor:
         analyses: list[PageAnalysis] = []
         needs_ocr = False
         ocr_attempts = 0
+        plain_texts: list[str | None] = []  # T3 질의 프로필이 같은 PDF를 다시 읽지 않게(남은 업무 4번)
 
         with pdfplumber.open(str(pdf_path)) as layout_pdf:
             for number, page in enumerate(reader.pages, start=1):
@@ -291,6 +324,10 @@ class RFPExtractor:
                 simple_text, layout_text, text_page, overprinted = self._page_text(page, layout_page)
 
                 table_rows = self._table_rows(text_page)
+                try:
+                    plain_texts.append(text_page.extract_text() or "")  # = past_projects._rfp_pages의 쪽 텍스트
+                except Exception:
+                    plain_texts.append(None)
                 best_text = layout_text if len(layout_text) > len(simple_text) else simple_text
                 page_type, rationale = self._classify_page(number, best_text, table_rows)
                 reason = self._ocr_reason(best_text, page_type, table_rows)
@@ -328,6 +365,7 @@ class RFPExtractor:
                     number, best_text, layout_text, table_rows,
                     page_type, rationale, ocr_required, reason, ocr_applied,
                 ))
+        remember_plain_texts(file_sha256(pdf_path), plain_texts)
         return pages, issues, analyses, needs_ocr
 
     @staticmethod
@@ -538,7 +576,7 @@ class RFPExtractor:
         self, bucket: dict, page: PageText, line: str, source_document: str,
     ) -> None:
         """사업명·발주기관·수요기관·공고번호·기간·목적을 후보로 수집합니다."""
-        project = self._label_value(line, r"사\s*업\s*명|과\s*업\s*명|공\s*고\s*명")
+        project = self._label_value(line, r"사\s*업\s*명|과\s*업\s*명|공\s*고\s*명|용\s*역\s*명|계\s*약\s*명")  # 수의계약 공고 "1. 계 약 명 :"
         if project:
             self._add_field(bucket, "project_name", project, page, line, source_document)
         elif (page.page_type == "cover_page" and not re.search(r"제\s*안\s*요\s*청\s*서|목\s*차", line)  # 표지 "제 안 요 청 서"
@@ -602,7 +640,7 @@ class RFPExtractor:
             amount = parse_krw(line)
             if amount is not None:
                 self._add_field(bucket, "estimated_price_krw", amount, page, line, source_document)
-        elif re.search(r"(?:전체|총)?\s*사업금액\s*(?:[:：|])|사업예산\s*(?:[:：|])|사업비\s*(?:[:：|])|기초금액\s*(?:[:：|]|(?=\d))", line):
+        elif re.search(r"(?:전체|총)?\s*사업금액\s*(?:[:：|])|추정금액\s*(?:[:：|])|사업예산\s*(?:[:：|])|사업비\s*(?:[:：|])|기초금액\s*(?:[:：|]|(?=\d))", line):
             amount = parse_krw(line)
             if amount is not None:
                 self._add_field(bucket, "budget_krw", amount, page, line, source_document)

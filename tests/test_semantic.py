@@ -75,7 +75,7 @@ def test_company_semantic_scores_cache_and_failure() -> None:
     company = folder / "company"
     records = [{"id": "R1", "title": "예산 관리 시스템", "keywords": [], "excerpt": ""},
                {"id": "R2", "title": "공동 플랫폼", "keywords": [], "excerpt": ""}]
-    company.write_text(json.dumps({"company_name": TARGET_COMPANY, "records": records, "sources": []}, ensure_ascii=False))
+    company.write_text(json.dumps({"company_name": TARGET_COMPANY, "records": records, "sources": []}, ensure_ascii=False), encoding="utf-8")
     calls = []
 
     def counting(texts):
@@ -86,7 +86,7 @@ def test_company_semantic_scores_cache_and_failure() -> None:
     company_semantic_scores(["예산"], company, embed=counting, cache_dir=folder)
     assert calls == [2, 2, 1], "두 번째 호출은 레코드 벡터 캐시 재사용(질의만 임베딩)"
     records.append({"id": "R3", "title": "마감 관리", "keywords": [], "excerpt": ""})
-    company.write_text(json.dumps({"company_name": TARGET_COMPANY, "records": records, "sources": []}, ensure_ascii=False))
+    company.write_text(json.dumps({"company_name": TARGET_COMPANY, "records": records, "sources": []}, ensure_ascii=False), encoding="utf-8")
     _, ids = company_semantic_scores(["마감"], company, embed=counting, cache_dir=folder)
     assert ids == ["R1", "R2", "R3"] and calls[-2] == 3, "회사 JSON이 바뀌면 레코드 벡터 재계산"
 

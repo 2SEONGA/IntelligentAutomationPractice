@@ -86,3 +86,5 @@ past_projects:
   # config/notice_filter.yaml의 collect_keywords가 있을 때만 거기에 더해 쓴다(현재 검토 사업 분야: 상수도·GIS / 병원 임상 / 대학 학사).
   # collect_keywords가 빈 목록이면(M27) 키워드 없이 전체 조회하므로 쓰지 않는다(M28).
   extra_keywords: ["상수도", "상수관", "관망", "GIS", "공간정보", "임상", "의료정보", "병원", "학사", "대학"]
+  # T3 유사 사업 최소 유사도(M25: 0.60 → 0.70). 남은 업무 3번 재평가(0.70·0.80·0.90 비교, M42)는 담당자 판정 후 여기서 바꾼다.
+  min_similarity: 0.70

@@ -35,19 +35,72 @@ class SemanticUnavailable(Exception):
     """Semantic search cannot run (no index, stale index, or API failure); callers fall back to keywords."""
 
 
-def openai_embedder(model: str = EMBEDDING_MODEL) -> Embedder:
+EMBEDDING_CACHE = RAG_DIR / "embedding_cache.sqlite3"
+EMBEDDING_CACHE_VERSION = 1  # 벡터를 만드는 방식(입력 가공 등)이 바뀌면 올린다 → 예전 캐시는 자동으로 안 맞는다
+
+
+def embedding_cache_key(model: str, text: str) -> str:
+    """캐시 키 = SHA-256(캐시 버전 + 모델 + 텍스트). 모델이나 텍스트가 한 글자라도 다르면 다른 키."""
+    return hashlib.sha256(f"v{EMBEDDING_CACHE_VERSION}\n{model}\n{text}".encode("utf-8")).hexdigest()
+
+
+def cached_embedder(embed: Embedder, model: str, path: Path | None = None) -> Embedder:
+    """같은 모델·같은 텍스트는 처음 받은 벡터를 그대로 돌려준다(M37: OpenAI 점수가 소수 넷째 자리에서 흔들림).
+
+    벡터는 받은 값 그대로(float64) 저장해 첫 호출과 이후 호출이 완전히 같다. 캐시에 없는 텍스트만 API로 보낸다.
+    캐시 파일을 못 쓰면(권한 등) 캐시 없이 동작한다.
+    """
+    import sqlite3
+
+    def connect():
+        target = Path(path or EMBEDDING_CACHE)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        connection = sqlite3.connect(target, timeout=30)
+        connection.execute("CREATE TABLE IF NOT EXISTS vectors (key TEXT PRIMARY KEY, model TEXT, dims INTEGER, vector BLOB)")
+        return connection
+
+    def run(texts: list[str]) -> list[list[float]]:
+        keys = [embedding_cache_key(model, text) for text in texts]
+        found: dict[str, list[float]] = {}
+        try:
+            with connect() as connection:
+                for start in range(0, len(keys), 500):
+                    chunk = keys[start:start + 500]
+                    rows = connection.execute(f"SELECT key, vector FROM vectors WHERE key IN ({','.join('?' * len(chunk))})", chunk)
+                    found.update({key: np.frombuffer(blob, dtype=np.float64).tolist() for key, blob in rows})
+        except (sqlite3.Error, OSError):
+            found = {}
+        missing = list(dict.fromkeys(text for text, key in zip(texts, keys) if key not in found))
+        if missing:
+            fresh = embed(missing)
+            new = {embedding_cache_key(model, text): vector for text, vector in zip(missing, fresh)}
+            found.update(new)
+            try:
+                with connect() as connection:
+                    connection.executemany("INSERT OR REPLACE INTO vectors VALUES (?, ?, ?, ?)",
+                                           [(key, model, len(vector), np.asarray(vector, dtype=np.float64).tobytes())
+                                            for key, vector in new.items()])
+            except (sqlite3.Error, OSError):
+                pass
+        return [found[key] for key in keys]
+    return run
+
+
+def openai_embedder(model: str = EMBEDDING_MODEL, cache: bool = True) -> Embedder:
     from dotenv import load_dotenv
     from openai import OpenAI
 
     load_dotenv(PROJECT_ROOT / ".env")
-    client = OpenAI()
+    client = None
 
     def embed(texts: list[str]) -> list[list[float]]:
+        nonlocal client
+        client = client or OpenAI()  # 캐시로 모두 해결되면 키 없이도 동작한다
         response = client.embeddings.create(model=model, input=texts)
         from .usage_tracking import record_embedding_usage
         record_embedding_usage(getattr(response, "usage", None))
         return [item.embedding for item in sorted(response.data, key=lambda item: item.index)]
-    return embed
+    return cached_embedder(embed, model) if cache else embed
 
 
 def _normalise(vectors: np.ndarray) -> np.ndarray:

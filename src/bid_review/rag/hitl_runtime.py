@@ -2,8 +2,14 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-import fcntl
 import hashlib
+import time
+
+try:  # macOS·Linux
+    import fcntl
+except ImportError:  # Windows에는 fcntl이 없다. 같은 잠금을 msvcrt로 건다.
+    fcntl = None
+    import msvcrt
 from pathlib import Path
 import re
 from typing import Any
@@ -41,17 +47,37 @@ def _fingerprint(path: str | Path) -> dict[str, str]:
 
 
 @contextmanager
+def _exclusive(lock_file):
+    """다른 프로세스가 잠금을 풀 때까지 기다렸다가 배타 잠금을 건다(운영체제별)."""
+    if fcntl is not None:
+        fcntl.flock(lock_file, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(lock_file, fcntl.LOCK_UN)
+        return
+    while True:  # msvcrt.LK_LOCK은 10초 뒤 OSError를 내므로, 풀릴 때까지 다시 시도한다
+        lock_file.seek(0)
+        try:
+            msvcrt.locking(lock_file.fileno(), msvcrt.LK_LOCK, 1)
+            break
+        except OSError:
+            time.sleep(0.1)
+    try:
+        yield
+    finally:
+        lock_file.seek(0)
+        msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+
+
+@contextmanager
 def _open(db_path, graph_factory):
     path = Path(db_path).expanduser().resolve()
     path.parent.mkdir(parents=True, exist_ok=True)
     # 이 실행기를 통한 동시 재개를 직렬화한다. 다른 thread의 오래된 응답도 별도로 검사한다.
-    with path.with_suffix(path.suffix + ".lock").open("a+") as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX)
-        try:
-            with SqliteSaver.from_conn_string(str(path)) as saver:
-                yield graph_factory(saver)
-        finally:
-            fcntl.flock(lock, fcntl.LOCK_UN)
+    with path.with_suffix(path.suffix + ".lock").open("a+") as lock, _exclusive(lock):
+        with SqliteSaver.from_conn_string(str(path)) as saver:
+            yield graph_factory(saver)
 
 
 def _snapshot(graph, thread_id: str) -> dict[str, Any]:
