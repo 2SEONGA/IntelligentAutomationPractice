@@ -14,10 +14,14 @@
   "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01826775&bidPbancOrd=000",
   "notice_id": "R26BK01826775-000",
   "rfp_attachment": {
-    "name": "붙임 4 과업내용 (확정) 종합 심의결과서.pdf",
-    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01826775&bidPbancOrd=000&fileType=&fileSeq=1&prcmBsneSeCd=03",
-    "sha256": "5a90e237f854f166afa94cf62aabdc82af58a699308d0a9f2c45e260455ed9a7"
+    "name": "붙임 2 제안요청서(최종).hwp",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01826775&bidPbancOrd=000&fileType=&fileSeq=2&prcmBsneSeCd=03",
+    "sha256": "b9e76fbd896d3a23cb37765e0dea57beab2562d8057399f8c8472c6e03f5c701"
   },
   "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
-  "retrieved_at": "2026-11-17T17:44:32+09:00"
+  "retrieved_at": "2026-11-25T18:04:55+09:00",
+  "replaced": {
+    "previous": "R26BK01826775-000_20261125_180454",
+    "reason": "잘못 저장된 첨부 교체(recollect_past_project.py)"
+  }
 }

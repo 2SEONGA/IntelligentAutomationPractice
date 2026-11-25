@@ -14,10 +14,14 @@
   "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01589082&bidPbancOrd=000",
   "notice_id": "R26BK01589082-000",
   "rfp_attachment": {
-    "name": "2. 계약서(새마을금고 계정계 최신화 구축).hwp",
-    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01589082&bidPbancOrd=000&fileType=&fileSeq=3&prcmBsneSeCd=03",
-    "sha256": "cb08e739e7a88f77fff28c66443a7b5ecb9d4ca3fae91efdaf07d7f3d962f8f2"
+    "name": "3. 제안요청서_일반배포용(새마을금고 계정계 최신화 구축).hwp",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01589082&bidPbancOrd=000&fileType=&fileSeq=4&prcmBsneSeCd=03",
+    "sha256": "b704df644d408ad138c0b1d761d669c11b61367b066e8d639820a9dc0b9d3201"
   },
   "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
-  "retrieved_at": "2026-11-18T10:56:10+09:00"
+  "retrieved_at": "2026-11-24T19:26:25+09:00",
+  "replaced": {
+    "previous": "R26BK01589082-000_20261124_192625",
+    "reason": "잘못 저장된 첨부 교체(recollect_past_project.py)"
+  }
 }

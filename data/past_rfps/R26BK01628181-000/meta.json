@@ -14,10 +14,14 @@
   "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01628181&bidPbancOrd=000",
   "notice_id": "R26BK01628181-000",
   "rfp_attachment": {
-    "name": "2. 계약서(온프레미스 생성형 AI 인프라 운영 환경 구축).hwp",
-    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01628181&bidPbancOrd=000&fileType=&fileSeq=3&prcmBsneSeCd=03",
-    "sha256": "074bb1d3abf3ad730b9e315cb20e4ce72c40fd6beb1108b82911da182a2cf5e0"
+    "name": "3. (재공고) 제안요청서_일반배포용(온프레미스 생성형 AI 인프라 운영 환경 구축).hwp",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01628181&bidPbancOrd=000&fileType=&fileSeq=4&prcmBsneSeCd=03",
+    "sha256": "c7bc6312e5dfeb839f83f4764bb51cf7d3e26a9def7396117b4ebed5156be934"
   },
   "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
-  "retrieved_at": "2026-11-18T10:56:10+09:00"
+  "retrieved_at": "2026-11-25T18:04:44+09:00",
+  "replaced": {
+    "previous": "R26BK01628181-000_20261125_180443",
+    "reason": "잘못 저장된 첨부 교체(recollect_past_project.py)"
+  }
 }
