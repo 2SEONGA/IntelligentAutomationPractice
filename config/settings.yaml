@@ -91,3 +91,16 @@ past_projects:
   # T3 LLM 재정렬(M48): 임계값을 넘은 후보마다 관련도 0·1·2를 다시 묻는다. 0점은 빼지 않고 '분야 다름'으로 표시.
   rerank: true
   rerank_model: gpt-4o-mini
+  # 실행 중 과거 사업 확장(웹 실행만): 재정렬 '관련·부분' 후보가 min_related건 미만이면 새 공고의 분야 검색어로
+  # 최근 days일 나라장터 공고를 찾아 제안요청서를 최대 max_new건 받고(첨부정보 API max_lookups회 이하) 색인에 덧붙인 뒤 다시 검색한다.
+  expand:
+    enabled: true
+    min_related: 2
+    days: 180
+    max_new: 5
+    max_lookups: 10
+    keywords: 3
+
+# 웹 실행 색인 자동 확장 (hitl_runtime.start_review(grow_indexes=True)일 때만. 테스트·점검 스크립트는 기본 꺼짐)
+live_growth:
+  index_new_documents: true   # 이번 RFP·공고문이 T1.5 검색 색인(키워드·의미)에 없으면 추가

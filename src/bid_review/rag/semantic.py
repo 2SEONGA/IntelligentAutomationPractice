@@ -146,10 +146,15 @@ def _load_index(rag_dir: Path) -> tuple[np.ndarray, list[dict[str, Any]], dict[s
     if not (meta_path.is_file() and matrix_path.is_file() and chunks_path.is_file()):
         raise SemanticUnavailable("의미 검색 색인이 없습니다(scripts/build_semantic_index.py 실행 필요).")
     meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    chunks = _load_chunks(chunks_path)
     if meta.get("chunks_sha256") != hashlib.sha256(chunks_path.read_bytes()).hexdigest():
-        # 코퍼스가 바뀌었는데 벡터가 그대로면 행-chunk 대응이 틀어지므로 쓰지 않는다.
-        raise SemanticUnavailable("코퍼스가 바뀌어 의미 검색 색인이 오래됐습니다(재색인 필요).")
-    return np.load(matrix_path), _load_chunks(chunks_path), meta
+        # 실행 중 문서가 뒤에 덧붙었는데 그 벡터만 없는 경우(live_index 임베딩 실패): 앞부분은 행-chunk 대응이 맞으므로
+        # 벡터가 있는 앞부분만 검색한다. 그 밖에 코퍼스가 바뀌었으면 대응이 틀어지므로 쓰지 않는다.
+        known = meta.get("chunk_ids") or []
+        if not known or len(chunks) <= len(known) or [chunk["chunk_id"] for chunk in chunks[:len(known)]] != known:
+            raise SemanticUnavailable("코퍼스가 바뀌어 의미 검색 색인이 오래됐습니다(재색인 필요).")
+        chunks = chunks[:len(known)]
+    return np.load(matrix_path), chunks, meta
 
 
 def search_semantic(query: str, *, limit: int = 8, document_id: str | None = None, notice_no: str | None = None,

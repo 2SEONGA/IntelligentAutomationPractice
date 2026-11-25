@@ -124,7 +124,7 @@ def main() -> None:
     print("[STAGE] agent1 start", flush=True)
     snapshot = hitl_runtime.start_review(
         args.rfp, company_path=COMPANY_FILE if COMPANY_FILE.is_file() else None, notice_pdf_path=args.notice_pdf,
-        retrieval_limit=1, thread_id=f"web-{uuid4().hex}", **notice_key(case))
+        retrieval_limit=1, thread_id=f"web-{uuid4().hex}", grow_indexes=True, **notice_key(case))
     if snapshot["status"] == "failed":
         print("[실패] LangGraph 실행 오류: " + "; ".join(snapshot["task_errors"]), flush=True)
         sys.exit(1)

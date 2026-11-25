@@ -93,7 +93,7 @@ def _snapshot(graph, thread_id: str) -> dict[str, Any]:
 
 
 def start_review(pdf_path, *, company_path=None, notice_pdf_path=None, notice_no=None, notice_order="000",
-                 retrieval_limit=2, thread_id=None, db_path=DEFAULT_DB, graph_factory=_factory):
+                 retrieval_limit=2, thread_id=None, db_path=DEFAULT_DB, graph_factory=_factory, grow_indexes=False):
     thread_id = thread_id or uuid4().hex
     config = _config(thread_id)
     if isinstance(retrieval_limit, bool) or not isinstance(retrieval_limit, int) or not 0 <= retrieval_limit <= 3:
@@ -102,7 +102,8 @@ def start_review(pdf_path, *, company_path=None, notice_pdf_path=None, notice_no
     fingerprints = {key: _fingerprint(value) for key, value in inputs.items() if value is not None}
     initial = {key: fingerprints[key]["path"] if key in fingerprints else None for key in inputs}
     initial.update(notice_no=notice_no, notice_order=notice_order, retrieval_limit=retrieval_limit,
-                   run_id=thread_id, source_fingerprints=fingerprints, review_history=[])
+                   run_id=thread_id, source_fingerprints=fingerprints, review_history=[],
+                   grow_indexes=bool(grow_indexes))  # 웹 실행만 True: 색인 자동 확장(T1.5 문서 추가, T3 과거 사업 확장)
     with _open(db_path, graph_factory) as graph:
         if graph.get_state(config).values:
             raise ValueError("이미 사용한 thread_id입니다. 기존 실행은 status/resume으로 확인하세요.")

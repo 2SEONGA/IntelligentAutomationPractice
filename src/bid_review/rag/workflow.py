@@ -23,13 +23,15 @@ from langgraph.graph import END, START, StateGraph
 from ..agent01_rfp import RFPExtractor
 from ..agent02_match import CapabilityMatcher, _tokens as _requirement_tokens
 from ..crew import BidReviewCrew
-from ..settings import load_settings
+from ..settings import load_config, load_settings
 from ..web.notices import NoticeError, compare_notice_pdf_bytes, fetch_notice_by_number
 from .company_retriever import (
     administrative_clause, clean_requirement_query, company_record_metadata, company_semantic_scores, search_company_evidence,
 )
 from .evidence_selection import evidence_queries, select_evidence_candidates
 from .past_projects import project_profile, search_similar_projects
+from .live_index import ensure_indexed
+from .past_project_expansion import SETTINGS as EXPAND_SETTINGS, expand_past_projects, related_count
 from .t3_rerank import rerank_projects
 from .semantic import MIN_SCORE, SemanticUnavailable, search_semantic
 
@@ -42,6 +44,9 @@ from .verification import (
     CoreInfoVerification, EvidenceCitation, T15Verifier, VerificationCheck,
     VerificationStatus, _category_state,
 )
+
+
+GROWTH = load_config("settings").get("live_growth", {})  # 웹 실행 색인 자동 확장 설정
 
 
 class BidReviewState(TypedDict, total=False):
@@ -72,6 +77,9 @@ class BidReviewState(TypedDict, total=False):
     similar_projects: list[dict[str, Any]]  # Agent 3 과거 유사 사업 후보 (M23)
     similar_projects_status: str
     t3_rerank_status: str  # M48 LLM 재정렬 상태 (done / partial / unavailable / disabled / not_needed)
+    grow_indexes: bool  # 웹 실행: 새 문서를 T1.5 색인에 넣고, T3 과거 사업이 부족하면 나라장터에서 더 찾는다
+    rag_index_status: dict[str, str]  # T1.5 검색 색인 자동 추가 결과 (rfp / notice_pdf)
+    t3_expansion: dict[str, Any]  # T3 과거 사업 확장 기록 (검색어·찾은 공고·추가된 사업)
     live_award_lookup: dict[str, Any] | None  # 남은 업무 5번 A안(실험, market_mode="live_awards"일 때만)
     agent23_evaluation: dict[str, Any]
     human_override: dict[str, Any] | None  # 승인 감사 기록 — State에 없으면 LangGraph가 노드 반환값을 버림
@@ -157,7 +165,22 @@ def create_bid_review_graph(checkpointer=None, *, workflow_mode: Literal["sequen
         return {"g2b_notice_lookup": {"status": "found", **lookup},
                 "case_identity": validate_api_identity(state["case_identity"], lookup)}
 
+    def index_run_documents(state: BidReviewState) -> dict[str, str]:
+        """웹 실행(grow_indexes)이면 이번 RFP·공고문을 T1.5 검색 색인에 넣는다. 이미 있으면 바로 넘어간다."""
+        if not state.get("grow_indexes") or not GROWTH.get("index_new_documents", True):
+            return {}
+        identity = state.get("case_identity") or {}
+        related = ({"related_notice_no": identity["notice_no"], "related_notice_order": identity.get("notice_order") or "000"}
+                   if identity.get("notice_no") else {})
+        status = {"rfp": ensure_indexed(state["pdf_path"], document_type="rfp_pdf", related=related)}
+        notice_pdf = state.get("notice_pdf_path")
+        if notice_pdf and Path(notice_pdf).is_file() and related:
+            status["notice_pdf"] = ensure_indexed(notice_pdf, document_type="notice_pdf", related=related,
+                                                  title=f"나라장터 공고문 — {identity['notice_no']}")
+        return status
+
     def verify_core_info(state: BidReviewState) -> dict[str, Any]:
+        index_status = state.get("rag_index_status") or index_run_documents(state)
         rfp = _model_from_state(state["rfp"], RFPAnalysisResult)
         lookup = state.get("g2b_notice_lookup", {})
         # 다른 공고로 조회된 API 값은 T1.5 검증 근거로 사용하지 않는다.
@@ -191,7 +214,8 @@ def create_bid_review_graph(checkpointer=None, *, workflow_mode: Literal["sequen
                 "case_identity": {**identity, "conflicts": identity_conflicts,
                                   "status": "conflict" if identity_conflicts else "identified"},
                 "notice_no": result.notice_no,
-                "routing_reasons": result.routing_reasons}
+                "routing_reasons": result.routing_reasons,
+                **({"rag_index_status": index_status} if index_status else {})}
 
     def retrieve_targeted_evidence(state: BidReviewState) -> dict[str, Any]:
         verification = _model_from_state(state["verification"], CoreInfoVerification)
@@ -222,14 +246,15 @@ def create_bid_review_graph(checkpointer=None, *, workflow_mode: Literal["sequen
                                                              match_mode="all")
                             if item.metadata.get("document_type") == "notice_pdf" and
                             source_matches(identity, item.metadata, document_type="notice_pdf")][:3]
-            if not matches and semantic_status != "unavailable":  # 원문과 다른 표현일 때만 의미 검색 보조 (M4)
+            if semantic_status != "unavailable":  # 키워드 검색과 함께 의미 검색(RAG)도 항상 한다
                 try:
-                    matches = [item for item in search_semantic(query, limit=2, document_id=verification.document_id)
-                               + (search_semantic(query, limit=2, notice_no=verification.notice_no, document_type="notice_pdf")
-                                  if verification.notice_no else [])
-                               if item.metadata["semantic_score"] >= MIN_SCORE and
-                               source_matches(identity, item.metadata,
-                                              document_type=item.metadata.get("document_type", ""))]
+                    found = {item.chunk_id for item in matches}
+                    matches += [item for item in search_semantic(query, limit=2, document_id=verification.document_id)
+                                + (search_semantic(query, limit=2, notice_no=verification.notice_no, document_type="notice_pdf")
+                                   if verification.notice_no else [])
+                                if item.chunk_id not in found and item.metadata["semantic_score"] >= MIN_SCORE and
+                                source_matches(identity, item.metadata,
+                                               document_type=item.metadata.get("document_type", ""))]
                     semantic_status = "used"
                 except SemanticUnavailable as exc:
                     semantic_status, semantic_note = "unavailable", str(exc)
@@ -526,7 +551,19 @@ def create_bid_review_graph(checkpointer=None, *, workflow_mode: Literal["sequen
         except (SemanticUnavailable, OSError, ValueError) as exc:
             return {"similar_projects": [], "similar_projects_status": f"unavailable: {exc}"}
         results, rerank_status = rerank_projects(query, results)  # M48: 분야 다름은 빼지 않고 표시만
-        return {"similar_projects": results, "t3_rerank_status": rerank_status,
+        update: dict[str, Any] = {}
+        # 웹 실행에서 관련·부분 후보가 부족하면 나라장터에서 과거 사업을 더 찾아 색인에 붙이고 한 번 더 검색한다.
+        if (state.get("grow_indexes") and EXPAND_SETTINGS["enabled"]
+                and related_count(results) < int(EXPAND_SETTINGS["min_related"])):
+            expansion = expand_past_projects(title, query, state.get("notice_no"))
+            update["t3_expansion"] = expansion
+            if expansion["added"]:
+                try:
+                    results = search_similar_projects(query, exclude_notice_no=state.get("notice_no"), query_title=title)
+                    results, rerank_status = rerank_projects(query, results)
+                except (SemanticUnavailable, OSError, ValueError) as exc:
+                    update["t3_expansion"] = {**expansion, "status": f"research_failed: {exc}"}
+        return {**update, "similar_projects": results, "t3_rerank_status": rerank_status,
                 "similar_projects_status": f"found {len(results)}" if results else "none_above_threshold"}
 
     def live_awards(state: BidReviewState) -> dict[str, Any]:
@@ -609,7 +646,8 @@ def run_bid_review(pdf_path: str | Path, company_path: str | Path | None = None,
                    notice_order: str | None = None,
                    notice_pdf_path: str | Path | None = None,
                    workflow_mode: Literal["sequential", "parallel"] = "sequential",
-                   market_mode: Literal["index", "live_awards"] = "index") -> BidReviewState:
+                   market_mode: Literal["index", "live_awards"] = "index",
+                   grow_indexes: bool = False) -> BidReviewState:
     """Run a single bid document through the compiled LangGraph workflow."""
     path = Path(pdf_path).expanduser().resolve()
     if not path.is_file():
@@ -626,6 +664,7 @@ def run_bid_review(pdf_path: str | Path, company_path: str | Path | None = None,
         "notice_order": notice_order or "000",
         "retrieval_limit": max(0, min(retrieval_limit, 3)),
         "run_id": uuid4().hex,
+        "grow_indexes": grow_indexes,
         **({"review_decision": review_decision, "review_note": review_note, "reviewer": reviewer}
            if review_decision else {}),
     })

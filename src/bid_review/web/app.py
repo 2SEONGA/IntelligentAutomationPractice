@@ -461,7 +461,8 @@ def create_app(job_manager: JobManager | None = None, allowed_hosts: tuple[str, 
                 snapshot = hitl_runtime.start_review(
                     pdf_path, company_path=company_file if company_file.is_file() else None,
                     notice_pdf_path=runs.notice_file(path.parent),  # notice.pdf 또는 HWP·HWPX
-                    retrieval_limit=1, thread_id=f"web-{uuid4().hex}", **langgraph_job.notice_key(path.parent, prior))
+                    retrieval_limit=1, thread_id=f"web-{uuid4().hex}", grow_indexes=True,
+                    **langgraph_job.notice_key(path.parent, prior))
         except ValueError as exc:  # 오래된 중단 지점·입력 파일 변경 등
             raise runs.Conflict(str(exc), status) from None
         except (HTTPException, runs.Conflict):
