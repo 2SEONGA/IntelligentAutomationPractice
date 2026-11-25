@@ -53,7 +53,6 @@ class ReviewBody(BaseModel):
 
 class RunOptions(BaseModel):
     mode: str = "offline"
-    market_api: bool = False
 
 
 class CriteriaSetBody(BaseModel):
@@ -97,14 +96,12 @@ def require(*allowed: str):
     return check
 
 
-def _check_options(mode: str, market_api: bool, has_notice: bool) -> None:
-    live, market, _ = _availability()
+def _check_options(mode: str) -> None:
+    live, _, _ = _availability()
     if mode not in ("offline", "live"):
         raise HTTPException(400, "실행 방식은 offline 또는 live여야 합니다.")
     if mode == "live" and not live:
         raise HTTPException(400, ".env에 OPENAI_API_KEY가 없어 live로 실행할 수 없습니다.")
-    if market_api and not (mode == "live" and has_notice and market):
-        raise HTTPException(400, "나라장터 시장조사는 live 모드에서 공고문 PDF와 G2B_SERVICE_KEY가 있을 때만 켤 수 있습니다.")
 
 
 async def _read_pdf(upload: UploadFile, label: str) -> bytes:
@@ -173,9 +170,9 @@ def create_app(job_manager: JobManager | None = None, allowed_hosts: tuple[str, 
     # --- status / read-only views -------------------------------------------------
     @app.get("/api/status")
     def status() -> dict:
-        live, market, notice = _availability()
+        live, _, notice = _availability()
         current = manager.current()
-        return {"live_available": live, "market_available": market, "notice_available": notice,
+        return {"live_available": live, "notice_available": notice,
                 "checklist_version": load_config("checklist")["version"], "running_job_id": current.id if current else None,
                 "role_note": ROLE_NOTE}
 
@@ -276,7 +273,7 @@ def create_app(job_manager: JobManager | None = None, allowed_hosts: tuple[str, 
         entry = notices.load_notices()["notices"].get(nid)
         if not entry:
             raise HTTPException(404, "공고를 찾을 수 없습니다.")
-        _check_options(body.mode, False, True)
+        _check_options(body.mode)
         if manager.current() or batch["running"]:
             raise HTTPException(409, BUSY)
         return prepare_and_start(nid, entry, body)
@@ -284,8 +281,7 @@ def create_app(job_manager: JobManager | None = None, allowed_hosts: tuple[str, 
     def prepare_and_start(nid: str, entry: dict, body: RunOptions) -> dict:
         folder = _new_folder()
         fetched = notices.fetch_attachments(nid, folder)
-        market_api = body.market_api and fetched["notice"]
-        _check_options(body.mode, market_api, fetched["notice"])
+        _check_options(body.mode)
         rfp_name = next((a["name"] for a in entry["attachments"] if a["kind"] in ("rfp", "pdf")), None) if fetched["rfp"] else None
         notice_attachment = fetched.get("notice_attachment") or (
             next((a for a in entry["attachments"] if a["kind"] == "notice"), None) if fetched["notice"] else None)
@@ -305,13 +301,12 @@ def create_app(job_manager: JobManager | None = None, allowed_hosts: tuple[str, 
                 "source_note": "기존 공고 수집 저장소의 첨부 URL에서 내려받음. 이번 실행 중 API 재조회 사실을 뜻하지 않음.",
             }, ensure_ascii=False, indent=2), encoding="utf-8")
         _write_upload(folder, project_name=entry["bidNtceNm"], rfp_name=rfp_name or entry["bidNtceNm"], notice_name=notice_name, mode=body.mode,
-                      market_api=market_api, notice_id=nid)
+                      notice_id=nid)
         notices.attach_case(nid, folder.name)
-        info = {"notice_pdf": fetched["notice"], "skipped": fetched["skipped"], "rfp_guessed": fetched["rfp_guessed"],
-                "market_api": market_api, "market_requested": body.market_api}
+        info = {"notice_pdf": fetched["notice"], "skipped": fetched["skipped"], "rfp_guessed": fetched["rfp_guessed"]}
         if not fetched["rfp"]:
             return {"needs_upload": True, "folder_id": folder.name, **info}
-        return {**start_job(folder, {"mode": body.mode, "notice": fetched["notice"], "market_api": market_api}), **info}
+        return {**start_job(folder, {"mode": body.mode, "notice": fetched["notice"]}), **info}
 
     # --- 전체 검토 시작: 검토 대상 공고를 한 건씩 차례로 (JobManager는 한 번에 하나) ---------------
     batch: dict = {"running": False, "stopped": False, "total": 0, "current": None, "done": [], "waiting": [], "failed": [], "mode": None}
@@ -343,7 +338,7 @@ def create_app(job_manager: JobManager | None = None, allowed_hosts: tuple[str, 
 
     @app.post("/api/notices/start-all")
     def start_all(body: RunOptions, _: str = Depends(require("staff"))) -> dict:
-        _check_options(body.mode, False, True)
+        _check_options(body.mode)
         if manager.current() or batch["running"]:
             raise HTTPException(409, BUSY)
         store = notices.load_notices()["notices"]
@@ -351,7 +346,7 @@ def create_app(job_manager: JobManager | None = None, allowed_hosts: tuple[str, 
                          key=lambda t: t[1]["judged"].get("deadline") or "9999")
         if not targets:
             raise HTTPException(409, "새로 시작할 검토 대상 공고가 없어요.")
-        options = RunOptions(mode=body.mode, market_api=False)  # 시장조사는 공고별로 켜서 다시 실행
+        options = RunOptions(mode=body.mode)
         batch.update(running=True, stopped=False, total=len(targets), current=None, done=[], waiting=[], failed=[], mode=body.mode)
         threading.Thread(target=run_batch, args=(targets, options), daemon=True).start()
         return {"total": len(targets), "mode": body.mode}
@@ -368,7 +363,7 @@ def create_app(job_manager: JobManager | None = None, allowed_hosts: tuple[str, 
     # --- 검토 실행 -------------------------------------------------------------------
     @app.post("/api/runs", status_code=201)
     async def start_run(rfp: UploadFile = File(...), notice: UploadFile | None = File(None),
-                        mode: str = Form("offline"), market_api: bool = Form(False), folder_id: str | None = Form(None),
+                        mode: str = Form("offline"), folder_id: str | None = Form(None),
                         notice_no: str = Form(""), _: str = Depends(require("staff"))) -> dict:
         existing = None
         if folder_id is not None:
@@ -386,7 +381,7 @@ def create_app(job_manager: JobManager | None = None, allowed_hosts: tuple[str, 
                 raise HTTPException(400, "나라장터 공고번호 형식이 아니에요. 예: R26BK01762350 또는 R26BK01762350-000")
             key = {"notice_no": parsed[0], "notice_order": parsed[1] or "000"}
         has_notice = bool(notice) or bool(existing and runs.notice_file(existing))
-        _check_options(mode, market_api, has_notice)
+        _check_options(mode)
         if manager.current():
             raise HTTPException(409, BUSY)
         rfp_bytes = await _read_pdf(rfp, "제안요청서")
@@ -395,10 +390,10 @@ def create_app(job_manager: JobManager | None = None, allowed_hosts: tuple[str, 
         (folder / "rfp.pdf").write_bytes(rfp_bytes)
         if notice_bytes:
             (folder / "notice.pdf").write_bytes(notice_bytes)
-        _write_upload(folder, rfp_name=rfp.filename, mode=mode, market_api=market_api,
+        _write_upload(folder, rfp_name=rfp.filename, mode=mode,
                       **({"notice_name": notice.filename} if notice else {}), **key)
         try:
-            return start_job(folder, {"mode": mode, "notice": has_notice, "market_api": market_api})
+            return start_job(folder, {"mode": mode, "notice": has_notice})
         except HTTPException:
             if not existing:
                 shutil.rmtree(folder)
@@ -544,14 +539,13 @@ def create_app(job_manager: JobManager | None = None, allowed_hosts: tuple[str, 
         status = runs.workflow(runs.case_of(run_id))["status"]
         if inputs is None:
             raise runs.Conflict("원본 RFP를 찾을 수 없어 다시 실행할 수 없어요.", status)
-        _check_options(body.mode, body.market_api, inputs["notice"])
+        _check_options(body.mode)
         if status != "보완 요청" or not runs.load_run(run_id)["is_current"]:
             raise runs.Conflict(f"지금 상태({status})에서는 다시 실행할 수 없어요.", status)
         if manager.current():
             raise HTTPException(409, BUSY)
         # The case moves to 검토 완료 only when the re-run produced a new report; a failed run keeps 보완 요청.
-        return start_job(runs.case_of(run_id), {"mode": body.mode, "notice": inputs["notice"], "market_api": body.market_api,
-                                                "rfp_path": inputs["rfp_path"]},
+        return start_job(runs.case_of(run_id), {"mode": body.mode, "notice": inputs["notice"], "rfp_path": inputs["rfp_path"]},
                          after=lambda report: runs.transition(runs.encode_run_id(report), "rerun", role))
 
     if WEB_DIST.is_dir():

@@ -3,7 +3,6 @@ import type { CriteriaValues } from "./criteria";
 
 export type Status = {
   live_available: boolean;
-  market_available: boolean;
   notice_available: boolean;
   role_note: string;
   checklist_version: string;
@@ -136,7 +135,7 @@ export type NoticeList = {
   notices: Notice[]; counts: Record<NoticeVerdict | "started", number>; runs: CollectRun[]; notice_available: boolean;
 };
 export type CollectSummary = { collected: number; total: number; by_verdict: Record<NoticeVerdict, number>; at: string; skipped_non_ict: number; pruned: number };
-type StartInfo = { notice_pdf: boolean; skipped: string[]; rfp_guessed: boolean; market_api: boolean; market_requested: boolean };
+type StartInfo = { notice_pdf: boolean; skipped: string[]; rfp_guessed: boolean };
 export type StartResult = ({ job_id: string } & StartInfo) | ({ needs_upload: true; folder_id: string } & StartInfo);
 
 export type Dashboard = {

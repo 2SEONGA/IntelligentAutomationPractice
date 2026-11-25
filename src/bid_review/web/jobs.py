@@ -38,19 +38,15 @@ def _notice_path(output_dir: Path) -> str:
 
 
 def build_command(output_dir: Path, options: dict) -> list[str]:
+    """웹 실행은 모두 LangGraph(T1 → T1.5 검증 → 승인 → T2 → T3 → T4). live는 T4 뒤에 CrewAI 브리핑을 붙인다.
+
+    M46(B안): 시장·낙찰 정보는 T3 색인에 연결된 낙찰정보만 쓴다. 예전의 "나라장터 시장조사"(run.py CrewAI 시장 Agent의
+    실시간 낙찰 검색) 분기는 없앴다. run.py 자체는 CLI 일괄 실행용으로 남아 있다.
+    """
     rfp = options.get("rfp_path") or str(output_dir / "rfp.pdf")
-    if not options.get("market_api"):
-        # 일원화: 웹 실행은 LangGraph(T1.5 검증 먼저). live는 T4 뒤에 CrewAI 브리핑을 붙인다.
-        # 나라장터 낙찰 실시간 조회(market_api)를 켠 live만 아직 run.py(CrewAI 시장 Agent) 경로.
-        command = [sys.executable, "-m", "bid_review.web.langgraph_job", "--rfp", rfp, "--output", str(output_dir),
-                   "--mode", options.get("mode", "offline")]
-        return command + (["--notice-pdf", _notice_path(output_dir)] if options.get("notice") else [])
-    command = [sys.executable, "run.py", "--mode", options.get("mode", "offline"), "--rfp", rfp]
-    if options.get("notice"):
-        command += ["--notice-pdf", _notice_path(output_dir)]
-    if options.get("market_api"):
-        command.append("--allow-market-api")
-    return command + ["--output", str(output_dir), "--save-intermediate", "--verbose"]
+    command = [sys.executable, "-m", "bid_review.web.langgraph_job", "--rfp", rfp, "--output", str(output_dir),
+               "--mode", options.get("mode", "offline")]
+    return command + (["--notice-pdf", _notice_path(output_dir)] if options.get("notice") else [])
 
 
 def parse_line(line: str) -> dict:

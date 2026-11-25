@@ -52,12 +52,12 @@ export const collectNotices = (days: number, keywords?: string[]) =>
   call<CollectSummary>("/api/notices/collect", send("POST", { days, keywords }));
 export const reviewNotice = (id: string, include: boolean, reason: string) =>
   call<unknown>(`/api/notices/${id}/review`, send("PUT", { include, reason }));
-export const startNotice = (id: string, mode: string, marketApi = false) =>
-  call<StartResult>(`/api/notices/${id}/start`, send("POST", { mode, market_api: marketApi }));
+export const startNotice = (id: string, mode: string) =>
+  call<StartResult>(`/api/notices/${id}/start`, send("POST", { mode }));
 export const transition = (id: string, action: "submit" | "resubmit" | "reject", reason = "", request = "") =>
   call<Workflow>(`/api/runs/${id}/workflow`, send("PUT", { action, reason, request }));
-export const rerun = (id: string, mode: string, marketApi = false) =>
-  call<{ job_id: string }>(`/api/runs/${id}/rerun`, send("POST", { mode, market_api: marketApi }));
+export const rerun = (id: string, mode: string) =>
+  call<{ job_id: string }>(`/api/runs/${id}/rerun`, send("POST", { mode }));
 export const startAll = (mode: string) => call<{ total: number }>("/api/notices/start-all", send("POST", { mode }));
 export const getBatch = () => call<BatchState>("/api/notices/batch");
 export const stopBatch = () => call<BatchState>("/api/notices/batch/stop", { method: "POST" });

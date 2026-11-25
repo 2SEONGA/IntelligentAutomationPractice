@@ -35,12 +35,11 @@ test("a notice waiting for its RFP can be resumed instead of being stuck", () =>
 });
 
 test("start notes tell what was skipped or guessed", () => {
-  const notes = startNotes({ skipped: ["제안요청서.pdf"], rfp_guessed: true, market_api: false, market_requested: true, notice_pdf: false });
-  assert.equal(notes.length, 3);
+  const notes = startNotes({ skipped: ["제안요청서.pdf"], rfp_guessed: true, notice_pdf: false });
+  assert.equal(notes.length, 2);
   assert.ok(notes[0].includes("제안요청서.pdf"));
   assert.ok(notes.some((n) => n.includes("RFP")));
-  assert.ok(notes.some((n) => n.includes("시장조사")));
-  assert.deepEqual(startNotes({ skipped: [], rfp_guessed: false, market_api: false, market_requested: false, notice_pdf: true }), []);
+  assert.deepEqual(startNotes({ skipped: [], rfp_guessed: false, notice_pdf: true }), []);
 });
 
 test("a filter reason splits into a head line and a detail line", async () => {

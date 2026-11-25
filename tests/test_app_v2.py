@@ -205,13 +205,13 @@ def test_rerun_failure_keeps_supplement_and_success_records_mode() -> None:
     assert c.get(f"/api/runs/{new_run}").json()["mode"] == "live", "다시 실행한 방식이 보고서에 기록돼야 함"
 
 
-def test_start_reports_market_and_guess() -> None:
+def test_start_reports_guess() -> None:
     c, _ = client()
     guessed = item("N4", "정보시스템 운영", ntceSpecFileNm1="붙임 사업설명.pdf", ntceSpecDocUrl1="https://www.g2b.go.kr/f/rfp")
     notices.requests.Session = lambda: FakeSession({"정보시스템": [guessed]}, files=FILES)
     collect(c)
     started = c.post("/api/notices/N4-000/start", json={"mode": "offline"}, headers=STAFF).json()
-    assert started["rfp_guessed"] is True and started["market_api"] is False and started["notice_pdf"] is False
+    assert started["rfp_guessed"] is True and started["notice_pdf"] is False and "market_api" not in started
 
 
 if __name__ == "__main__":
