@@ -128,7 +128,7 @@ export default function CoreReviewTab({ run, role, onChanged, onOpenRun }: Props
               {((review.similar_projects ?? []) as any[]).map((project) => (
                 <div key={project.notice_id} className="stack" style={{ gap: 2 }}>
                   <Typography variant="label2" weight="bold">
-                    {project.title} · {project.buyer} · 유사도 {Number(project.similarity).toFixed(2)}{project.same_project_suspected ? " · 동일 사업 재공고 의심" : ""}
+                    {project.title} · {project.buyer} · 유사도 {Number(project.similarity).toFixed(2)}{project.same_project_suspected ? " · 동일 사업 재공고 의심" : ""}{project.rerank_label ? ` · AI 재정렬: ${project.rerank_label}` : ""}
                   </Typography>
                   <Typography variant="caption1">
                     {project.award ? `낙찰: ${project.award.bidwinnrNm} ${Number(project.award.sucsfbidAmt).toLocaleString("ko-KR")}원` : "낙찰 정보 없음(공고번호 일치 결과 없음)"}

@@ -30,6 +30,7 @@ from .company_retriever import (
 )
 from .evidence_selection import evidence_queries, select_evidence_candidates
 from .past_projects import project_profile, search_similar_projects
+from .t3_rerank import rerank_projects
 from .semantic import MIN_SCORE, SemanticUnavailable, search_semantic
 
 # M25 담당자 평가(36건)로 조정: 0.35 → 0.36 (정밀도 0.36 → 0.50, 재현율 0.56 → 0.44). 점수 구분력이 약해 표본을 늘려 재평가할 것.
@@ -70,6 +71,7 @@ class BidReviewState(TypedDict, total=False):
     semantic_retrieval_status: str
     similar_projects: list[dict[str, Any]]  # Agent 3 과거 유사 사업 후보 (M23)
     similar_projects_status: str
+    t3_rerank_status: str  # M48 LLM 재정렬 상태 (done / partial / unavailable / disabled / not_needed)
     live_award_lookup: dict[str, Any] | None  # 남은 업무 5번 A안(실험, market_mode="live_awards"일 때만)
     agent23_evaluation: dict[str, Any]
     human_override: dict[str, Any] | None  # 승인 감사 기록 — State에 없으면 LangGraph가 노드 반환값을 버림
@@ -519,11 +521,12 @@ def create_bid_review_graph(checkpointer=None, *, workflow_mode: Literal["sequen
         title = str(notice.get("bidNtceNm") or rfp.basic_info.project_name.value or Path(state["pdf_path"]).stem)
         try:
             buyer = str(notice.get("dminsttNm") or rfp.basic_info.procuring_entity.value or "")
-            results = search_similar_projects(project_profile(Path(state["pdf_path"]), title, buyer),
-                                              exclude_notice_no=state.get("notice_no"), query_title=title)
+            query = project_profile(Path(state["pdf_path"]), title, buyer)
+            results = search_similar_projects(query, exclude_notice_no=state.get("notice_no"), query_title=title)
         except (SemanticUnavailable, OSError, ValueError) as exc:
             return {"similar_projects": [], "similar_projects_status": f"unavailable: {exc}"}
-        return {"similar_projects": results,
+        results, rerank_status = rerank_projects(query, results)  # M48: 분야 다름은 빼지 않고 표시만
+        return {"similar_projects": results, "t3_rerank_status": rerank_status,
                 "similar_projects_status": f"found {len(results)}" if results else "none_above_threshold"}
 
     def live_awards(state: BidReviewState) -> dict[str, Any]:
