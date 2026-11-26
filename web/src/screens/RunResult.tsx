@@ -74,7 +74,7 @@ export default function RunResult({ runId, role, status, onChanged, onNavigate }
           <TabListItem value="core">핵심정보 검증</TabListItem>
           <TabListItem value="rfp" disabled={!run.details_available}>RFP 분석</TabListItem>
           <TabListItem value="capability" disabled={!run.details_available}>역량 매칭</TabListItem>
-          <TabListItem value="market" disabled={!run.details_available}>시장 조사</TabListItem>
+          <TabListItem value="market" disabled={!run.details_available}>유사 사업·낙찰</TabListItem>
           <TabListItem value="checklist">Go/No-Go 체크리스트</TabListItem>
         </TabList>
         <TabPanel value="core" sx={{ paddingTop: 16 }}><CoreReviewTab run={run} role={role} onChanged={refreshAll}

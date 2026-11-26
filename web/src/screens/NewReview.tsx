@@ -9,19 +9,25 @@ export const emptyDraft: Draft = { rfp: null, notice: null, mode: "offline", not
 // 나라장터 공고번호(차세대 R26BK01762350 / 구 20240112345, 차수 -000 선택). 서버도 같은 형식만 받는다.
 const NOTICE_NO = /^\s*(R\d{2}[A-Z]{2}\d{8}|20\d{9})(\s*-\s*\d{3})?\s*$/i;
 
-const isPdf = (file: File) => file.name.toLowerCase().endsWith(".pdf");
+// 제안요청서는 PDF만, 입찰공고문은 나라장터 자동 수집과 같이 PDF·HWPX·HWP를 받는다(서버도 같은 규칙).
+const PDF_ONLY = [".pdf"];
+const NOTICE_TYPES = [".pdf", ".hwpx", ".hwp"];
+const extOf = (name: string) => name.slice(name.lastIndexOf(".")).toLowerCase();
+const accepts = (types: string[], name: string) => name.includes(".") && types.includes(extOf(name));
+const typesLabel = (types: string[]) => types.map((t) => t.slice(1).toUpperCase()).join("·");
 const sizeLabel = (bytes: number) => (bytes >= 1024 * 1024 ? `${(bytes / 1024 / 1024).toFixed(1)}MB` : `${Math.ceil(bytes / 1024)}KB`);
 
-function FilePicker({ label, required, file, hint, onChange }: {
-  label: string; required?: boolean; file: File | null; hint: string; onChange: (file: File | null) => void;
+function FilePicker({ label, required, file, hint, types = PDF_ONLY, onChange }: {
+  label: string; required?: boolean; file: File | null; hint: string; types?: string[]; onChange: (file: File | null) => void;
 }) {
   const input = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
   const errorId = useId();
   const [error, setError] = useState("");
+  const kinds = typesLabel(types);
   const pick = (next: File | undefined) => {
     if (!next) return;
-    if (!isPdf(next)) return setError("PDF 파일만 올릴 수 있어요.");
+    if (!accepts(types, next.name)) return setError(`${kinds} 파일만 올릴 수 있어요.`);
     setError("");
     onChange(next);
   };
@@ -36,10 +42,10 @@ function FilePicker({ label, required, file, hint, onChange }: {
         <Typography variant="label1" weight="bold">{label}</Typography>
         <StatusBadge label={required ? "필수" : "선택"} tone={required ? "No-Go" : "none"} />
       </div>
-      <input ref={input} type="file" accept=".pdf,application/pdf" hidden onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} />
+      <input ref={input} type="file" accept={types.join(",")} hidden onChange={(e) => { pick(e.target.files?.[0]); e.target.value = ""; }} />
       {file ? (
         <div className="file-card">
-          <span className="file-icon">PDF</span>
+          <span className="file-icon">{extOf(file.name).slice(1).toUpperCase()}</span>
           <div className="grow">
             <Typography display="block" variant="label1" weight="bold">{file.name}</Typography>
             <Typography display="block" variant="caption1" color="semantic.foreground.neutral.secondary">{sizeLabel(file.size)}</Typography>
@@ -48,12 +54,12 @@ function FilePicker({ label, required, file, hint, onChange }: {
           {!required && <TextButton size="small" color="assistive" onClick={() => onChange(null)}>빼기</TextButton>}
         </div>
       ) : (
-        <div className={`dropzone ${over ? "over" : ""}`} role="button" tabIndex={0} aria-label={`PDF 파일 선택 · ${hint}`} aria-describedby={error ? errorId : undefined}
+        <div className={`dropzone ${over ? "over" : ""}`} role="button" tabIndex={0} aria-label={`${kinds} 파일 선택 · ${hint}`} aria-describedby={error ? errorId : undefined}
           onClick={() => input.current?.click()}
           onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); input.current?.click(); } }}
           onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)} onDrop={drop}>
           <Typography display="block" variant="body2" color="semantic.foreground.neutral.secondary">
-            PDF를 끌어다 놓거나 <b style={{ color: "var(--semantic-foreground-brand-primary)" }}>파일 선택</b> · {hint}
+            {kinds}를 끌어다 놓거나 <b style={{ color: "var(--semantic-foreground-brand-primary)" }}>파일 선택</b> · {hint}
           </Typography>
         </div>
       )}
@@ -105,13 +111,13 @@ export default function NewReview({ status, draft, setDraft, onStarted, folderId
         <FilePicker label="제안요청서 PDF" required file={draft.rfp} hint="최대 50MB" onChange={(rfp) => update({ rfp })} />
         {folderId ? (
           <SectionMessage variant="info" description={noticePdf
-            ? `공고문 PDF는 나라장터 첨부에서 받았어요. 첨부에서 RFP PDF를 받지 못해 제안요청서만 직접 올려 주세요.${notes.length ? " " + notes.join(" · ") : ""}`
+            ? `공고문은 나라장터 첨부에서 받았어요. 첨부에서 RFP PDF를 받지 못해 제안요청서만 직접 올려 주세요.${notes.length ? " " + notes.join(" · ") : ""}`
             : `공고 첨부에서 PDF를 받지 못했어요. 제안요청서를 PDF로 올려 주세요.${notes.length ? " " + notes.join(" · ") : ""}`}>
             {noticeName ?? "공고"} · 제안요청서 PDF를 올려 주세요
           </SectionMessage>
         ) : (
           <>
-            <FilePicker label="입찰공고문 PDF" file={draft.notice}
+            <FilePicker label="입찰공고문 (PDF·HWPX·HWP)" file={draft.notice} types={NOTICE_TYPES}
               hint="없으면 참가자격·공고번호가 '확인 필요'로 남아 보류가 나올 수 있어요" onChange={(notice) => update({ notice })} />
             <label className="stack" style={{ gap: 6 }}>
               <Typography variant="label1" weight="bold">나라장터 공고번호 (선택)</Typography>

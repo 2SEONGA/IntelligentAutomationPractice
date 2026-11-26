@@ -79,6 +79,28 @@ def test_upload_validation() -> None:
     assert not list((runs.OUTPUTS / "web").glob("*")) if (runs.OUTPUTS / "web").exists() else True, "거부된 업로드는 폴더를 남기지 않음"
 
 
+def test_notice_upload_accepts_hwp_and_hwpx() -> None:
+    """직접 올리는 공고문도 나라장터 자동 수집처럼 PDF·HWPX·HWP를 받고, 화면이 그 파일을 내려받을 수 있다."""
+    hwp = b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1" + b"\0" * 32
+    hwpx = b"PK\x03\x04" + b"\0" * 32
+    for name, data in (("공고문.hwp", hwp), ("공고문.HWPX", hwpx)):
+        c = client()
+        response = c.post("/api/runs", files={"rfp": ("rfp.pdf", pdf_bytes(), "application/pdf"),
+                                              "notice": (name, data, "application/octet-stream")},
+                          data={"mode": "offline"}, headers={"X-Role": "staff"})
+        assert response.status_code == 201, response.text
+        run_id = events(c, response.json()["job_id"])[-1]["run_id"]
+        saved = f"notice{Path(name).suffix.lower()}"
+        assert c.get(f"/api/runs/{run_id}").json()["files"]["notice"] == saved
+        file = c.get(f"/api/runs/{run_id}/files/{saved}")
+        assert file.status_code == 200 and file.content == data and "attachment" in file.headers["content-disposition"]
+    c = client()
+    bad = c.post("/api/runs", files={"rfp": ("rfp.pdf", pdf_bytes(), "application/pdf"),
+                                     "notice": ("공고문.hwp", b"%PDF-1.4 renamed", "application/octet-stream")},
+                 data={"mode": "offline"}, headers={"X-Role": "staff"})
+    assert bad.status_code == 400 and "HWP" in bad.json()["detail"], "확장자와 파일 앞부분이 다르면 거부"
+
+
 def test_run_flow() -> None:
     c = client()
     first = upload(c, rfp=("임상연구 CDW.pdf", None))

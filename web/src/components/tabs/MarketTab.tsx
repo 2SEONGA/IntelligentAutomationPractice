@@ -17,6 +17,9 @@ export default function MarketTab({ market }: { market: Record<string, any> }) {
       )}
       <div className="panel stack" style={{ gap: 12 }}>
         <Typography display="block" variant="headline2" weight="bold">유사 과거 사업 {projects.length}건</Typography>
+        <Typography display="block" variant="caption1" color="semantic.foreground.neutral.secondary">
+          T3 과거 사업 색인에서 찾은 사업과 연결된 낙찰정보예요(실시간 조회 아님).
+        </Typography>
         {projects.length === 0 ? (
           <Empty>출처가 확인된 유사 사업이 없습니다.</Empty>
         ) : (
@@ -39,7 +42,7 @@ export default function MarketTab({ market }: { market: Record<string, any> }) {
       </div>
       {observations.length > 0 && (
         <div className="panel stack" style={{ gap: 8 }}>
-          <Typography display="block" variant="headline2" weight="bold">시장 관찰</Typography>
+          <Typography display="block" variant="headline2" weight="bold">낙찰·시장 참고</Typography>
           {observations.map((o, i) => (
             <Typography key={i} display="block" variant="body2">
               {o.statement} <a className="page-link" href={o.source_url} target="_blank" rel="noreferrer">출처 ↗</a>
