@@ -13,8 +13,9 @@ const STATUS: Record<string, string> = {
   confirmed: "확인 완료", retrieve_more: "추가 검색 필요", conflict: "충돌", human_review: "담당자 확인 필요",
 };
 
-// 공고문 인용: 실행 폴더 notice.pdf에서 추출했거나 RAG 색인의 공고문 PDF chunk
-const isNotice = (citation: any) => citation.source_path === "notice.pdf" || citation.document_type === "notice_pdf";
+// 공고문 인용: 실행 폴더 공고문(notice.pdf/.hwpx/.hwp)에서 추출했거나 RAG 색인의 공고문 chunk(document_type은 형식과 상관없이 notice_pdf)
+const NOTICE_FILES = ["notice.pdf", "notice.hwpx", "notice.hwp"];
+const isNotice = (citation: any) => NOTICE_FILES.includes(citation.source_path) || citation.document_type === "notice_pdf";
 
 export default function CoreReviewTab({ run, role, onChanged, onOpenRun }: Props) {
   const [reason, setReason] = useState("");
@@ -24,6 +25,7 @@ export default function CoreReviewTab({ run, role, onChanged, onOpenRun }: Props
   const audit = run.core_review_audit as Record<string, any> | null;
   const verification = review?.verification as Record<string, any> | undefined;
   const awaitingReview = review?.decision === "human_review_required";
+  const noticeFile = run.files.notice ?? run.files.notice_pdf ?? null;  // 실제 저장된 공고문(PDF가 아니면 HWPX·HWP)
   const canEdit = role === "staff" && run.is_current && ["검토 완료", "보완 요청"].includes(run.workflow.status);
 
   const act = async (action: "analyze" | "approve_and_run_t2" | "reject") => {
@@ -72,7 +74,7 @@ export default function CoreReviewTab({ run, role, onChanged, onOpenRun }: Props
         ) : null}
         {verification ? (
           <SectionMessage variant={verification.notice_pdf_status === "analyzed" ? "info" : "cautionary"}>
-            공고문 PDF 추출 상태: {verification.notice_pdf_status === "analyzed" ? "페이지 추출 완료 · T1 일정 후보는 담당자 확인 필요" : verification.notice_pdf_status === "unavailable" ? "파일을 찾지 못해 추출하지 못함" : "공고문 PDF 미제공"}
+            공고문{noticeFile && !noticeFile.endsWith(".pdf") ? `(${noticeFile.split(".").pop()?.toUpperCase()})` : " PDF"} 추출 상태: {verification.notice_pdf_status === "analyzed" ? "페이지 추출 완료 · T1 일정 후보는 담당자 확인 필요" : verification.notice_pdf_status === "unavailable" ? "파일을 찾지 못해 추출하지 못함" : "공고문 미제공"}
           </SectionMessage>
         ) : null}
         {verification ? (
@@ -170,8 +172,8 @@ export default function CoreReviewTab({ run, role, onChanged, onOpenRun }: Props
                       원문 근거 · {citation.document_title} {citation.page ? `${citation.page}쪽` : citation.field_name ?? ""}
                       {citation.section && ` · ${citation.section}`}
                       {citation.page && <PageLink runId={run.id} page={citation.page}
-                        pdfAvailable={isNotice(citation) ? !!run.files.notice_pdf : !!run.files.pdf}
-                        fileName={isNotice(citation) ? "notice.pdf" : "rfp.pdf"} />}
+                        pdfAvailable={isNotice(citation) ? !!noticeFile : !!run.files.pdf}
+                        fileName={isNotice(citation) ? noticeFile ?? "notice.pdf" : "rfp.pdf"} />}
                     </summary>
                     <blockquote style={{ whiteSpace: "pre-wrap", margin: "8px 0", fontSize: 13 }}>{citation.quote}</blockquote>
                     {typeof citation.source_url === "string" && citation.source_url.startsWith("https://") ? (

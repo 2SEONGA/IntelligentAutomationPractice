@@ -24,6 +24,17 @@ test("agent4 done also completes the checklist node", () => {
   assert.equal(s.checklist, "done");
 });
 
+test("the 담당자 확인 gate follows T1.5 and whether T2 started", async () => {
+  const { gateOf } = await import("./stages.ts");
+  let s = initialStages();
+  assert.equal(gateOf(s), "wait");
+  s = reduceStage(s, { node: "agent1", state: "done" });
+  assert.equal(gateOf(s), "run", "T1.5가 끝나고 T2 소식이 오기 전");
+  assert.equal(gateOf(reduceStage(s, { node: "agent2", state: "skip" })), "hold", "T2를 건너뛰면 승인 대기로 멈춘 것");
+  assert.equal(gateOf(reduceStage(s, { node: "agent2", state: "done" })), "pass");
+  assert.equal(gateOf(reduceStage(initialStages(), { node: "agent1", state: "fail" })), "fail");
+});
+
 test("pace holds back bursts", () => {
   const events = [{ node: "agent1", state: "start" }, { node: "agent1", state: "done" }] as const;
   assert.deepEqual(paceQueue([...events], 1000, 1100).show, []);

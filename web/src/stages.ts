@@ -18,6 +18,17 @@ export function reduceStage(stages: Stages, change: Change): Stages {
   return updated;
 }
 
+export type Gate = "wait" | "run" | "hold" | "pass" | "fail";
+
+/** 담당자 확인(HITL)은 서버 단계가 아니다. T1.5가 끝난 뒤 T2가 시작됐으면 통과, T2가 건너뛰어지면 승인 대기로 멈춘 것. */
+export function gateOf(stages: Stages): Gate {
+  if (stages.agent1 === "fail") return "fail";
+  if (stages.agent1 !== "done") return "wait";
+  if (stages.agent2 === "run" || stages.agent2 === "done" || stages.agent2 === "fail") return "pass";
+  if (stages.agent2 === "skip") return "hold";
+  return "run";
+}
+
 /** Presentation only: offline runs finish in seconds, so reveal one stage change per `minMs`. */
 export function paceQueue<T>(events: T[], lastShownAt: number, now: number, minMs = 600): { show: T[]; rest: T[] } {
   if (events.length === 0 || now - lastShownAt < minMs) return { show: [], rest: events };

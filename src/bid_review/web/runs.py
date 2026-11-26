@@ -306,7 +306,9 @@ def load_run(run_id: str) -> dict:
         "workflow": workflow(path.parent), "is_current": details, "rerun_available": _find_pdf(path) is not None,
         "files": {"report_md": "report.md" if path.with_suffix(".md").is_file() else None, "report_json": "report.json",
                   "pdf": "rfp.pdf" if _find_pdf(path) else None,
-                  "notice_pdf": "notice.pdf" if (path.parent / "notice.pdf").is_file() else None},
+                  "notice_pdf": "notice.pdf" if (path.parent / "notice.pdf").is_file() else None,
+                  # 실제 공고문 파일(notice.pdf, 없으면 notice.hwpx·notice.hwp). 화면은 이것으로 원문을 열거나 내려받는다.
+                  "notice": notice.name if (notice := notice_file(path.parent)) else None},
     }
 
 
@@ -356,7 +358,7 @@ def _find_pdf(path: Path) -> Path | None:
 def resolve_file(run_id: str, name: str) -> Path | None:
     path = decode_run_id(run_id)
     candidates = {"report.json": path, "report.md": path.with_suffix(".md"), "rfp.pdf": None,
-                  "notice.pdf": path.parent / "notice.pdf",
+                  **{name: path.parent / name for name in NOTICE_FILES},
                   "decision.json": _sidecar(path, "decision"), "checklist.json": _sidecar(path, "checklist")}
     if name not in candidates:
         raise ValueError("허용되지 않은 파일")

@@ -39,7 +39,7 @@ export default function JobProgress({ jobId, notes = [], onDone, onRetry, onOpen
         });
       }
     });
-    // Reveal stage changes one by one so a few-second offline run still reads as 1 → 2·3 → 4.
+    // Reveal stage changes one by one so a few-second offline run still reads as T1 → T2 → T3 → T4.
     const timer = setInterval(() => {
       const { show, rest } = paceQueue(queue.current, lastShown.current, Date.now());
       if (show.length) {
@@ -70,9 +70,9 @@ export default function JobProgress({ jobId, notes = [], onDone, onRetry, onOpen
   return (
     <>
       <div>
-        <Typography display="block" variant="title3" weight="bold">Agent 실행 중</Typography>
+        <Typography display="block" variant="title3" weight="bold">검토 실행 중</Typography>
         <Typography display="block" variant="body2" color="semantic.foreground.neutral.secondary">
-          RFP 분석이 끝나면 역량 매칭과 시장 조사가 동시에 진행되고, 두 결과를 받아 보고서를 작성합니다.
+          RFP 핵심정보(금액·자격·일정)를 뽑아 원문과 대조하고, 담당자 확인이 필요하면 멈춰 기다립니다. 승인되면 역량 매칭 → 유사 사업 → 보고서 순서로 이어집니다.
         </Typography>
       </div>
       {notes.length > 0 && (

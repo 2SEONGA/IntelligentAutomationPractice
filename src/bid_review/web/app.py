@@ -113,6 +113,17 @@ async def _read_pdf(upload: UploadFile, label: str) -> bytes:
     return data
 
 
+async def _read_notice(upload: UploadFile) -> tuple[bytes, str]:
+    """직접 올린 입찰공고문: PDF·HWPX·HWP(나라장터 첨부 자동 수집과 같은 형식). 확장자와 파일 앞부분이 맞아야 한다."""
+    data = await upload.read()
+    suffix = notices.notice_suffix(upload.filename or "")
+    if not suffix or not data.startswith(notices.NOTICE_MAGIC[suffix]):
+        raise HTTPException(400, "입찰공고문은 PDF·HWP·HWPX 파일이어야 합니다.")
+    if len(data) > MAX_UPLOAD_BYTES:
+        raise HTTPException(400, "입찰공고문은 50MB 이하여야 합니다.")
+    return data, suffix
+
+
 def _new_folder():
     folder = runs.OUTPUTS / "web" / f"{datetime.now(runs.KST):%Y%m%d_%H%M%S}_{uuid4().hex[:6]}"
     folder.mkdir(parents=True)
@@ -385,11 +396,13 @@ def create_app(job_manager: JobManager | None = None, allowed_hosts: tuple[str, 
         if manager.current():
             raise HTTPException(409, BUSY)
         rfp_bytes = await _read_pdf(rfp, "제안요청서")
-        notice_bytes = await _read_pdf(notice, "입찰공고문") if notice else None
+        notice_bytes, notice_suffix = await _read_notice(notice) if notice else (None, None)
         folder = existing or _new_folder()
         (folder / "rfp.pdf").write_bytes(rfp_bytes)
         if notice_bytes:
-            (folder / "notice.pdf").write_bytes(notice_bytes)
+            for name in runs.NOTICE_FILES:  # 다른 형식의 예전 공고문이 남아 있으면 PDF 우선 규칙 때문에 그쪽이 쓰인다
+                (folder / name).unlink(missing_ok=True)
+            (folder / f"notice{notice_suffix}").write_bytes(notice_bytes)
         _write_upload(folder, rfp_name=rfp.filename, mode=mode,
                       **({"notice_name": notice.filename} if notice else {}), **key)
         try:
@@ -500,7 +513,7 @@ def create_app(job_manager: JobManager | None = None, allowed_hosts: tuple[str, 
             path = None
         if path is None:
             raise HTTPException(404, "파일을 찾을 수 없습니다.")
-        inline = name == "rfp.pdf"
+        inline = name in ("rfp.pdf", "notice.pdf")  # PDF는 브라우저에서 쪽 번호로 연다. HWP·HWPX는 내려받는다
         return FileResponse(path, filename=runs._nfc(path.name), content_disposition_type="inline" if inline else "attachment")
 
     # --- 체크리스트 · 결재 · 결정 · 다시 실행 ---------------------------------------------

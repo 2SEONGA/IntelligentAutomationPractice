@@ -16,7 +16,7 @@ type StartInfo = { skipped: string[]; rfp_guessed: boolean; notice_pdf: boolean 
 /** Things the user should know after "검토 시작" (spec 4.4: skipped files are reported on screen). */
 export function startNotes(info: StartInfo): string[] {
   const notes: string[] = [];
-  if (info.skipped.length) notes.push(`받지 못한 첨부: ${info.skipped.join(", ")} (PDF가 아니거나 내려받지 못했어요)`);
+  if (info.skipped.length) notes.push(`받지 못한 첨부: ${info.skipped.join(", ")} (받을 수 없는 형식이거나 내려받지 못했어요)`);
   if (info.rfp_guessed) notes.push("파일 이름에 단서가 없는 PDF를 RFP로 썼어요. 결과 화면에서 RFP가 맞는지 확인하세요.");
   return notes;
 }

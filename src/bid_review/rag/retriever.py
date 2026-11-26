@@ -218,6 +218,8 @@ def search_keyword(
     if not groups:
         return []
     database_path = database_path or PROJECT_ROOT / "outputs/rag/retrieval.sqlite3"
+    if not Path(database_path).is_file():  # 색인 없음: 검색 결과 없이 계속(T1.5는 담당자 확인으로 넘긴다)
+        return []
     connection = sqlite3.connect(database_path)
     connection.row_factory = sqlite3.Row
     try:
@@ -263,6 +265,8 @@ def search_keyword(
 def related_notice_number(document_id: str, database_path: Path | None = None) -> str | None:
     """Return a unique notice number attached to indexed chunks of this PDF."""
     database_path = database_path or PROJECT_ROOT / "outputs/rag/retrieval.sqlite3"
+    if not Path(database_path).is_file():  # 색인을 아직 안 만든 PC: 공고번호 없이 계속(실행을 멈추지 않음)
+        return None
     connection = sqlite3.connect(database_path)
     try:
         rows = connection.execute(

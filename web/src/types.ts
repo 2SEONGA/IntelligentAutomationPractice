@@ -82,7 +82,8 @@ export type RunDetail = {
   workflow: Workflow;
   is_current: boolean;
   rerun_available: boolean;
-  files: { report_md: string | null; report_json: string; pdf: string | null; notice_pdf?: string | null };
+  // notice: 실제 공고문 파일 이름(notice.pdf / notice.hwpx / notice.hwp). 예전 서버 응답에는 없을 수 있어 notice_pdf로 대신한다.
+  files: { report_md: string | null; report_json: string; pdf: string | null; notice_pdf?: string | null; notice?: string | null };
 };
 
 export type NodeId = "agent1" | "agent2" | "agent3" | "agent4" | "checklist";
