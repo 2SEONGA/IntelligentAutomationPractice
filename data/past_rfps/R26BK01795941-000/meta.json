@@ -14,10 +14,14 @@
   "bidNtceDtlUrl": "https://www.g2b.go.kr/link/PNPE027_01/single/?bidPbancNo=R26BK01795941&bidPbancOrd=000",
   "notice_id": "R26BK01795941-000",
   "rfp_attachment": {
-    "name": "6) 상생결제제도 이용 매뉴얼(거래업체용).pdf",
-    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01795941&bidPbancOrd=000&fileType=&fileSeq=7&prcmBsneSeCd=03",
-    "sha256": "92044f3a6250888e76203feb157d0ab80bef8872c07e7264ac3e4b3df0840470"
+    "name": "2. 제안요청서_2027~2029년 정보시스템 통합유지관리 용역.hwpx",
+    "url": "https://www.g2b.go.kr/pn/pnp/pnpe/UntyAtchFile/downloadFile.do?bidPbancNo=R26BK01795941&bidPbancOrd=000&fileType=&fileSeq=3&prcmBsneSeCd=03",
+    "sha256": "2b0f092553080a7ea8d412b989c1feb525f2bd1e94a02ef50d3ac0f16ff318f0"
   },
   "api_operation": "BidPublicInfoService02/getBidPblancListInfoAtchFileInfo02",
-  "retrieved_at": "2026-11-17T17:45:25+09:00"
+  "retrieved_at": "2026-11-25T18:04:52+09:00",
+  "replaced": {
+    "previous": "R26BK01795941-000_20261125_180451",
+    "reason": "잘못 저장된 첨부 교체(recollect_past_project.py)"
+  }
 }

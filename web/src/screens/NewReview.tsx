@@ -1,11 +1,11 @@
 import { useId, useRef, useState, type DragEvent } from "react";
-import { Button, SectionMessage, SegmentedControl, SegmentedControlItem, Switch, TextArea, TextButton, Typography } from "@montage-ui/core";
+import { Button, SectionMessage, SegmentedControl, SegmentedControlItem, TextArea, TextButton, Typography } from "@montage-ui/core";
 import { startRun } from "../api";
 import type { Status } from "../types";
 import StatusBadge from "../components/StatusBadge";
 
-export type Draft = { rfp: File | null; notice: File | null; mode: "offline" | "live"; marketApi: boolean; noticeNo: string };
-export const emptyDraft: Draft = { rfp: null, notice: null, mode: "offline", marketApi: false, noticeNo: "" };
+export type Draft = { rfp: File | null; notice: File | null; mode: "offline" | "live"; noticeNo: string };
+export const emptyDraft: Draft = { rfp: null, notice: null, mode: "offline", noticeNo: "" };
 // 나라장터 공고번호(차세대 R26BK01762350 / 구 20240112345, 차수 -000 선택). 서버도 같은 형식만 받는다.
 const NOTICE_NO = /^\s*(R\d{2}[A-Z]{2}\d{8}|20\d{9})(\s*-\s*\d{3})?\s*$/i;
 
@@ -68,19 +68,11 @@ type Props = {
 };
 
 export default function NewReview({ status, draft, setDraft, onStarted, folderId, noticePdf, noticeName, notes = [] }: Props) {
-  const hasNotice = !!draft.notice || !!noticePdf;
   const noticeNoInvalid = !folderId && draft.noticeNo.trim() !== "" && !NOTICE_NO.test(draft.noticeNo);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const liveAvailable = status?.live_available ?? false;
-  const marketAllowed = draft.mode === "live" && hasNotice && (status?.market_available ?? false);
-  const marketHint = draft.mode !== "live" ? "live에서만 사용 가능" : !hasNotice ? "공고문 PDF가 있어야 켤 수 있어요"
-    : !status?.market_available ? ".env에 G2B_SERVICE_KEY가 없어요" : "나라장터 낙찰정보를 조회합니다.";
-  const update = (patch: Partial<Draft>) => {
-    const next = { ...draft, ...patch };
-    const allowed = next.mode === "live" && (!!next.notice || !!noticePdf) && (status?.market_available ?? false);
-    setDraft({ ...next, marketApi: allowed && next.marketApi });
-  };
+  const update = (patch: Partial<Draft>) => setDraft({ ...draft, ...patch });
 
   const submit = async () => {
     if (!draft.rfp) return;
@@ -89,7 +81,6 @@ export default function NewReview({ status, draft, setDraft, onStarted, folderId
     if (draft.notice) form.append("notice", draft.notice);
     if (!folderId && draft.noticeNo.trim()) form.append("notice_no", draft.noticeNo.trim());
     form.append("mode", draft.mode);
-    form.append("market_api", String(draft.marketApi));
     if (folderId) form.append("folder_id", folderId);
     setSubmitting(true);
     setError("");
@@ -144,11 +135,10 @@ export default function NewReview({ status, draft, setDraft, onStarted, folderId
             {draft.mode === "live" && <Typography variant="caption1" color="semantic.foreground.cautionary.primary">live는 OpenAI 호출 비용이 발생해요</Typography>}
           </div>
           <div className="stack" style={{ gap: 8 }}>
-            <Typography variant="label1" weight="bold">나라장터 시장조사</Typography>
-            <div className="row">
-              <Switch checked={draft.marketApi} disabled={!marketAllowed} onCheckedChange={(marketApi) => update({ marketApi })} />
-              <Typography variant="caption1" color="semantic.foreground.neutral.secondary">{marketHint}</Typography>
-            </div>
+            <Typography variant="label1" weight="bold">유사 사업·낙찰 정보</Typography>
+            <Typography variant="caption1" color="semantic.foreground.neutral.secondary">
+              과거 사업 색인에서 유사 사업과 연결된 낙찰정보를 함께 보여 줘요(실시간 조회 아님).
+            </Typography>
           </div>
         </div>
         {error && <SectionMessage variant="negative" description={error}>검토를 시작하지 못했어요</SectionMessage>}

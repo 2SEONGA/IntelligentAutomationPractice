@@ -34,7 +34,7 @@ while (y, m) <= (today.year, today.month):
             hits += [i for i in items if any(t in (i.get("bidwinnrNm") or "") for t in TERMS)]
             if page * 999 >= total: break
             page += 1
-        f.write_text(json.dumps({"month": f"{y}{m:02d}", "total": total, "hits": hits}, ensure_ascii=False))
+        f.write_text(json.dumps({"month": f"{y}{m:02d}", "total": total, "hits": hits}, ensure_ascii=False), encoding="utf-8")
         print(f"{y}{m:02d} total={total} group_hits={len(hits)}", flush=True)
     y, m = (y + 1, 1) if m == 12 else (y, m + 1)
 print("DONE")

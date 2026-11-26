@@ -181,7 +181,8 @@ def test_download_skips_non_pdf() -> None:
     assert [a["kind"] for a in stored["attachments"]] == ["notice", "rfp", "other"]
     folder = Path(tempfile.mkdtemp())
     result = notices.fetch_attachments("G7-000", folder, session=session)
-    assert result == {"rfp": False, "notice": True, "skipped": ["제안요청서.pdf"], "rfp_guessed": False}
+    assert result == {"rfp": False, "notice": True, "skipped": ["제안요청서.pdf"], "rfp_guessed": False,
+                      "notice_attachment": stored["attachments"][0]}
     assert (folder / "notice.pdf").read_bytes() == PDF and not (folder / "rfp.pdf").exists()
 
 

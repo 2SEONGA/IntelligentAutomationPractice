@@ -99,15 +99,14 @@ def test_replay_after_reconnect() -> None:
 
 def test_build_command() -> None:
     out = Path("/tmp/x")
-    cmd = jobs.build_command(out, {"mode": "live", "notice": True, "market_api": True})
-    assert cmd[1:] == ["run.py", "--mode", "live", "--rfp", str(out / "rfp.pdf"), "--notice-pdf", str(out / "notice.pdf"),
-                       "--allow-market-api", "--output", str(out), "--save-intermediate", "--verbose"]
-    offline = jobs.build_command(out, {"mode": "offline", "notice": True, "market_api": False})
+    old_market = jobs.build_command(out, {"mode": "live", "notice": True, "market_api": True})
+    assert "run.py" not in old_market and old_market[1:3] == ["-m", "bid_review.web.langgraph_job"],         "M46 B안: 예전 시장조사 옵션이 와도 run.py로 가지 않고 LangGraph"
+    offline = jobs.build_command(out, {"mode": "offline", "notice": True})
     assert offline[1:] == ["-m", "bid_review.web.langgraph_job", "--rfp", str(out / "rfp.pdf"), "--output", str(out),
                            "--mode", "offline", "--notice-pdf", str(out / "notice.pdf")], "웹 실행은 LangGraph(일원화)"
-    live = jobs.build_command(out, {"mode": "live", "notice": False, "market_api": False})
+    live = jobs.build_command(out, {"mode": "live", "notice": False})
     assert live[1:3] == ["-m", "bid_review.web.langgraph_job"] and live[live.index("--mode") + 1] == "live"
-    assert "--notice-pdf" not in jobs.build_command(out, {"mode": "offline", "notice": False, "market_api": False})
+    assert "--notice-pdf" not in jobs.build_command(out, {"mode": "offline", "notice": False})
 
 
 if __name__ == "__main__":

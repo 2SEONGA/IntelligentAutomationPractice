@@ -45,7 +45,7 @@ def upload(c: TestClient, rfp=("rfp.pdf", None), notice=None, headers=None, **fo
     files = {"rfp": (rfp[0], rfp[1] if rfp[1] is not None else pdf_bytes(), "application/pdf")}
     if notice:
         files["notice"] = ("notice.pdf", pdf_bytes(), "application/pdf")
-    return c.post("/api/runs", files=files, data={"mode": "offline", "market_api": "false", **form},
+    return c.post("/api/runs", files=files, data={"mode": "offline", **form},
                   headers={"X-Role": "staff", **(headers or {})})  # v2: 상태 변경은 역할 헤더 필요
 
 
@@ -59,7 +59,7 @@ def test_status_has_no_secret_values() -> None:
     body = client().get("/api/status")
     assert body.status_code == 200
     data = body.json()
-    assert set(data) == {"live_available", "market_available", "notice_available", "checklist_version", "running_job_id", "role_note"}
+    assert set(data) == {"live_available", "notice_available", "checklist_version", "running_job_id", "role_note"}
     for secret in dotenv_values(ROOT / ".env").values():
         if secret and len(secret) >= 8:
             assert secret not in body.text
@@ -69,8 +69,6 @@ def test_upload_validation() -> None:
     c = client()
     assert upload(c, rfp=("rfp.txt", b"%PDF-1.4")).status_code == 400
     assert upload(c, rfp=("rfp.pdf", b"hello, not a pdf")).status_code == 400
-    assert upload(c, market_api="true").status_code == 400, "offline에서 나라장터 조회 불가"
-    assert upload(c, mode="live", market_api="true").status_code == 400, "공고문 없이 나라장터 조회 불가"
     assert upload(c, mode="cloud").status_code == 400
     app_module.MAX_UPLOAD_BYTES, saved = 100, app_module.MAX_UPLOAD_BYTES
     try:

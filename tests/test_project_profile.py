@@ -104,6 +104,19 @@ def test_contract_attachment_ignored_even_if_api_mislabels_it():
     assert not pp._non_rfp_attachment("제안요청서 및 계약서.hwpx")
 
 
+def test_named_rfp_beats_pdf_labelled_task_order():
+    """M41: 문서구분 '과업지시서'인 매뉴얼·심의결과서 PDF보다 이름이 '제안요청서'인 HWP를 고른다(실제 공고 2건)."""
+    manual = {"kind": "rfp", "name": "6) 상생결제제도 이용 매뉴얼(거래업체용).pdf", "document_kind": "과업지시서"}
+    named = {"kind": "other", "name": "2. 제안요청서_2027~2029년 정보시스템 통합유지관리 용역.hwpx", "document_kind": "과업지시서"}
+    assert pp._pick_rfp([manual, named]) == (named, "rfp.hwpx")
+    review = {"kind": "rfp", "name": "붙임 4 과업내용 (확정) 종합 심의결과서.pdf", "document_kind": "기타문서"}
+    hwp = {"kind": "other", "name": "붙임 2 제안요청서(최종).hwp", "document_kind": "기타문서"}
+    assert pp._pick_rfp([review, hwp]) == (hwp, "rfp.hwp")
+    pdf = {"kind": "rfp", "name": "제안요청서.pdf", "document_kind": "제안요청서"}
+    assert pp._pick_rfp([hwp, pdf]) == (pdf, "rfp.pdf"), "같은 이름이면 PDF 우선(기존 규칙)"
+    assert pp._pick_rfp([manual]) == (manual, "rfp.pdf"), "이름 단서가 없으면 기존 규칙 그대로"
+
+
 def build_fixture(root, *, good=True):
     for number, name in (("BAD", "2. 계약서(계정계 구축).hwp"), *(([("GOOD", "제안요청서.hwpx")]) if good else [])):
         folder = root / "past" / f"{number}-000"

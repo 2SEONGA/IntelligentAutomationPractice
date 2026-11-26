@@ -19,6 +19,7 @@ from typing import Any
 
 import requests
 
+from ..hwp_text import HWP_LINES_PER_PAGE  # HWP 50줄 = 한 쪽 (T1과 같은 값)
 from ..notice_filter import amount_of
 from ..settings import PROJECT_ROOT, load_config
 from .project_profile import PROFILE_VERSION, ProfileExtractionError, extract_profile_body
@@ -31,29 +32,38 @@ PROFILE_CHARS = 2500
 TOC_LEADER = re.compile(r"[·.…ㆍ‥\-]{5,}\s*\d{0,3}\s*$|[·…]{3,}|\t\s*\d{1,3}\s*$")  # 목차 점선(····· 3), HWP 목차 탭(\t 3)
 RFP_MAGIC = {".pdf": b"%PDF-", ".hwp": b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1", ".hwpx": b"PK\x03\x04"}
 RFP_FILES = ("rfp.pdf", "rfp.hwpx", "rfp.hwp")  # M31: PDF가 없으면 HWP·HWPX 제안요청서
-HWP_LINES_PER_PAGE = 50  # HWP에는 쪽이 없어 50줄을 한 쪽으로 본다
 # M25 담당자 평가(15건)로 조정: 0.60 → 0.70. 0.78 이상 5건 중 4건 관련, 0.69 이하는 대부분 무관(최적 F1 0.713: 정밀도·재현율 0.83).
-MIN_PROJECT_SCORE = 0.70
+# M42: 값은 config/settings.yaml past_projects.min_similarity에서 읽는다(없으면 0.70). 값 자체는 바꾸지 않았다.
+MIN_PROJECT_SCORE = float(load_config("settings").get("past_projects", {}).get("min_similarity", 0.70))
 SAME_PROJECT_SCORE = 0.95  # 이 이상이면 다른 공고번호라도 같은 사업의 재공고일 가능성이 높다
 
 
 def _rfp_pages(path: Path, max_pages: int) -> list[str]:
     if path.suffix.lower() in (".hwp", ".hwpx"):
-        from ..hwp_text import hwp_text
+        from ..hwp_text import hwp_pages
 
-        lines = hwp_text(path).splitlines()
-        return ["\n".join(lines[i:i + HWP_LINES_PER_PAGE]) for i in range(0, len(lines), HWP_LINES_PER_PAGE)][:max_pages]
+        return hwp_pages(path, HWP_LINES_PER_PAGE)[:max_pages]
     import pdfplumber
     from pypdf import PdfReader
 
+    from ..pdf_chars import dedupe_overprint, file_sha256, recalled_plain_texts
+
+    # 같은 프로세스에서 T1이 이미 이 파일(같은 SHA-256)을 읽었으면 그때 계산한 쪽 텍스트를 쓴다(남은 업무 4번).
+    # T1은 이 함수와 같은 방식(dedupe 후 extract_text)으로 계산하므로 결과가 같다. 실패했던 쪽(None)만 아래에서 다시 읽는다.
+    recalled = recalled_plain_texts(file_sha256(path))
     # 쪽마다 따로 읽는다. pdfminer가 한 쪽의 글꼴 정보(DescendantFonts 등)를 못 읽어도 문서 전체를 버리지 않고
     # 그 쪽만 pypdf로 다시 시도하고, 그래도 안 되면 빈 쪽으로 둔다(예: R26BK01765343 1쪽).
     texts: list[str] = []
+    if recalled is not None and all(text is not None for text in recalled[:max_pages]):
+        return list(recalled[:max_pages])
     with pdfplumber.open(path) as pdf:
         reader = None
         for number, page in enumerate(pdf.pages[:max_pages]):
+            if recalled is not None and number < len(recalled) and recalled[number] is not None:
+                texts.append(recalled[number])
+                continue
             try:
-                texts.append(page.extract_text() or "")
+                texts.append(dedupe_overprint(page)[0].extract_text() or "")  # 겹쳐 찍은 굵은 글씨("요요구구")
                 continue
             except Exception:
                 pass
@@ -78,8 +88,18 @@ def _non_rfp_attachment(name: str) -> bool:
 
 
 def _pick_rfp(attachments: list[dict]) -> tuple[dict | None, str]:
-    """PDF 제안요청서 우선, 없으면 이름·문서구분에 제안요청/과업이 있는 HWP·HWPX (M31)."""
+    """이름이 '제안요청서'인 첨부(PDF → HWP·HWPX) 우선(M41), 그다음 PDF 제안요청서, 없으면 이름·문서구분에
+    제안요청/과업이 있는 HWP·HWPX (M31).
+
+    M41: 문서구분이 '과업지시서'라는 이유로 상생결제 매뉴얼·심의결과서 PDF가 이름이 '제안요청서'인 HWP보다
+    먼저 뽑히던 문제(R26BK01795941, R26BK01826775)를 막는다.
+    """
     attachments = [a for a in attachments if not _non_rfp_attachment(a["name"])]
+    named = [a for a in attachments if "제안요청" in unicodedata.normalize("NFC", a["name"]).replace(" ", "")]
+    for suffix in ("pdf", "hwpx", "hwp"):
+        hit = next((a for a in named if unicodedata.normalize("NFC", a["name"]).lower().endswith("." + suffix)), None)
+        if hit:
+            return hit, f"rfp.{suffix}"
     pdf = next((a for a in attachments if a["kind"] == "rfp" and a["name"].lower().endswith(".pdf")), None)
     if pdf:
         return pdf, "rfp.pdf"
@@ -180,6 +200,45 @@ def _is_quota_error(message: str) -> bool:
     return "요청제한" in message or "LIMITED_NUMBER" in message or "API 오류 22" in message
 
 
+def save_notice_rfp(item: dict, *, session) -> str:
+    """공고 1건의 제안요청서를 data/past_rfps/<공고번호-차수>/에 저장한다(첨부정보 API 1회 + 다운로드 1회).
+
+    반환 상태: saved_pdf / saved_hwp / saved_hwpx / no_rfp / rfp_unreadable / download_failed / api_error /
+    api_quota_exhausted. 전체 수집(collect_past_projects)과 실행 중 확장(past_project_expansion)이 같이 쓴다.
+    """
+    from ..web import notices
+
+    nid = notices.notice_id(item)
+    try:
+        info = notices.fetch_notice_attachment_info(item["bidNtceNo"], item.get("bidNtceOrd") or "000", session=session)
+    except notices.NoticeError as exc:
+        return "api_quota_exhausted" if _is_quota_error(str(exc)) else "api_error"
+    rfp, filename = _pick_rfp(info["attachments"])
+    if not rfp:
+        return "no_rfp"  # 제안요청서(PDF·HWP·HWPX) 없음
+    folder = PAST_DIR / nid
+    folder.mkdir(parents=True, exist_ok=True)
+    target = folder / filename
+    if not notices._download(session, rfp, target, magic=RFP_MAGIC[target.suffix]):
+        folder.rmdir()
+        return "download_failed"
+    try:
+        if target.suffix != ".pdf":
+            from ..hwp_text import hwp_text
+
+            hwp_text(target)  # 암호·배포용·손상 HWP는 저장하지 않는다 (PDF는 색인 때 확인)
+    except Exception:
+        target.unlink()
+        folder.rmdir()
+        return "rfp_unreadable"
+    meta = {field: item.get(field) for field in notices.KEPT_FIELDS}
+    meta.update({"notice_id": nid, "rfp_attachment": {"name": rfp["name"], "url": rfp["url"],
+                                                      "sha256": hashlib.sha256(target.read_bytes()).hexdigest()},
+                 "api_operation": info["api_operation"], "retrieved_at": info["retrieved_at"]})
+    (folder / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
+    return "saved_" + target.suffix[1:]
+
+
 def collect_past_projects(days: int | None = None, max_projects: int | None = None, exclude: set[str] | None = None,
                           today: date | None = None, session=None, log=print, max_lookups: int | None = None) -> dict[str, Any]:
     """Download ICT 용역 RFPs (PDF, else HWP·HWPX — M31) spread over the period → data/past_rfps/<no>-<ord>/{rfp.*, meta.json}.
@@ -239,47 +298,17 @@ def collect_past_projects(days: int | None = None, max_projects: int | None = No
         if lookups >= max_lookups:
             stopped = f"lookup_cap({max_lookups})"
             break
-        item = found[nid]
         lookups += 1
-        try:
-            info = notices.fetch_notice_attachment_info(item["bidNtceNo"], item.get("bidNtceOrd") or "000", session=session)
-        except notices.NoticeError as exc:
-            if _is_quota_error(str(exc)):
-                stopped = "api_quota_exhausted"  # 다음 날 다시 실행하면 이어서 받는다
-                break
-            counts["api_error"] += 1
-            continue
-        rfp, filename = _pick_rfp(info["attachments"])
-        if not rfp:
-            checked[nid] = "no_rfp"  # 제안요청서(PDF·HWP·HWPX) 없음 — 다음 실행에서 다시 조회하지 않음
-            counts["no_rfp"] += 1
-            continue
-        folder.mkdir(parents=True, exist_ok=True)
-        target = folder / filename
-        if not notices._download(session, rfp, target, magic=RFP_MAGIC[target.suffix]):
-            folder.rmdir()
-            counts["download_failed"] += 1
-            continue
-        try:
-            if target.suffix != ".pdf":
-                from ..hwp_text import hwp_text
-
-                hwp_text(target)  # 암호·배포용·손상 HWP는 저장하지 않는다 (PDF는 이전처럼 색인 때 확인)
-        except Exception:
-            target.unlink()
-            folder.rmdir()
-            checked[nid] = "rfp_unreadable"
-            counts["rfp_unreadable"] += 1
-            continue
-        counts["saved_" + target.suffix[1:]] += 1
-        checked.pop(nid, None)  # M31 전 "no_rfp_pdf" 기록 정리
-        data = target.read_bytes()
-        meta = {field: item.get(field) for field in notices.KEPT_FIELDS}
-        meta.update({"notice_id": nid, "rfp_attachment": {"name": rfp["name"], "url": rfp["url"],
-                                                          "sha256": hashlib.sha256(data).hexdigest()},
-                     "api_operation": info["api_operation"], "retrieved_at": info["retrieved_at"]})
-        (folder / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
-        counts["saved"] += 1
+        status = save_notice_rfp(found[nid], session=session)
+        if status == "api_quota_exhausted":
+            stopped = status  # 다음 날 다시 실행하면 이어서 받는다
+            break
+        if status in ("no_rfp", "rfp_unreadable"):
+            checked[nid] = status  # 다음 실행에서 다시 조회하지 않음
+        if status.startswith("saved_"):
+            checked.pop(nid, None)  # M31 전 "no_rfp_pdf" 기록 정리
+            counts["saved"] += 1
+        counts[status] += 1
     checked_path.write_text(json.dumps(checked, ensure_ascii=False, indent=2), encoding="utf-8")
     awards, failed = fetch_awards(keywords, begin, end, session=session)
     (PAST_DIR / "awards.json").write_text(json.dumps({"period": [str(begin), str(end)], "awards": awards,
@@ -290,9 +319,7 @@ def collect_past_projects(days: int | None = None, max_projects: int | None = No
 
 def build_past_project_index(embed=None, log=print) -> dict[str, Any]:
     """Profile every downloaded past RFP, embed the profiles, and join 낙찰 by 공고번호."""
-    import numpy as np
-
-    from .semantic import EMBEDDING_MODEL, _normalise, openai_embedder
+    from .semantic import EMBEDDING_MODEL, openai_embedder
 
     awards = json.loads((PAST_DIR / "awards.json").read_text(encoding="utf-8")).get("awards", {}) \
         if (PAST_DIR / "awards.json").is_file() else {}
@@ -308,17 +335,8 @@ def build_past_project_index(embed=None, log=print) -> dict[str, Any]:
         if _excluded_contract(meta, excluded_terms):
             excluded_contract += 1  # 폴더는 남긴다(이어받기 때 재조회 없음); 색인에서만 뺀다 (M29)
             continue
-        number = meta["notice_id"].split("-")[0]
-        award_id, award = next(((key, value) for key, value in sorted(awards.items(), reverse=True)
-                                if key.split("-")[0] == number), (None, None))
         try:
-            rfp_path = rfp_file(meta_path.parent)
-            attachment_name = (meta.get("rfp_attachment") or {}).get("name", "")
-            if _non_rfp_attachment(attachment_name):
-                raise ProfileExtractionError("수집된 첨부가 제안요청서 대신 계약/서약 양식입니다. 올바른 원문을 확인해 주세요.")
-            if rfp_path is None:
-                raise ProfileExtractionError("저장된 제안요청서 파일을 찾을 수 없습니다.")
-            profile = project_profile(rfp_path, meta.get("bidNtceNm") or "", meta.get("dminsttNm") or "")
+            projects.append(_project_record(meta, meta_path.parent, awards))
         except Exception as exc:  # 손상된 PDF 하나가 전체 색인을 막지 않게
             reason = str(exc) if isinstance(exc, ProfileExtractionError) else f"원문 읽기 실패 ({type(exc).__name__})"
             profile_review.append({"notice_id": meta["notice_id"], "title": meta.get("bidNtceNm"),
@@ -326,24 +344,15 @@ def build_past_project_index(embed=None, log=print) -> dict[str, Any]:
                                    "source_folder": str(meta_path.parent.relative_to(PROJECT_ROOT)),
                                    "reason": reason})
             log(f"프로필 확인 필요 {meta['notice_id']}: {reason}")
-            continue
-        projects.append({"notice_id": meta["notice_id"], "title": meta.get("bidNtceNm"), "buyer": meta.get("dminsttNm"),
-                         "amount_krw": meta.get("asignBdgtAmt") or meta.get("presmptPrce"), "notice_date": meta.get("bidNtceDt"),
-                         "notice_url": meta.get("bidNtceDtlUrl"), "rfp_attachment": meta.get("rfp_attachment"),
-                         "rfp_path": str(rfp_path.relative_to(PROJECT_ROOT)),
-                         "award": award, "award_notice_id": award_id,
-                         # 낙찰정보 출처: 같은 공고번호의 나라장터 공고 상세(개찰결과 확인 화면)
-                         "award_source_url": meta.get("bidNtceDtlUrl") if award else None, "profile": profile})
     INDEX_DIR.mkdir(parents=True, exist_ok=True)
     (INDEX_DIR / "past_projects_review.json").write_text(json.dumps({
         "profile_version": PROFILE_VERSION, "review_required": len(profile_review), "items": profile_review,
     }, ensure_ascii=False, indent=2), encoding="utf-8")
     if not projects:
         raise ValueError("검색에 사용할 사업 본문이 없습니다. outputs/rag/past_projects_review.json을 확인해 주세요.")
-    # 재공고는 새 공고번호로 나오기도 한다 → 공고명+수요기관이 같으면 한 사업으로 묶는다.
     groups: dict[str, list[dict[str, Any]]] = {}
     for project in projects:
-        groups.setdefault(re.sub(r"\s+", "", f"{project['title']}|{project['buyer']}"), []).append(project)
+        groups.setdefault(_group_key(project), []).append(project)
     projects = []
     for members in groups.values():
         members.sort(key=lambda item: str(item.get("notice_date") or ""), reverse=True)
@@ -354,23 +363,104 @@ def build_past_project_index(embed=None, log=print) -> dict[str, Any]:
                     award_notice_id=awarded["award_notice_id"] if awarded else None,
                     award_source_url=awarded["award_source_url"] if awarded else None)
         projects.append(lead)
-    embed = embed or openai_embedder(EMBEDDING_MODEL)
-    try:
-        matrix = _normalise(np.asarray(embed([p["profile"] for p in projects]), dtype=np.float32))
-    except Exception as exc:
-        from .semantic import SemanticUnavailable
-        raise SemanticUnavailable(f"과거 사업 임베딩 호출 실패 ({type(exc).__name__}).") from None
-    payload = json.dumps(projects, ensure_ascii=False, indent=2)
-    INDEX_DIR.mkdir(parents=True, exist_ok=True)
-    (INDEX_DIR / "past_projects.json").write_text(payload, encoding="utf-8")
-    np.save(INDEX_DIR / "past_projects.npy", matrix)
-    (INDEX_DIR / "past_projects_meta.json").write_text(json.dumps({
-        "model": EMBEDDING_MODEL, "count": len(projects), "excluded_contract": excluded_contract,
-        "profile_version": PROFILE_VERSION, "profile_review_required": len(profile_review), "profiles_sha256": hashlib.sha256(payload.encode()).hexdigest(),
-        "built_at": datetime.now().astimezone().isoformat(timespec="seconds")}, ensure_ascii=False, indent=2), encoding="utf-8")
+    matrix = _embed_profiles(projects, embed or openai_embedder(EMBEDDING_MODEL))
+    _write_index(projects, matrix, {"model": EMBEDDING_MODEL, "excluded_contract": excluded_contract,
+                                    "profile_review_required": len(profile_review)})
     return {"projects": len(projects), "notices": sum(len(p["related_notice_ids"]) for p in projects),
             "with_award": sum(1 for p in projects if p["award"]), "excluded_contract": excluded_contract,
             "profile_review_required": len(profile_review)}
+
+
+def append_to_past_project_index(notice_ids: list[str], embed=None, index_dir: Path | None = None) -> dict[str, Any]:
+    """새로 받은 과거 사업 몇 건만 기존 색인 뒤에 덧붙인다(전체 재색인 없이, 새 사업만 임베딩).
+
+    이미 색인에 같은 공고번호나 같은 '공고명+수요기관' 사업이 있으면 건너뛴다. 프로필을 못 만든 사업도 건너뛴다.
+    반환: {"added": [공고 ID...], "skipped": {공고 ID: 이유}}
+    """
+    import numpy as np
+
+    from .semantic import openai_embedder
+
+    index_dir = Path(index_dir or INDEX_DIR)
+    projects = json.loads((index_dir / "past_projects.json").read_text(encoding="utf-8"))
+    matrix = np.load(index_dir / "past_projects.npy")
+    meta = json.loads((index_dir / "past_projects_meta.json").read_text(encoding="utf-8"))
+    awards = json.loads((PAST_DIR / "awards.json").read_text(encoding="utf-8")).get("awards", {}) \
+        if (PAST_DIR / "awards.json").is_file() else {}
+    known_numbers = {nid.split("-")[0] for p in projects for nid in p.get("related_notice_ids", [p["notice_id"]])}
+    known_groups = {_group_key(p) for p in projects}
+    new, skipped = [], {}
+    for nid in notice_ids:
+        meta_path = PAST_DIR / nid / "meta.json"
+        if nid.split("-")[0] in known_numbers:
+            skipped[nid] = "already_indexed"
+            continue
+        try:
+            record = _project_record(json.loads(meta_path.read_text(encoding="utf-8")), meta_path.parent, awards)
+        except Exception as exc:
+            skipped[nid] = str(exc)[:120] if isinstance(exc, ProfileExtractionError) else type(exc).__name__
+            continue
+        if _group_key(record) in known_groups:
+            skipped[nid] = "same_project_indexed"
+            continue
+        record["related_notice_ids"] = [nid]
+        known_groups.add(_group_key(record))
+        new.append(record)
+    if new:
+        added = _embed_profiles(new, embed or openai_embedder(meta["model"]))
+        _write_index(projects + new, np.vstack([matrix, added]), {**meta, "appended_at_runtime": meta.get("appended_at_runtime", 0) + len(new)},
+                     index_dir=index_dir)
+    return {"added": [p["notice_id"] for p in new], "skipped": skipped}
+
+
+def _project_record(meta: dict, folder: Path, awards: dict) -> dict[str, Any]:
+    """meta.json + 저장된 제안요청서 → 색인 한 줄(프로필 포함). 프로필을 못 만들면 예외."""
+    number = meta["notice_id"].split("-")[0]
+    award_id, award = next(((key, value) for key, value in sorted(awards.items(), reverse=True)
+                            if key.split("-")[0] == number), (None, None))
+    rfp_path = rfp_file(folder)
+    if _non_rfp_attachment((meta.get("rfp_attachment") or {}).get("name", "")):
+        raise ProfileExtractionError("수집된 첨부가 제안요청서 대신 계약/서약 양식입니다. 올바른 원문을 확인해 주세요.")
+    if rfp_path is None:
+        raise ProfileExtractionError("저장된 제안요청서 파일을 찾을 수 없습니다.")
+    profile = project_profile(rfp_path, meta.get("bidNtceNm") or "", meta.get("dminsttNm") or "")
+    return {"notice_id": meta["notice_id"], "title": meta.get("bidNtceNm"), "buyer": meta.get("dminsttNm"),
+            "amount_krw": meta.get("asignBdgtAmt") or meta.get("presmptPrce"), "notice_date": meta.get("bidNtceDt"),
+            "notice_url": meta.get("bidNtceDtlUrl"), "rfp_attachment": meta.get("rfp_attachment"),
+            "rfp_path": str(rfp_path.relative_to(PROJECT_ROOT)),
+            "award": award, "award_notice_id": award_id,
+            # 낙찰정보 출처: 같은 공고번호의 나라장터 공고 상세(개찰결과 확인 화면)
+            "award_source_url": meta.get("bidNtceDtlUrl") if award else None, "profile": profile}
+
+
+def _group_key(project: dict) -> str:
+    """재공고는 새 공고번호로 나오기도 한다 → 공고명+수요기관이 같으면 한 사업으로 본다."""
+    return re.sub(r"\s+", "", f"{project['title']}|{project['buyer']}")
+
+
+def _embed_profiles(projects: list[dict[str, Any]], embed):
+    import numpy as np
+
+    from .semantic import SemanticUnavailable, _normalise
+
+    try:
+        return _normalise(np.asarray(embed([p["profile"] for p in projects]), dtype=np.float32))
+    except Exception as exc:
+        raise SemanticUnavailable(f"과거 사업 임베딩 호출 실패 ({type(exc).__name__}).") from None
+
+
+def _write_index(projects: list[dict[str, Any]], matrix, meta: dict, index_dir: Path | None = None) -> None:
+    import numpy as np
+
+    index_dir = Path(index_dir or INDEX_DIR)
+    payload = json.dumps(projects, ensure_ascii=False, indent=2)
+    index_dir.mkdir(parents=True, exist_ok=True)
+    (index_dir / "past_projects.json").write_text(payload, encoding="utf-8")
+    np.save(index_dir / "past_projects.npy", matrix)
+    (index_dir / "past_projects_meta.json").write_text(json.dumps({
+        **meta, "count": len(projects), "profile_version": PROFILE_VERSION,
+        "profiles_sha256": hashlib.sha256(payload.encode()).hexdigest(),
+        "built_at": datetime.now().astimezone().isoformat(timespec="seconds")}, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
 def search_similar_projects(query_profile: str, *, limit: int = 5, exclude_notice_no: str | None = None,

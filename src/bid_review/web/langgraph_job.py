@@ -4,7 +4,7 @@
 - 담당자 확인이 필요하면 중단 지점을 저장(SQLite)하고 "검토 대기" 보류 보고서를 쓴다. 승인하면
   `POST /api/runs/{id}/core-review`가 같은 실행을 이어 가고 T4 보고서를 새 보고서로 쓴다.
 - live 모드: T4까지 끝난 뒤 CrewAI Agent 4개가 검증된 결과의 compact 요약만 받아 브리핑을 붙인다(판정은 규칙 기반 유지).
-  나라장터 낙찰 실시간 조회(시장조사 옵션)를 켠 live 실행만 아직 기존 `run.py` 경로를 쓴다.
+- 시장·낙찰 정보(M46, B안): T3 색인에 연결된 낙찰정보만 쓴다. 웹의 모든 실행이 이 경로다.
 
     python -m bid_review.web.langgraph_job --rfp <pdf> --output <case 폴더> [--notice-pdf <pdf>] [--mode live]
 """
@@ -124,7 +124,7 @@ def main() -> None:
     print("[STAGE] agent1 start", flush=True)
     snapshot = hitl_runtime.start_review(
         args.rfp, company_path=COMPANY_FILE if COMPANY_FILE.is_file() else None, notice_pdf_path=args.notice_pdf,
-        retrieval_limit=1, thread_id=f"web-{uuid4().hex}", **notice_key(case))
+        retrieval_limit=1, thread_id=f"web-{uuid4().hex}", grow_indexes=True, **notice_key(case))
     if snapshot["status"] == "failed":
         print("[실패] LangGraph 실행 오류: " + "; ".join(snapshot["task_errors"]), flush=True)
         sys.exit(1)

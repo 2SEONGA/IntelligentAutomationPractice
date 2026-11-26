@@ -15,7 +15,7 @@ import pdfplumber
 from pypdf import PdfReader
 
 from bid_review import ocr
-from bid_review.agent01_rfp import RFPExtractor, _clean
+from bid_review.agent01_rfp import RFPExtractor
 from bid_review.settings import load_settings
 
 
@@ -26,13 +26,9 @@ def compare(pdf_path: Path, extractor: RFPExtractor) -> list[dict]:
     with pdfplumber.open(str(pdf_path)) as layout_pdf:
         for number, page in enumerate(reader.pages, start=1):
             layout_page = layout_pdf.pages[number - 1]
-            simple = _clean(page.extract_text() or "")
-            try:
-                layout = _clean(layout_page.extract_text(layout=True) or "")
-            except Exception:
-                layout = ""
+            simple, layout, text_page, _ = extractor._page_text(page, layout_page)  # T1과 같은 추출(겹친 글자 거름)
             best = layout if len(layout) > len(simple) else simple
-            tables = extractor._table_rows(layout_page)
+            tables = extractor._table_rows(text_page)
             page_type, _ = extractor._classify_page(number, best, tables)
             reason = extractor._ocr_reason(best, page_type, tables)
             started = time.perf_counter()

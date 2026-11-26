@@ -2,8 +2,14 @@
 from __future__ import annotations
 
 from contextlib import contextmanager
-import fcntl
 import hashlib
+import time
+
+try:  # macOS·Linux
+    import fcntl
+except ImportError:  # Windows에는 fcntl이 없다. 같은 잠금을 msvcrt로 건다.
+    fcntl = None
+    import msvcrt
 from pathlib import Path
 import re
 from typing import Any
@@ -41,17 +47,37 @@ def _fingerprint(path: str | Path) -> dict[str, str]:
 
 
 @contextmanager
+def _exclusive(lock_file):
+    """다른 프로세스가 잠금을 풀 때까지 기다렸다가 배타 잠금을 건다(운영체제별)."""
+    if fcntl is not None:
+        fcntl.flock(lock_file, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(lock_file, fcntl.LOCK_UN)
+        return
+    while True:  # msvcrt.LK_LOCK은 10초 뒤 OSError를 내므로, 풀릴 때까지 다시 시도한다
+        lock_file.seek(0)
+        try:
+            msvcrt.locking(lock_file.fileno(), msvcrt.LK_LOCK, 1)
+            break
+        except OSError:
+            time.sleep(0.1)
+    try:
+        yield
+    finally:
+        lock_file.seek(0)
+        msvcrt.locking(lock_file.fileno(), msvcrt.LK_UNLCK, 1)
+
+
+@contextmanager
 def _open(db_path, graph_factory):
     path = Path(db_path).expanduser().resolve()
     path.parent.mkdir(parents=True, exist_ok=True)
     # 이 실행기를 통한 동시 재개를 직렬화한다. 다른 thread의 오래된 응답도 별도로 검사한다.
-    with path.with_suffix(path.suffix + ".lock").open("a+") as lock:
-        fcntl.flock(lock, fcntl.LOCK_EX)
-        try:
-            with SqliteSaver.from_conn_string(str(path)) as saver:
-                yield graph_factory(saver)
-        finally:
-            fcntl.flock(lock, fcntl.LOCK_UN)
+    with path.with_suffix(path.suffix + ".lock").open("a+") as lock, _exclusive(lock):
+        with SqliteSaver.from_conn_string(str(path)) as saver:
+            yield graph_factory(saver)
 
 
 def _snapshot(graph, thread_id: str) -> dict[str, Any]:
@@ -67,7 +93,7 @@ def _snapshot(graph, thread_id: str) -> dict[str, Any]:
 
 
 def start_review(pdf_path, *, company_path=None, notice_pdf_path=None, notice_no=None, notice_order="000",
-                 retrieval_limit=2, thread_id=None, db_path=DEFAULT_DB, graph_factory=_factory):
+                 retrieval_limit=2, thread_id=None, db_path=DEFAULT_DB, graph_factory=_factory, grow_indexes=False):
     thread_id = thread_id or uuid4().hex
     config = _config(thread_id)
     if isinstance(retrieval_limit, bool) or not isinstance(retrieval_limit, int) or not 0 <= retrieval_limit <= 3:
@@ -76,7 +102,8 @@ def start_review(pdf_path, *, company_path=None, notice_pdf_path=None, notice_no
     fingerprints = {key: _fingerprint(value) for key, value in inputs.items() if value is not None}
     initial = {key: fingerprints[key]["path"] if key in fingerprints else None for key in inputs}
     initial.update(notice_no=notice_no, notice_order=notice_order, retrieval_limit=retrieval_limit,
-                   run_id=thread_id, source_fingerprints=fingerprints, review_history=[])
+                   run_id=thread_id, source_fingerprints=fingerprints, review_history=[],
+                   grow_indexes=bool(grow_indexes))  # 웹 실행만 True: 색인 자동 확장(T1.5 문서 추가, T3 과거 사업 확장)
     with _open(db_path, graph_factory) as graph:
         if graph.get_state(config).values:
             raise ValueError("이미 사용한 thread_id입니다. 기존 실행은 status/resume으로 확인하세요.")

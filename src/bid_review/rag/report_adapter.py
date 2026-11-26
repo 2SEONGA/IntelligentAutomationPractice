@@ -69,6 +69,12 @@ def build_market_result(
         notice = str(item.get("interpretation_notice") or "").strip()
         if notice:
             limitations.append(notice)
+        rerank = item.get("rerank_score")
+        if rerank == 0:  # M48: 빼지 않고 표시만 한다
+            limitations.append("AI 재정렬 판정: 분야 다름 — 유사도는 높지만 업무 분야가 달라 참고 가치가 낮을 수 있습니다.")
+        rerank_text = (f" AI 재정렬 판정: {item.get('rerank_label')}"
+                       + (f"({item.get('rerank_reason')})" if item.get("rerank_reason") else "") + "."
+                       if rerank in (0, 1, 2) else "")
 
         result.similar_projects.append(SimilarProject(
             project_name=title,
@@ -76,7 +82,7 @@ def build_market_result(
             source_url=url,
             checked_at=checked_at,
             similarity_rationale=(
-                f"사업 프로필 유사도 {score:.4f}의 검색 후보입니다."
+                f"사업 프로필 유사도 {score:.4f}의 검색 후보입니다." + rerank_text
                 + (f" 검색에 사용된 본문 발췌: {excerpt}" if excerpt else "")
             ),
             comparison_limitations=limitations,

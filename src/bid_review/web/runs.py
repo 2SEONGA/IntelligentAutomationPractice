@@ -36,6 +36,14 @@ TRANSITIONS = {
     "reject": ("director", "결재 대기", "보완 요청"),
     "rerun": ("staff", "보완 요청", "검토 완료"),
 }
+NOTICE_FILES = ("notice.pdf", "notice.hwpx", "notice.hwp")  # 검토 폴더의 공고문(PDF 우선, 없으면 HWPX·HWP)
+
+
+def notice_file(folder: Path) -> Path | None:
+    """검토 폴더에 저장된 공고문 파일. 없으면 None."""
+    return next((Path(folder) / name for name in NOTICE_FILES if (Path(folder) / name).is_file()), None)
+
+
 _workflow_lock = threading.Lock()  # ponytail: one lock for every case; per-case locks if this ever serves many users
 
 
@@ -259,7 +267,7 @@ def record_run(report: Path, mode: str) -> None:
 def rerun_inputs(run_id: str) -> dict | None:
     path = decode_run_id(run_id)
     rfp = _find_pdf(path)
-    return {"rfp_path": str(rfp), "notice": (path.parent / "notice.pdf").is_file()} if rfp else None
+    return {"rfp_path": str(rfp), "notice": notice_file(path.parent) is not None} if rfp else None
 
 
 def list_runs() -> list[dict]:

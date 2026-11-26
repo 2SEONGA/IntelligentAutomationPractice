@@ -5,6 +5,7 @@ from contextlib import redirect_stdout
 from copy import deepcopy
 import io
 import json
+import os
 from pathlib import Path
 import runpy
 import subprocess
@@ -224,7 +225,8 @@ class HITLTests(unittest.TestCase):
 
     def test_real_process_restart(self):
         child = subprocess.run([sys.executable, str(Path(__file__).resolve()), "--worker-start", str(self.pdf), str(self.db)],
-                               check=True, capture_output=True, text=True)
+                               check=True, capture_output=True, text=True, encoding="utf-8",
+                               env={**os.environ, "PYTHONIOENCODING": "utf-8"})  # Windows 기본(cp949) 대신 UTF-8
         first = json.loads(child.stdout)
         result = self.resume(first)
         self.assertEqual(result["status"], "completed")
@@ -281,6 +283,35 @@ class HITLTests(unittest.TestCase):
             self.assertEqual(extractor.return_value.analyze.call_count, 1)
             self.assertEqual(verifier.return_value.verify.call_count, 1)
             self.assertEqual(matcher.return_value.analyze.call_count, 1)
+
+    def test_web_run_grows_indexes(self):
+        # 웹 실행(grow_indexes=True): T1.5 전에 문서를 검색 색인에 넣고, T3 관련 후보가 부족하면 과거 사업을 확장해 다시 검색한다.
+        import bid_review.rag.workflow as w
+        verification = w.CoreInfoVerification(document_id="fixture", status=w.VerificationStatus.HUMAN_REVIEW,
+                                               categories={}, routing_reasons=["테스트용 검토"])
+        far = {"notice_id": "A-000", "title": "먼 사업", "similarity": 0.71, "rerank_score": 0, "rerank_label": "분야 다름"}
+        near = {"notice_id": "B-000", "title": "가까운 사업", "similarity": 0.8, "rerank_score": 2, "rerank_label": "관련"}
+        searches = iter([[far], [far, near]])
+        with patch.object(w, "RFPExtractor") as extractor, patch.object(w, "T15Verifier") as verifier, \
+             patch.object(w, "CapabilityMatcher") as matcher, patch.object(w.BidReviewCrew, "_load_profile"), \
+             patch.object(w, "project_profile", return_value="fixture"), \
+             patch.object(w, "ensure_indexed", return_value="indexed 3 (semantic: added)") as indexed, \
+             patch.object(w, "search_similar_projects", side_effect=lambda *a, **kw: next(searches)), \
+             patch.object(w, "rerank_projects", side_effect=lambda query, results: (results, "done")), \
+             patch.object(w, "expand_past_projects", return_value={"status": "expanded 1", "added": ["B-000"]}) as expand:
+            extractor.return_value.analyze.return_value = RFPAnalysisResult()
+            verifier.return_value.verify.return_value = verification
+            matcher.return_value.analyze.return_value = CapabilityMatchingResult(fit_score={"value": 0, "formula": "테스트용"})
+            first = start_review(self.pdf, thread_id="grow", db_path=self.db, graph_factory=w.create_bid_review_graph,
+                                 grow_indexes=True)
+            self.assertEqual(first["state"]["rag_index_status"], {"rfp": "indexed 3 (semantic: added)"})
+            result = resume_review("grow", first["interrupts"][0]["id"],
+                {"action": "approve", "reviewer": "테스트 담당자", "note": "확장 검증용 승인", "corrections": {}},
+                db_path=self.db, graph_factory=w.create_bid_review_graph)
+            self.assertEqual(indexed.call_count, 1)
+            self.assertEqual(expand.call_count, 1)
+            self.assertEqual([p["notice_id"] for p in result["state"]["similar_projects"]], ["A-000", "B-000"])
+            self.assertEqual(result["state"]["t3_expansion"]["status"], "expanded 1")
 
 
 if __name__ == "__main__":

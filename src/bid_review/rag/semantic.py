@@ -35,19 +35,72 @@ class SemanticUnavailable(Exception):
     """Semantic search cannot run (no index, stale index, or API failure); callers fall back to keywords."""
 
 
-def openai_embedder(model: str = EMBEDDING_MODEL) -> Embedder:
+EMBEDDING_CACHE = RAG_DIR / "embedding_cache.sqlite3"
+EMBEDDING_CACHE_VERSION = 1  # 벡터를 만드는 방식(입력 가공 등)이 바뀌면 올린다 → 예전 캐시는 자동으로 안 맞는다
+
+
+def embedding_cache_key(model: str, text: str) -> str:
+    """캐시 키 = SHA-256(캐시 버전 + 모델 + 텍스트). 모델이나 텍스트가 한 글자라도 다르면 다른 키."""
+    return hashlib.sha256(f"v{EMBEDDING_CACHE_VERSION}\n{model}\n{text}".encode("utf-8")).hexdigest()
+
+
+def cached_embedder(embed: Embedder, model: str, path: Path | None = None) -> Embedder:
+    """같은 모델·같은 텍스트는 처음 받은 벡터를 그대로 돌려준다(M37: OpenAI 점수가 소수 넷째 자리에서 흔들림).
+
+    벡터는 받은 값 그대로(float64) 저장해 첫 호출과 이후 호출이 완전히 같다. 캐시에 없는 텍스트만 API로 보낸다.
+    캐시 파일을 못 쓰면(권한 등) 캐시 없이 동작한다.
+    """
+    import sqlite3
+
+    def connect():
+        target = Path(path or EMBEDDING_CACHE)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        connection = sqlite3.connect(target, timeout=30)
+        connection.execute("CREATE TABLE IF NOT EXISTS vectors (key TEXT PRIMARY KEY, model TEXT, dims INTEGER, vector BLOB)")
+        return connection
+
+    def run(texts: list[str]) -> list[list[float]]:
+        keys = [embedding_cache_key(model, text) for text in texts]
+        found: dict[str, list[float]] = {}
+        try:
+            with connect() as connection:
+                for start in range(0, len(keys), 500):
+                    chunk = keys[start:start + 500]
+                    rows = connection.execute(f"SELECT key, vector FROM vectors WHERE key IN ({','.join('?' * len(chunk))})", chunk)
+                    found.update({key: np.frombuffer(blob, dtype=np.float64).tolist() for key, blob in rows})
+        except (sqlite3.Error, OSError):
+            found = {}
+        missing = list(dict.fromkeys(text for text, key in zip(texts, keys) if key not in found))
+        if missing:
+            fresh = embed(missing)
+            new = {embedding_cache_key(model, text): vector for text, vector in zip(missing, fresh)}
+            found.update(new)
+            try:
+                with connect() as connection:
+                    connection.executemany("INSERT OR REPLACE INTO vectors VALUES (?, ?, ?, ?)",
+                                           [(key, model, len(vector), np.asarray(vector, dtype=np.float64).tobytes())
+                                            for key, vector in new.items()])
+            except (sqlite3.Error, OSError):
+                pass
+        return [found[key] for key in keys]
+    return run
+
+
+def openai_embedder(model: str = EMBEDDING_MODEL, cache: bool = True) -> Embedder:
     from dotenv import load_dotenv
     from openai import OpenAI
 
     load_dotenv(PROJECT_ROOT / ".env")
-    client = OpenAI()
+    client = None
 
     def embed(texts: list[str]) -> list[list[float]]:
+        nonlocal client
+        client = client or OpenAI()  # 캐시로 모두 해결되면 키 없이도 동작한다
         response = client.embeddings.create(model=model, input=texts)
         from .usage_tracking import record_embedding_usage
         record_embedding_usage(getattr(response, "usage", None))
         return [item.embedding for item in sorted(response.data, key=lambda item: item.index)]
-    return embed
+    return cached_embedder(embed, model) if cache else embed
 
 
 def _normalise(vectors: np.ndarray) -> np.ndarray:
@@ -93,10 +146,15 @@ def _load_index(rag_dir: Path) -> tuple[np.ndarray, list[dict[str, Any]], dict[s
     if not (meta_path.is_file() and matrix_path.is_file() and chunks_path.is_file()):
         raise SemanticUnavailable("의미 검색 색인이 없습니다(scripts/build_semantic_index.py 실행 필요).")
     meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    chunks = _load_chunks(chunks_path)
     if meta.get("chunks_sha256") != hashlib.sha256(chunks_path.read_bytes()).hexdigest():
-        # 코퍼스가 바뀌었는데 벡터가 그대로면 행-chunk 대응이 틀어지므로 쓰지 않는다.
-        raise SemanticUnavailable("코퍼스가 바뀌어 의미 검색 색인이 오래됐습니다(재색인 필요).")
-    return np.load(matrix_path), _load_chunks(chunks_path), meta
+        # 실행 중 문서가 뒤에 덧붙었는데 그 벡터만 없는 경우(live_index 임베딩 실패): 앞부분은 행-chunk 대응이 맞으므로
+        # 벡터가 있는 앞부분만 검색한다. 그 밖에 코퍼스가 바뀌었으면 대응이 틀어지므로 쓰지 않는다.
+        known = meta.get("chunk_ids") or []
+        if not known or len(chunks) <= len(known) or [chunk["chunk_id"] for chunk in chunks[:len(known)]] != known:
+            raise SemanticUnavailable("코퍼스가 바뀌어 의미 검색 색인이 오래됐습니다(재색인 필요).")
+        chunks = chunks[:len(known)]
+    return np.load(matrix_path), chunks, meta
 
 
 def search_semantic(query: str, *, limit: int = 8, document_id: str | None = None, notice_no: str | None = None,

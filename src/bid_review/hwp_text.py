@@ -26,6 +26,14 @@ class HwpError(ValueError):
     pass
 
 
+HWP_LINES_PER_PAGE = 50  # HWP에는 쪽이 없어 50줄을 한 쪽으로 본다(T1·T3 공용)
+
+
+def hwp_pages(path: Path, lines_per_page: int = HWP_LINES_PER_PAGE) -> list[str]:
+    lines = hwp_text(path).splitlines()
+    return ["\n".join(lines[i:i + lines_per_page]) for i in range(0, len(lines), lines_per_page)]
+
+
 def hwp_text(path: Path) -> str:
     data = Path(path).read_bytes()
     if data.startswith(ZIP_MAGIC):

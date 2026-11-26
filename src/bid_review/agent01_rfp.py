@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import copy
+import hashlib
+import json
 import re
 import time
 from difflib import SequenceMatcher
@@ -17,6 +20,8 @@ from .models import (
 )
 from .money import parse_krw
 from . import ocr, vat
+from .hwp_text import HWP_LINES_PER_PAGE, hwp_pages
+from .pdf_chars import dedupe_overprint, file_sha256, remember_plain_texts
 from .settings import load_settings
 
 
@@ -123,6 +128,15 @@ def _is_repeated(value: str) -> bool:
     return False
 
 
+# T1 쪽 추출 결과(프로세스 안). 키는 파일 SHA-256·설정이라 파일이 바뀌면 다시 읽는다. 최근 문서 몇 개만 둔다.
+_PAGE_CACHE: dict[tuple, tuple] = {}
+_PAGE_CACHE_MAX = 8
+APPENDIX_MARKERS = ("별지", "서식", "붙임", "첨부")
+# 별첨·별표·양식은 본문에서도 "[별첨]의 평가기준", "별첨으로 제출"처럼 자주 인용되므로, 쪽 머리(앞 3줄)에
+# "[별표 1]", "<양식 2>", "별첨 3." 같은 표제로 나올 때만 서식 쪽으로 본다(CDW 64·66·67·70쪽 <별표 n>).
+APPENDIX_LABEL = re.compile(r"^\s*[\[<【〔(（]\s*(?:별첨|별표|양식)\s*(?:제?\s*\d+\s*호?)?\s*[\]>】〕)）]"
+                            r"|^\s*(?:별첨|별표|양식)\s*제?\s*\d+\s*호?\s*(?:$|[.:：\s])")
+APPENDIX_LABEL_LINES = 3
 TOC_HEADING = re.compile(r"^[-<\[(【]?\s*(?:목\s*차|차\s*례|contents|table\s*of\s*contents)\s*[-<>\])】]?$", re.I)
 TOC_ENTRY = re.compile(r"(?:[·.…‥ㆍ]{4,}|\s{6,})\s*\d{1,3}\s*$")
 
@@ -181,10 +195,14 @@ class RFPExtractor:
             return "cover_page", "첫 페이지로 표지 우선 처리"
         if _is_toc_page(text):
             return "table_of_contents", "목차 표제 줄 또는 점선·쪽 번호로 끝나는 줄 비율로 목차 확인"
-        if any(marker in text for marker in ("별지", "서식", "붙임", "첨부")):
+        if any(marker in text for marker in APPENDIX_MARKERS):
             return "appendix_page", "별지·서식·붙임 표식 확인"
         if len(table_rows) >= 3 or ("|" in text and len(re.findall(r"\s{3,}", text)) >= 5):
+            # 표 중심 쪽은 표 행 단위로 요구사항을 읽으므로, 머리 표제(<별표 n>)가 있어도 표 쪽으로 둔다.
             return "table_heavy_page", "추출된 표 행 또는 다열 레이아웃 비중이 높음"
+        top = [line for line in text.splitlines() if line.strip()][:APPENDIX_LABEL_LINES]
+        if any(APPENDIX_LABEL.search(line) for line in top):
+            return "appendix_page", "쪽 머리의 별첨·별표·양식 표제 확인"
         return "body_page", "본문 텍스트 중심 페이지"
 
     @staticmethod
@@ -217,7 +235,9 @@ class RFPExtractor:
 
         # 표지(그림자 글자)·목차(점선)·빈 제출 서식(반복 머리글)은 반복·기호가 정상이다. 시연 RFP의 OCR 필요 10쪽이 모두 이 오탐이었다.
         structural = page_type in {"cover_page", "table_of_contents", "appendix_page"}
-        if len(compact) < minimum and page_type != "table_of_contents":
+        # 표지는 원래 글자가 적다(통합정보 표지: 겹친 그림자 글자를 거르면 38자). 글자가 하나도 없을 때(스캔본)만 OCR 대상.
+        short_limit = 1 if page_type == "cover_page" else minimum
+        if len(compact) < short_limit and page_type != "table_of_contents":
             reason = "추출 텍스트가 너무 짧음"
         elif page_type == "table_heavy_page" and not table_rows:
             reason = "표 비중이 높지만 표 구조를 추출하지 못함"
@@ -230,25 +250,84 @@ class RFPExtractor:
             reason += "; 현재 환경에 OCR 엔진이 없어 자동 OCR을 실행하지 않음"
         return reason
 
+    @staticmethod
+    def _page_text(page, layout_page) -> tuple[str, str, object, bool]:
+        """한 쪽의 (pypdf 텍스트, 레이아웃 텍스트, 표·OCR 외 분석에 쓸 pdfplumber 쪽, 겹친 글자 여부).
+
+        겹쳐 찍은 글자가 있는 쪽은 pypdf도 글자를 겹쳐 읽으므로 걸러낸 pdfplumber 텍스트로 바꾼다.
+        """
+        text_page, overprinted = dedupe_overprint(layout_page)
+        try:
+            simple = _clean((text_page.extract_text() if overprinted else page.extract_text()) or "")
+        except Exception:
+            simple = ""
+        try:
+            layout = _clean(text_page.extract_text(layout=True) or "")
+        except Exception:
+            layout = ""
+        return simple, layout, text_page, overprinted
+
+    def _extract_hwp_pages(self, path: Path) -> tuple[list[PageText], list[ExtractionIssue], list[PageAnalysis], bool]:
+        """HWP·HWPX 공고문/제안요청서. 쪽 정보가 없어 50줄을 한 쪽으로 보고, 표·OCR 판정은 하지 않는다."""
+        pages: list[PageText] = []
+        analyses: list[PageAnalysis] = []
+        for number, chunk in enumerate(hwp_pages(path), start=1):
+            text = "\n".join(_clean(line) for line in chunk.splitlines() if _clean(line))
+            # HWP에는 표지 쪽이 따로 없다. 첫 50줄을 표지로 보면 모든 줄이 사업명 후보가 된다(실제 HWPX 공고문에서 확인).
+            page_type, rationale = self._classify_page(0 if number == 1 else number, text, [])
+            rationale += f" (HWP {HWP_LINES_PER_PAGE}줄 단위 쪽)"
+            analyses.append(PageAnalysis(page_number=number, page_type=page_type, rationale=rationale,
+                                         extraction_methods=["hwp_text"], table_count=0, ocr_required=False))
+            pages.append(PageText(number, text, text, [], page_type, rationale))
+        return pages, [], analyses, False
+
+    def _page_cache_key(self, path: Path) -> tuple:
+        """같은 파일 내용(SHA-256)·같은 추출 설정·같은 OCR 상태일 때만 같은 키."""
+        digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        rfp = self.settings.get("rfp", {})
+        options = json.dumps({"low": rfp.get("low_text_page_characters"), "ocr": rfp.get("ocr")}, sort_keys=True, default=str)
+        # 테스트·환경에 따라 OCR 함수와 엔진 유무가 바뀌면 다른 결과가 나오므로 키에 넣는다.
+        # 파일 이름도 넣는다: 추출 이슈의 근거(Evidence.document)에 이름이 들어간다.
+        return digest, path.name, options, self._ocr_available(), id(ocr.ocr_page)
+
     def _extract_pages(self, pdf_path: Path) -> tuple[list[PageText], list[ExtractionIssue], list[PageAnalysis], bool]:
-        """pypdf와 pdfplumber로 PDF를 읽어 페이지 목록 및 추출 이슈를 만듭니다."""
+        """PDF·HWP 쪽 추출. 같은 프로세스에서 같은 파일을 다시 분석하면(예: T1.5 재해석 노드) 저장해 둔 결과를 쓴다.
+
+        추출은 결정적(같은 입력 → 같은 출력)이므로 결과가 바뀌지 않는다. 돌려줄 때마다 깊은 복사본을 준다.
+        """
+        path = Path(pdf_path)
+        key = self._page_cache_key(path)
+        if key not in _PAGE_CACHE:
+            if len(_PAGE_CACHE) >= _PAGE_CACHE_MAX:
+                _PAGE_CACHE.pop(next(iter(_PAGE_CACHE)))  # 가장 먼저 넣은 것부터 버린다
+            _PAGE_CACHE[key] = self._extract_pages_uncached(path)
+        return copy.deepcopy(_PAGE_CACHE[key])
+
+    def _extract_pages_uncached(self, pdf_path: Path) -> tuple[list[PageText], list[ExtractionIssue], list[PageAnalysis], bool]:
+        """pypdf와 pdfplumber로 PDF를 읽어 페이지 목록 및 추출 이슈를 만듭니다. HWP·HWPX는 hwp_text로 읽습니다.
+
+        pypdf 텍스트는 일부 쪽에서 pdfplumber 레이아웃보다 길어 채택되므로(시연 CDW 2쪽 등) 빼지 않는다.
+        """
+        if Path(pdf_path).suffix.lower() in (".hwp", ".hwpx"):
+            return self._extract_hwp_pages(Path(pdf_path))
         reader = PdfReader(str(pdf_path))
         pages: list[PageText] = []
         issues: list[ExtractionIssue] = []
         analyses: list[PageAnalysis] = []
         needs_ocr = False
         ocr_attempts = 0
+        plain_texts: list[str | None] = []  # T3 질의 프로필이 같은 PDF를 다시 읽지 않게(남은 업무 4번)
 
         with pdfplumber.open(str(pdf_path)) as layout_pdf:
             for number, page in enumerate(reader.pages, start=1):
-                simple_text = _clean(page.extract_text() or "")
                 layout_page = layout_pdf.pages[number - 1]
-                try:
-                    layout_text = _clean(layout_page.extract_text(layout=True) or "")
-                except Exception:
-                    layout_text = ""
+                simple_text, layout_text, text_page, overprinted = self._page_text(page, layout_page)
 
-                table_rows = self._table_rows(layout_page)
+                table_rows = self._table_rows(text_page)
+                try:
+                    plain_texts.append(text_page.extract_text() or "")  # = past_projects._rfp_pages의 쪽 텍스트
+                except Exception:
+                    plain_texts.append(None)
                 best_text = layout_text if len(layout_text) > len(simple_text) else simple_text
                 page_type, rationale = self._classify_page(number, best_text, table_rows)
                 reason = self._ocr_reason(best_text, page_type, table_rows)
@@ -275,7 +354,8 @@ class RFPExtractor:
 
                 analyses.append(PageAnalysis(
                     page_number=number, page_type=page_type, rationale=rationale,
-                    extraction_methods=["pypdf_text", "pdfplumber_layout"] + (["pdfplumber_table"] if table_rows else [])
+                    extraction_methods=["pypdf_text", "pdfplumber_layout"] + (["pdfplumber_dedupe_chars"] if overprinted else [])
+                    + (["pdfplumber_table"] if table_rows else [])
                     + (["tesseract_ocr"] if ocr_applied else []),
                     table_count=len(table_rows), ocr_required=ocr_required, ocr_reason=reason, ocr_applied=ocr_applied,
                     ocr_attempted=ocr_record["attempted"], ocr_succeeded=ocr_record["succeeded"],
@@ -285,6 +365,7 @@ class RFPExtractor:
                     number, best_text, layout_text, table_rows,
                     page_type, rationale, ocr_required, reason, ocr_applied,
                 ))
+        remember_plain_texts(file_sha256(pdf_path), plain_texts)
         return pages, issues, analyses, needs_ocr
 
     @staticmethod
@@ -495,10 +576,11 @@ class RFPExtractor:
         self, bucket: dict, page: PageText, line: str, source_document: str,
     ) -> None:
         """사업명·발주기관·수요기관·공고번호·기간·목적을 후보로 수집합니다."""
-        project = self._label_value(line, r"사\s*업\s*명|과\s*업\s*명|공\s*고\s*명")
+        project = self._label_value(line, r"사\s*업\s*명|과\s*업\s*명|공\s*고\s*명|용\s*역\s*명|계\s*약\s*명")  # 수의계약 공고 "1. 계 약 명 :"
         if project:
             self._add_field(bucket, "project_name", project, page, line, source_document)
-        elif page.page_type == "cover_page" and "제안요청서" not in line and "목차" not in line and "··" not in line and 6 <= len(line) <= 90:
+        elif (page.page_type == "cover_page" and not re.search(r"제\s*안\s*요\s*청\s*서|목\s*차", line)  # 표지 "제 안 요 청 서"
+              and "··" not in line and 6 <= len(line) <= 90):
             self._add_field(bucket, "project_name", line, page, line, source_document, labelled=False)
 
         entity = self._label_value(line, r"발\s*주\s*기\s*관|주\s*관\s*기\s*관|발\s*주\s*처")
@@ -558,7 +640,7 @@ class RFPExtractor:
             amount = parse_krw(line)
             if amount is not None:
                 self._add_field(bucket, "estimated_price_krw", amount, page, line, source_document)
-        elif re.search(r"(?:전체|총)?\s*사업금액\s*(?:[:：|])|사업예산\s*(?:[:：|])|사업비\s*(?:[:：|])|기초금액\s*(?:[:：|]|(?=\d))", line):
+        elif re.search(r"(?:전체|총)?\s*사업금액\s*(?:[:：|])|추정금액\s*(?:[:：|])|사업예산\s*(?:[:：|])|사업비\s*(?:[:：|])|기초금액\s*(?:[:：|]|(?=\d))", line):
             amount = parse_krw(line)
             if amount is not None:
                 self._add_field(bucket, "budget_krw", amount, page, line, source_document)

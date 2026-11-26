@@ -11,14 +11,13 @@ export function noticeAction(notice: NoticeLike, staff: boolean): NoticeAction {
   return notice.verdict === "검토 대상" ? "start" : notice.verdict === "확인 필요" ? "review" : null;
 }
 
-type StartInfo = { skipped: string[]; rfp_guessed: boolean; market_api: boolean; market_requested: boolean; notice_pdf: boolean };
+type StartInfo = { skipped: string[]; rfp_guessed: boolean; notice_pdf: boolean };
 
 /** Things the user should know after "검토 시작" (spec 4.4: skipped files are reported on screen). */
 export function startNotes(info: StartInfo): string[] {
   const notes: string[] = [];
   if (info.skipped.length) notes.push(`받지 못한 첨부: ${info.skipped.join(", ")} (PDF가 아니거나 내려받지 못했어요)`);
   if (info.rfp_guessed) notes.push("파일 이름에 단서가 없는 PDF를 RFP로 썼어요. 결과 화면에서 RFP가 맞는지 확인하세요.");
-  if (info.market_requested && !info.market_api) notes.push("공고문 PDF를 받지 못해 나라장터 시장조사를 끄고 실행했어요.");
   return notes;
 }
 
