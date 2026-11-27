@@ -17,7 +17,10 @@
       "title": "사업보고서 (2025년 12월 31일 기준)",
       "publisher": "한국거래소 KIND",
       "url": "https://kind.krx.co.kr/external/2026/03/18/002340/20260318010956/11011.htm",
-      "source_type": "official_disclosure"
+      "source_type": "official_disclosure",
+      "filed_at": "2026-03-18",
+      "reporting_period_end": "2025-12-31",
+      "pages": 316
     },
     {
       "id": "SRC-003",
@@ -56,11 +59,14 @@
     },
     {
       "id": "SRC-008",
-      "title": "분기보고서 (2026년 9월 30일 기준; 2026-11-12 접수)",
+      "title": "분기보고서 (2026년 9월 30일 기준)",
       "publisher": "금융감독원 DART",
       "url": "https://dart.fss.or.kr/dsaf001/main.do?rcpNo=20261112000355",
       "source_type": "official_disclosure",
-      "verification_status": "접수번호와 회사별 공시 목록은 확인했으나 원문 열람 실패; 수치 미반영"
+      "filed_at": "2026-11-12",
+      "reporting_period_end": "2026-09-30",
+      "pages": 145,
+      "verification_status": "원문 PDF를 확인했고, 2026년 9월 말 기준 수치와 수주 현황을 반영함"
     }
   ],
   "records": [
@@ -138,9 +144,10 @@
       "evidence_level": "official_disclosure",
       "bid_use": "대규모 공공 정보시스템 구축 유사성의 사전 검토 근거",
       "verification_required": "유사실적 인정 범위, 주사업자 여부, 세부 수행범위는 실적증명서 또는 계약서 확인 필요",
-      "reported_progress_percent": 60.81,
-      "reported_progress_as_of": "2026-03-31",
-      "reported_progress_source_id": "SRC-003",
+      "reported_progress_percent": 78.56,
+      "reported_progress_as_of": "2026-09-30",
+      "reported_progress_source_id": "SRC-008",
+      "reported_progress_source_page": 109,
       "progress_interpretation": "분기보고서에 기재된 계약 진행률이다. 검수·완료 확인서 또는 입찰용 실적증명서를 대신하지 않는다."
     },
     {
@@ -163,9 +170,10 @@
       "evidence_level": "official_disclosure",
       "bid_use": "공공 업무시스템 재구축 유사성의 사전 검토 근거",
       "verification_required": "유사실적 인정 범위와 세부 사업범위는 실적증명서 또는 계약서 확인 필요",
-      "reported_progress_percent": 37.31,
-      "reported_progress_as_of": "2026-03-31",
-      "reported_progress_source_id": "SRC-003",
+      "reported_progress_percent": 60.28,
+      "reported_progress_as_of": "2026-09-30",
+      "reported_progress_source_id": "SRC-008",
+      "reported_progress_source_page": 109,
       "progress_interpretation": "분기보고서에 기재된 계약 진행률이다. 검수·완료 확인서 또는 입찰용 실적증명서를 대신하지 않는다."
     },
     {
@@ -188,9 +196,10 @@
       "evidence_level": "official_disclosure",
       "bid_use": "대규모 공공ㆍ국방 시스템 구축 경험의 사전 검토 근거",
       "verification_required": "해당 입찰의 유사실적 요건 충족 여부는 발주처 실적증명서로 확인 필요",
-      "reported_progress_percent": 24.59,
-      "reported_progress_as_of": "2026-03-31",
-      "reported_progress_source_id": "SRC-003",
+      "reported_progress_percent": 51.98,
+      "reported_progress_as_of": "2026-09-30",
+      "reported_progress_source_id": "SRC-008",
+      "reported_progress_source_page": 109,
       "progress_interpretation": "분기보고서에 기재된 계약 진행률이다. 검수·완료 확인서 또는 입찰용 실적증명서를 대신하지 않는다."
     },
     {
@@ -213,8 +222,9 @@
       "bid_use": "대규모 업무시스템 구축 경험의 사전 검토 근거",
       "verification_required": "공공기관 유사실적으로 인정되는지와 세부 수행범위는 원본 증빙 필요",
       "reported_progress_percent": 100.0,
-      "reported_progress_as_of": "2026-03-31",
-      "reported_progress_source_id": "SRC-003",
+      "reported_progress_as_of": "2026-09-30",
+      "reported_progress_source_id": "SRC-008",
+      "reported_progress_source_page": 109,
       "progress_interpretation": "분기보고서에 기재된 계약 진행률이다. 검수·완료 확인서 또는 입찰용 실적증명서를 대신하지 않는다."
     },
     {
@@ -308,6 +318,240 @@
       "accounting_scope": "consolidated",
       "data_freshness": "latest_filing_pending_primary_source_review",
       "candidate_refresh_source_id": "SRC-008"
+    },
+    {
+      "id": "CAP-TECH-003",
+      "type": "사업역량",
+      "title": "2025년 별도 기준 AXㆍDXㆍITO IT서비스 매출 구성",
+      "keywords": [
+        "AX",
+        "DX",
+        "ITO",
+        "시스템 구축",
+        "시스템 운영",
+        "IT 서비스"
+      ],
+      "source_id": "SRC-002",
+      "section": "사업의 내용 > 매출 및 수주상황 > 별도기준 매출 실적",
+      "source_page": 33,
+      "financial_basis": "㈜아이티센엔텍 별도재무제표 기준, 2025년 12월 말",
+      "revenue_krw": 339515000000,
+      "excerpt": "사업보고서는 ㈜아이티센엔텍 별도 기준 2025년 IT서비스 매출을 AX 15,393백만원, DX 149,140백만원, ITO 170,392백만원, 기타 4,590백만원으로 기재한다.",
+      "evidence_level": "official_disclosure",
+      "bid_use": "AXㆍDXㆍITO 관련 공고의 사업영역 및 기업 규모를 사전 검토하는 참고 근거",
+      "verification_required": "입찰의 매출액 요건은 공고가 요구하는 별도ㆍ연결 기준, 산정 기간 및 최신 재무제표ㆍ신용평가서로 별도 확인 필요"
+    },
+    {
+      "id": "CAP-PROJECT-007",
+      "type": "공개수행실적",
+      "title": "한국수자원공사 정보시스템 통합 운영 및 유지관리 용역",
+      "keywords": [
+        "한국수자원공사",
+        "정보시스템",
+        "통합 운영",
+        "유지관리",
+        "공공 SI"
+      ],
+      "source_id": "SRC-008",
+      "section": "사업의 내용 > 매출 및 수주상황 > 수주현황",
+      "source_page": 23,
+      "client": "한국수자원공사",
+      "contract_date": "2024-10-04",
+      "contract_end_date": "2027-10-03",
+      "contract_amount_krw": 20646000000,
+      "prior_reported_contract_amount_krw": 21225000000,
+      "prior_reported_contract_source_id": "SRC-002",
+      "latest_public_contract_as_of": "2026-09-30",
+      "excerpt": "2026년 3분기 분기보고서의 별도 기준 수주현황에는 ㈜아이티센엔텍의 한국수자원공사 정보시스템 통합 운영 및 유지관리 용역이 수주총액 20,646백만원, 2024년 10월 4일~2027년 10월 3일로 기재되어 있다. 2025년 사업보고서 수주총액 21,225백만원과 차이가 있어 계약 변경 여부는 원본으로 확인해야 한다.",
+      "evidence_level": "official_disclosure",
+      "bid_use": "공공 정보시스템 통합 운영ㆍ유지관리 유사성의 사전 검토 근거",
+      "verification_required": "입찰용 유사실적 인정 여부, 역할, 세부 수행범위 및 완료 여부는 발주처 실적증명서 또는 계약서로 확인 필요"
+    },
+    {
+      "id": "CAP-PROJECT-008",
+      "type": "공개수행실적",
+      "title": "Link-22 체계개발",
+      "keywords": [
+        "방위사업청",
+        "Link-22",
+        "체계개발",
+        "국방 IT"
+      ],
+      "source_id": "SRC-008",
+      "section": "재무에 관한 사항 > 진행률적용 수주계약 현황",
+      "source_page": 109,
+      "client": "한화시스템 주식회사",
+      "contract_date": "2023-03-01",
+      "contract_end_date": "2028-09-30",
+      "contract_amount_krw": 15108680000,
+      "reported_progress_percent": 56.27,
+      "reported_progress_as_of": "2026-09-30",
+      "reported_progress_source_id": "SRC-008",
+      "excerpt": "2026년 3분기 분기보고서의 진행률적용 수주계약 현황에는 ㈜아이티센엔텍의 Link-22 체계개발, 발주처 한화시스템 주식회사, 수주총액 15,108,680천원, 진행률 56.27%가 기재되어 있다.",
+      "evidence_level": "official_disclosure",
+      "bid_use": "국방ㆍ통신 체계 개발 관련 공고의 사전 유사성 검토 근거",
+      "verification_required": "입찰용 유사실적 인정 여부, 실제 수행 법인ㆍ역할과 세부 범위는 발주처 실적증명서 또는 계약서로 확인 필요"
+    },
+    {
+      "id": "CAP-PROJECT-009",
+      "type": "공개수행실적",
+      "title": "AI 교수학습플랫폼 1차 구축 사업",
+      "keywords": [
+        "AI",
+        "교수학습",
+        "플랫폼",
+        "시스템 구축"
+      ],
+      "source_id": "SRC-008",
+      "section": "사업의 내용 > 매출 및 수주상황 > 수주현황",
+      "source_page": 23,
+      "contract_date": "2024-06-18",
+      "contract_end_date": "2026-02-07",
+      "contract_amount_krw": 12431000000,
+      "excerpt": "2026년 3분기 분기보고서의 별도 기준 수주현황에는 AI 교수학습플랫폼 1차 구축 사업이 수주총액 12,431백만원, 2024년 6월 18일~2026년 2월 7일로 기재되어 있다.",
+      "evidence_level": "official_disclosure",
+      "bid_use": "AI 기반 교육ㆍ플랫폼 구축 공고의 사전 유사성 검토 근거",
+      "verification_required": "공시는 발주처와 세부 수행범위를 충분히 밝히지 않으므로, 입찰용 유사실적 판단에는 원본 계약서 또는 발주처 실적증명서가 필요"
+    },
+    {
+      "id": "CAP-PROJECT-010",
+      "type": "공개수행실적",
+      "title": "2025년~2026년 나이스 응용SW 유지관리",
+      "keywords": [
+        "나이스",
+        "응용SW",
+        "유지관리",
+        "교육 정보시스템"
+      ],
+      "source_id": "SRC-008",
+      "section": "사업의 내용 > 매출 및 수주상황 > 수주현황",
+      "source_page": 23,
+      "contract_date": "2025-04-01",
+      "contract_end_date": "2027-03-31",
+      "contract_amount_krw": 10838000000,
+      "excerpt": "2026년 3분기 분기보고서의 별도 기준 수주현황에는 2025년~2026년 나이스 응용SW 유지관리 사업이 수주총액 10,838백만원, 2025년 4월 1일~2027년 3월 31일로 기재되어 있다.",
+      "evidence_level": "official_disclosure",
+      "bid_use": "교육 행정 시스템 운영ㆍ응용SW 유지관리 공고의 사전 유사성 검토 근거",
+      "verification_required": "공시는 발주처와 세부 수행범위를 충분히 밝히지 않으므로, 입찰용 유사실적 판단에는 원본 계약서 또는 발주처 실적증명서가 필요"
+    },
+    {
+      "id": "CAP-PROJECT-011",
+      "type": "공개수행실적",
+      "title": "2025~2026 고용정보망 통합 유지관리 및 운영지원 사업",
+      "keywords": [
+        "고용정보망",
+        "통합 유지관리",
+        "운영지원",
+        "공공 시스템"
+      ],
+      "source_id": "SRC-008",
+      "section": "사업의 내용 > 매출 및 수주상황 > 수주현황",
+      "source_page": 23,
+      "contract_date": "2025-06-01",
+      "contract_end_date": "2027-03-31",
+      "contract_amount_krw": 14761000000,
+      "prior_reported_contract_amount_krw": 13513000000,
+      "prior_reported_contract_source_id": "SRC-002",
+      "latest_public_contract_as_of": "2026-09-30",
+      "excerpt": "2026년 3분기 분기보고서의 별도 기준 수주현황에는 2025~2026 고용정보망 통합 유지관리 및 운영지원 사업이 수주총액 14,761백만원, 2025년 6월 1일~2027년 3월 31일로 기재되어 있다. 2025년 사업보고서 수주총액 13,513백만원과 차이가 있어 계약 변경 여부는 원본으로 확인해야 한다.",
+      "evidence_level": "official_disclosure",
+      "bid_use": "공공 업무시스템 통합 유지관리ㆍ운영지원 공고의 사전 유사성 검토 근거",
+      "verification_required": "공시는 발주처와 세부 수행범위를 충분히 밝히지 않으므로, 입찰용 유사실적 판단에는 원본 계약서 또는 발주처 실적증명서가 필요"
+    },
+    {
+      "id": "CAP-TECH-004",
+      "type": "사업역량",
+      "title": "2026년 3분기 누적 별도 기준 AXㆍDXㆍITO IT서비스 매출 구성",
+      "keywords": [
+        "AX",
+        "DX",
+        "ITO",
+        "시스템 구축",
+        "시스템 운영",
+        "IT 서비스"
+      ],
+      "source_id": "SRC-008",
+      "section": "사업의 내용 > 매출 및 수주상황 > 별도기준 매출 실적",
+      "source_page": 20,
+      "financial_basis": "㈜아이티센엔텍 별도재무제표 기준, 2026년 1월~9월 누적",
+      "revenue_krw": 244215000000,
+      "excerpt": "분기보고서는 ㈜아이티센엔텍 별도 기준 2026년 3분기 누적 IT서비스 매출을 AX 45,272백만원, DX 52,227백만원, ITO 145,224백만원, 기타 1,492백만원으로 기재한다.",
+      "evidence_level": "official_disclosure",
+      "bid_use": "AXㆍDXㆍITO 관련 공고의 최신 사업영역과 기업 규모를 사전 검토하는 참고 근거",
+      "verification_required": "9개월 누적 수치이므로 연간 매출 요건에는 사용할 수 없으며, 공고가 요구하는 별도ㆍ연결 기준과 산정 기간을 최신 재무제표ㆍ신용평가서로 확인 필요"
+    },
+    {
+      "id": "CAP-FINANCE-002",
+      "type": "재무참고정보",
+      "title": "2026년 3분기 누적 연결재무 하이라이트",
+      "keywords": [
+        "재무정보",
+        "매출액",
+        "영업이익",
+        "당기순이익",
+        "자산",
+        "자본"
+      ],
+      "source_id": "SRC-008",
+      "section": "재무에 관한 사항 > 요약연결재무정보",
+      "source_page": 36,
+      "financial_basis": "연결재무제표 기준, 2026년 1월~9월 누적(자산ㆍ자본은 2026년 9월 말)",
+      "revenue_krw": 408521966680,
+      "operating_income_krw": 27561377617,
+      "net_income_krw": 27796893549,
+      "total_assets_krw": 306678583874,
+      "total_equity_krw": 126700042001,
+      "financial_period_end": "2026-09-30",
+      "accounting_scope": "consolidated",
+      "data_freshness": "latest_official_disclosure",
+      "excerpt": "분기보고서의 연결 기준 2026년 3분기 누적 매출액은 408,521,966,680원, 영업이익은 27,561,377,617원, 당기순이익은 27,796,893,549원이며, 2026년 9월 말 자산총계는 306,678,583,874원, 자본총계는 126,700,042,001원으로 기재되어 있다.",
+      "evidence_level": "official_disclosure",
+      "bid_use": "기업 규모와 최신 재무상태의 사전 검토 참고 근거",
+      "verification_required": "9개월 누적 연결 기준 공개 수치다. 입찰 공고의 신용등급ㆍ매출액ㆍ자본금 요건 판단에는 공고가 요구하는 별도ㆍ연결 기준, 산정 기간 및 최신 재무제표 또는 신용평가서를 별도 확인해야 한다."
+    },
+    {
+      "id": "CAP-PROJECT-012",
+      "type": "공개수행실적",
+      "title": "사법부 데이터센터 전산장비 유지보수 (2026년~2027년)",
+      "keywords": [
+        "사법부",
+        "데이터센터",
+        "전산장비",
+        "유지보수",
+        "공공 IT"
+      ],
+      "source_id": "SRC-008",
+      "section": "사업의 내용 > 매출 및 수주상황 > 수주현황",
+      "source_page": 23,
+      "contract_date": "2026-01-26",
+      "contract_end_date": "2027-12-31",
+      "contract_amount_krw": 15305000000,
+      "excerpt": "2026년 3분기 분기보고서의 별도 기준 수주현황에는 사법부 데이터센터 전산장비 유지보수(26년~27년) 사업이 수주총액 15,305백만원, 2026년 1월 26일~2027년 12월 31일로 기재되어 있다.",
+      "evidence_level": "official_disclosure",
+      "bid_use": "공공 데이터센터ㆍ전산장비 유지보수 공고의 사전 유사성 검토 근거",
+      "verification_required": "공시는 발주처 법인명, 역할 및 세부 수행범위를 충분히 밝히지 않으므로 입찰용 유사실적 판단에는 원본 계약서 또는 발주처 실적증명서가 필요"
+    },
+    {
+      "id": "CAP-PROJECT-013",
+      "type": "공개수행실적",
+      "title": "2026년~2027년 정보시스템 통합유지관리 용역사업",
+      "keywords": [
+        "정보시스템",
+        "통합유지관리",
+        "유지보수",
+        "운영지원",
+        "공공 IT"
+      ],
+      "source_id": "SRC-008",
+      "section": "사업의 내용 > 매출 및 수주상황 > 수주현황",
+      "source_page": 23,
+      "contract_date": "2026-06-01",
+      "contract_end_date": "2028-05-31",
+      "contract_amount_krw": 47946000000,
+      "excerpt": "2026년 3분기 분기보고서의 별도 기준 수주현황에는 26~27년 정보시스템 통합유지관리 용역사업이 수주총액 47,946백만원, 2026년 6월 1일~2028년 5월 31일로 기재되어 있다.",
+      "evidence_level": "official_disclosure",
+      "bid_use": "대규모 정보시스템 통합 유지관리ㆍ운영지원 공고의 사전 유사성 검토 근거",
+      "verification_required": "공시는 발주처 법인명, 역할 및 세부 수행범위를 충분히 밝히지 않으므로 입찰용 유사실적 판단에는 원본 계약서 또는 발주처 실적증명서가 필요"
     }
   ],
   "missing_evidence": [
